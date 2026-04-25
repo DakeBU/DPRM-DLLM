@@ -16,6 +16,9 @@ The most recent PUMA and DPLM rerun artifacts are under [`latest/`](./latest):
 - `co_generation_lengthwise_summary.csv`
 - `dplm2_order_forward_ci.png`
 - `dplm2_order_cogen_ci.png`
+- `dcm_dentate_metrics.csv`
+- `dcm_dentate_paired_deltas.csv`
+- `dcm_dentate_metrics.png`
 
 These are the preferred artifacts for README-level reporting.
 

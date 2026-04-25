@@ -1,6 +1,6 @@
 # DPRM-DLLM
 
-Official Implimentation of paper *DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models*.
+Official implementation of paper *DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models*.
 
 **DPRM-DLLM** is a plug-in token-ordering module for masked discrete diffusion and diffusion language models.
 
@@ -127,6 +127,7 @@ Ask the assistant to return:
 | DPRM-DPLM | DPLM-2 Bit | Generative modeling | Protein inverse folding | [DPLM-2 paper](https://arxiv.org/abs/2504.11454), [design-space protocol](https://bytedance.github.io/dplm/dplm-2.1/) | [bytedance/dplm](https://github.com/bytedance/dplm) |
 | DPRM-DMPO | DMPO | Post-training | Reasoning | [DMPO paper](https://arxiv.org/abs/2510.08233) | [yuchen-zhu-zyc/DMPO](https://github.com/yuchen-zhu-zyc/DMPO) |
 | DPRM-Prism | Prism | Test-time scaling | Reasoning | [Prism paper](https://arxiv.org/abs/2602.01842) | [viiika/Prism](https://github.com/viiika/Prism) |
+| DPRM-DCM | DCM | Generative modeling | Single-cell gene expression | [DCM paper](https://www.biorxiv.org/content/10.64898/2026.02.19.705033v1.full.pdf) | [sanjukta7/aivc-dcm](https://github.com/sanjukta7/aivc-dcm) |
 
 The folders in [`integrations/`](./integrations) are lightweight patch maps and overlay snippets. They are not full third-party repositories and do not include checkpoints, datasets, or generated evaluation outputs.
 
@@ -142,6 +143,7 @@ All comparisons keep the host model and task protocol fixed as much as possible,
 | DPRM-Prism on GSM8K | Prism confidence HTS vs DPRM-Prism under the same search scaffold | Voted accuracy improves from `82.41` to `83.85`, a `+1.44` point gain. |
 | DPRM-DPLM forward folding | DPLM-2 Bit vs ordering-aware variants | FF RMSD decreases from `35.47` to `29.43`, a `17.0%` reduction; FF TM increases from `0.3071` to `0.3321`, a `+8.1%` relative gain. |
 | DPRM-DPLM designability | DPLM-2 Bit vs DPRM-DPLM and confidence-progressive DPLM | Designable rate improves from `23.6%` to `40.0%` for DPRM-DPLM and `40.4%` for the confidence-progressive variant. |
+| DPRM-DCM on Dentate Gyrus | DCM-random vs ordering-aware DCM variants | Token recovery improves from `63.97%` to `75.92%` for DPRM(random)-DCM, a `+18.7%` relative gain; MAE decreases from `0.821` to `0.654`, a `20.4%` reduction; zero-expression accuracy improves from `78.39%` to `99.90%`. |
 
 For protein co-generation, the strongest TM-score, pLDDT, and designable rate come from the confidence-progressive variant, while DPRM-DPLM has the smallest CoGen RMSD penalty among the ordering-aware methods. This is expected: protein generation is multi-objective, and ordering affects foldability, geometry, and designability differently.
 
@@ -164,7 +166,8 @@ DPRM-DLLM/
 │   ├── puma/
 │   ├── dplm/
 │   ├── dmpo/
-│   └── prism/
+│   ├── prism/
+│   └── dcm/
 ├── statistics_outputs/       # result summaries and uncertainty plots
 ├── examples/                 # small runnable examples
 ├── docs/                     # attribution and release notes
@@ -219,6 +222,12 @@ Patch map: [`integrations/dplm`](./integrations/dplm)
 Keep search width, local branching, pruning cadence, self-verification, and NFE accounting fixed. Replace only the confidence ranking used to select or remask tokens inside the search loop.
 
 Patch map: [`integrations/prism`](./integrations/prism)
+
+### Scientific count-token diffusion, e.g. DCM
+
+Keep the single-cell count-bin preprocessing, DCM/SEDD denoising objective, train/validation split, and optimizer fixed. Replace only the masked gene-position reveal order. Use self-supervised reconstruction utility, such as selected-bin token recovery, unless the host already exposes a downstream biological utility.
+
+Patch map: [`integrations/dcm`](./integrations/dcm)
 
 ## Open-Source Boundary
 

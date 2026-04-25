@@ -6,6 +6,7 @@ This directory contains host-specific patch maps extracted from the local resear
 - [puma](./puma): pretraining overlay with progressive teacher-forced unmasking.
 - [dplm](./dplm): protein diffusion overlay for DPLM / DPLM-2 Bit.
 - [prism](./prism): test-time scaling overlay for HTS-based decoding.
+- [dcm](./dcm): single-cell gene-expression discrete diffusion overlay for DCM.
 
 Each folder contains:
 
