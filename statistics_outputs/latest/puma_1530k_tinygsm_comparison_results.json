@@ -1,0 +1,32 @@
+{
+  "puma_topk": {
+    "checkpoint": "<PUMA_DPRM_REPO>/ckpts/date=2026-04-13-00-31/ema_step=1530000.pt",
+    "step": 1530000,
+    "epoch": 8,
+    "is_ema": true,
+    "override_confidence": null,
+    "results": {
+      "top_k_unmasking_2": 0.29946929492039426,
+      "top_k_unmasking_3": 0.287338893100834
+    },
+    "detail_outputs": {
+      "top_k_unmasking_2": "<PUMA_DPRM_REPO>/eval_outputs/step1530k_compare/top_k_unmasking_2_per_example.jsonl",
+      "top_k_unmasking_3": "<PUMA_DPRM_REPO>/eval_outputs/step1530k_compare/top_k_unmasking_3_per_example.jsonl"
+    }
+  },
+  "dprm_puma": {
+    "checkpoint": "<PUMA_DPRM_REPO>/ckpts/date=2026-04-13-02-08/ema_step=1530000.pt",
+    "step": 1530000,
+    "epoch": 6,
+    "is_ema": true,
+    "override_confidence": null,
+    "results": {
+      "dprm_soft_bon_unmasking_2": 0.3411675511751327,
+      "dprm_soft_bon_unmasking_3": 0.34420015163002277
+    },
+    "detail_outputs": {
+      "dprm_soft_bon_unmasking_2": "<PUMA_DPRM_REPO>/eval_outputs/step1530k_compare/dprm_soft_bon_unmasking_2_per_example.jsonl",
+      "dprm_soft_bon_unmasking_3": "<PUMA_DPRM_REPO>/eval_outputs/step1530k_compare/dprm_soft_bon_unmasking_3_per_example.jsonl"
+    }
+  }
+}

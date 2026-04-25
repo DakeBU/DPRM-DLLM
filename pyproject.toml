@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dprm"
+version = "0.1.0"
+description = "Plug-in DPRM token-ordering module for diffusion and masked generation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.1"]
+license = {text = "Apache-2.0"}
+keywords = ["diffusion language model", "masked diffusion", "token ordering", "Doob h-transform", "process reward model"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

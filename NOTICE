@@ -1,0 +1,14 @@
+DPRM-DLLM contains original reusable DPRM controller code plus lightweight
+integration overlays derived from local research forks.
+
+Host projects referenced by the overlays:
+
+- PUMA: https://github.com/JaeyeonKim01/PUMA
+- DPLM: https://github.com/bytedance/dplm
+- DMPO: https://github.com/yuchen-zhu-zyc/DMPO
+- Prism: https://github.com/viiika/Prism
+
+This repository does not redistribute checkpoints, datasets, W&B artifacts, or
+complete upstream host repositories. Users should consult each upstream project
+for its own license, model terms, dataset terms, and reproduction instructions.
+

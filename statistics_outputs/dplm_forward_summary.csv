@@ -1,0 +1,10 @@
+suite,task,subset,model,metric,point,ci_low,ci_high,stderr,n,method
+DPLM,forward_folding_cameo2022,overall,DPLM-2-Bit,bb_tmscore_to_gt,0.30710292493303437,0.2937515802450539,0.3210740050326631,0.007090134721889242,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPLM-2-Bit,bb_rmsd_to_gt,35.46684843192071,34.44851392207701,36.516715209469474,0.5198978533060404,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPLM-2-Bit,ca_rmsd_to_gt,35.697624118781526,34.67611150244262,36.75258771042151,0.5211603602988962,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPRM-DPLM-2-Bit,bb_tmscore_to_gt,0.3072933298354399,0.2989980971413151,0.31596353337515076,0.004331720557453461,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPRM-DPLM-2-Bit,bb_rmsd_to_gt,32.865552088965664,32.09255596494383,33.66535240462953,0.39706472012184796,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPRM-DPLM-2-Bit,ca_rmsd_to_gt,32.93013771618802,32.152428472846566,33.73092816973025,0.3982246151391019,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPRM-DPLM-2-Bit - DPLM-2-Bit,bb_tmscore_to_gt_delta,0.00019040490240552745,-0.010500223239992808,0.010750822955544562,0.005401379003900692,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPRM-DPLM-2-Bit - DPLM-2-Bit,bb_rmsd_to_gt_delta,-2.6012963429550453,-3.1074482563814505,-2.083594666960781,0.26167281677276155,163,paired_bootstrap
+DPLM,forward_folding_cameo2022,overall,DPRM-DPLM-2-Bit - DPLM-2-Bit,ca_rmsd_to_gt_delta,-2.7674864025935073,-3.2714077801792167,-2.256830410723306,0.25895506656019057,163,paired_bootstrap

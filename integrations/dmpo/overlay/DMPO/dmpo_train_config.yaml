@@ -1,0 +1,125 @@
+##### ModelConfig
+use_peft: true
+torch_dtype: bfloat16
+load_in_4bit: true
+pretrained_model_path: GSAI-ML/LLaDA-8B-Instruct
+attn_implementation: flash_attention_2
+
+lora_r: 128
+lora_alpha: 64
+lora_dropout: 0.05
+peft_task_type: CAUSAL_LM
+
+##### TrainingArguments
+seed: 42
+bf16: true
+
+sync_ref_model: false
+ref_model_sync_steps: 0 # 64
+
+adam_beta1: 0.9
+adam_beta2: 0.99
+weight_decay: 0.1
+max_grad_norm: 0.2 # d1 uses 0.2, in our case most of the time the grad_norm is below 0.5
+
+use_vllm: false
+vllm_device: auto
+vllm_gpu_memory_utilization: 0.9
+
+warmup_ratio: 0.0001
+logging_steps: 1
+learning_rate: 1e-6 # 3e-6
+lr_scheduler_type: constant_with_warmup
+
+num_generations: 16 # number of generations to sample for each prompt, should be multiple of per_device_train_batch_size for convenience
+num_train_epochs: 10
+
+per_device_eval_batch_size: 1
+per_device_train_batch_size: 8 # d1 uses 6
+gradient_accumulation_steps: 2 # d1 uses 2
+
+gradient_checkpointing: false
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+
+resume_from_checkpoint: false
+
+##### Parameters for saving checkpoints
+save_steps: 100
+save_strategy: steps
+save_total_limit: 5
+
+##### DMPO
+num_iterations: 8 # d1 uses 12
+alpha: 0.04
+
+# For compute_loss
+loss: wdce # wdce, ddo
+num_replicates: 4
+loss_antithetic: true
+loss_mask_prob_clamp: true
+loss_mask_non_eos: false
+loss_mask_sampler: random # random, progressive
+loss_progressive_k: 8
+loss_progressive_threshold: null # e.g. 0.9 enables PUMA-style confidence collapse
+loss_progressive_phase_init: random # random, zero
+loss_progressive_order_policy: confidence # confidence, dprm_soft_bon
+loss_progressive_dprm_bins: 16
+loss_progressive_dprm_reward_temperature: 1.0
+loss_progressive_dprm_lambda: 1.0
+loss_progressive_dprm_warmup_steps: 500
+loss_progressive_dprm_switch_steps: 2000
+loss_progressive_dprm_ready_count: 128
+loss_progressive_dprm_mode: sampled # analytic, sampled
+loss_progressive_dprm_candidate_multiplier: 4
+loss_progressive_dprm_max_candidates: 32
+loss_progressive_dprm_min_candidates: 8
+
+compute_ref_log_prob_elbo: true
+compute_ref_log_prob_elbo_size: 4
+
+use_sft_model: false
+sft_model_path: null
+
+ddo_alpha: 1
+ddo_beta: 1
+ddo_indep_set: true
+
+# For _generate_and_score_completions
+
+## Generating rollouts
+### General sampling hyperparameters
+generation_batch_size: 8 # = per_device_train_batch_size
+block_length: 32
+temperature: 0.2
+cfg_scale: 0.0
+
+### Fast samplers by KV cache
+use_fast_sampler: fast_dllm # fast_dllm, wino, no (corresponds to LLaDA without KV cache)
+sampler: pd_cache_prefix # roar, llada, pd, pd_cache_prefix, pd_cache_dual, wino
+
+#>> the following two are only for sampler in {llada, pd, pd_cache_prefix, pd_cache_dual}
+sampler_steps: 128
+sampler_remasking: low_confidence # low_confidence, random, dprm_soft_bon
+
+#>> the following two are only for sampler in {pd, pd_cache_prefix, pd_cache_dual}
+sampler_threshold_pd: null
+sampler_factor: null
+
+#>> the following two are only for sampler = wino
+sampler_threshold_wino: 0.6
+sampler_threshold_wino_back: 0.9
+
+## computing log RND
+log_rnd_omit_eos: false
+
+## proximal step, only for alpha >= 0
+coeff: 1.0
+ada_coeff: false
+ada_coeff_ess_threshold: 0.7
+
+## computing advantage
+advantage_centering: true
+advantage_centering_unbias: false
+advantage_centering_neg: true
+centering_strength: 1

@@ -1,0 +1,87 @@
+model:
+  vocab_size: 151645
+  hidden_size: 512
+  intermediate_size: 1536
+  num_layers: 14
+  num_attention_heads: 8
+  num_kv_heads: 8
+  max_position: 512
+  rms_norm_eps: 1e-6
+  dropout: 0.0
+  tie_lm_head: true
+  causal: false
+  arm_init: "none"
+
+training:
+  strategy: "progressive"
+  order_policy: "dprm_soft_bon"
+  mode: "confidence_collapse"
+  confidence_threshold: 0.9
+  eos_id: 151643
+  K: 12
+  block_size: 256
+  k_schedule:
+    - [12, 30000]
+    - [15, 60000]
+    - [18, 90000]
+    - [21, 120000]
+    - [24, 150000]
+    - [27, 180000]
+    - [30, 210000]
+    - [33, 240000]
+    - [36, 270000]
+    - [39, 300000]
+    - [42, 330000]
+  data_ratio: 1.0
+  learning_rate: 3e-4
+  weight_decay: 0.01
+  num_epochs: 20
+  max_grad_norm: 1.0
+  batch_size: 32
+  warmup_steps: 1000
+  logging_steps: 100
+  eval_steps: 5000
+  save_steps: 10000
+  ema: 0.9999
+  dprm:
+    num_bins: 16
+    reward_beta: 1.0
+    value_scale: 1.0
+    warmup_steps: 2000
+    switch_steps: 60000
+    ready_count: 128
+    sampled_shortlist: false
+    candidate_multiplier: 4
+    min_candidates: 8
+    max_candidates: 64
+
+validation:
+  val_dir: "none"
+  sampling:
+    temperature: 0.0
+    confidence: ["top_k", "dprm_soft_bon"]
+    unmasking_num: [2, 3]
+    eos_id: 151643
+    dprm_num_phases: 16
+    dprm_num_bins: 16
+    dprm_reward_beta: 1.0
+    dprm_lambda: 1.0
+    dprm_warmup_steps: 0
+    dprm_switch_steps: 16
+    dprm_ready_count: 16
+
+data:
+  mask_id: 151644
+  dataset: "tinygsm"
+  data_dir: "data/tiny_gsm"
+  val_ratio: 0.02
+  seed: 2026
+  training:
+    per_gpu_batch_size: ${training.batch_size}
+    cpus: 4
+
+wandb:
+  wandb: true
+  project: "mdm-pretraining"
+  name: "puma-dprm"
+  entity: "your-entity-here"
