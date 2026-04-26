@@ -19,6 +19,11 @@ The most recent PUMA and DPLM rerun artifacts are under [`latest/`](./latest):
 - `dcm_dentate_metrics.csv`
 - `dcm_dentate_paired_deltas.csv`
 - `dcm_dentate_metrics.png`
+- `genmol_denovo_bootstrap_summary.csv`
+- `genmol_fragment_bootstrap_summary.csv`
+- `genmol_denovo_bootstrap_metrics.png`
+- `genmol_fragment_quality_bootstrap.png`
+- `genmol_fragment_validity_bootstrap.png`
 
 These are the preferred artifacts for README-level reporting.
 
@@ -33,6 +38,10 @@ The root-level CSVs and PNGs are earlier journal-style exports for DMPO, Prism, 
 - `dplm_cogen_summary.csv`
 
 When a newer file exists under `latest/`, use the `latest/` file.
+
+## GenMol V2 pilot
+
+The GenMol V2 artifacts under [`genmol/`](./genmol) and `latest/` report a pilot ordering ablation for molecular SAFE diffusion. De novo generation uses `1,000` samples per method. Fragment-constrained evaluation uses the same stable subset for every method: seven fragment examples across five tasks with one generated sample per example and task. Three fragment rows from the upstream demo CSV are skipped because GenMol's native `fragment_linking` sampler exits at the native-library level for at least one ordering checkpoint. This filtering is method-independent and is documented so the pilot is interpretable rather than presented as a full GenMol benchmark reproduction.
 
 ## Uncertainty policy
 

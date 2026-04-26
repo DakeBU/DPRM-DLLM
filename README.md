@@ -128,6 +128,7 @@ Ask the assistant to return:
 | DPRM-DMPO | DMPO | Post-training | Reasoning | [DMPO paper](https://arxiv.org/abs/2510.08233) | [yuchen-zhu-zyc/DMPO](https://github.com/yuchen-zhu-zyc/DMPO) |
 | DPRM-Prism | Prism | Test-time scaling | Reasoning | [Prism paper](https://arxiv.org/abs/2602.01842) | [viiika/Prism](https://github.com/viiika/Prism) |
 | DPRM-DCM | DCM | Generative modeling | Single-cell gene expression | [DCM paper](https://www.biorxiv.org/content/10.64898/2026.02.19.705033v1.full.pdf) | [sanjukta7/aivc-dcm](https://github.com/sanjukta7/aivc-dcm) |
+| DPRM-GenMol | GenMol V2 | Generative modeling | Molecular / drug design | [GenMol paper](https://arxiv.org/abs/2501.06158) | [NVIDIA-Digital-Bio/genmol](https://github.com/NVIDIA-Digital-Bio/genmol) |
 
 The folders in [`integrations/`](./integrations) are lightweight patch maps and overlay snippets. They are not full third-party repositories and do not include checkpoints, datasets, or generated evaluation outputs.
 
@@ -144,6 +145,7 @@ All comparisons keep the host model and task protocol fixed as much as possible,
 | DPRM-DPLM forward folding | DPLM-2 Bit vs ordering-aware variants | FF RMSD decreases from `35.47` to `29.43`, a `17.0%` reduction; FF TM increases from `0.3071` to `0.3321`, a `+8.1%` relative gain. |
 | DPRM-DPLM designability | DPLM-2 Bit vs DPRM-DPLM and confidence-progressive DPLM | Designable rate improves from `23.6%` to `40.0%` for DPRM-DPLM and `40.4%` for the confidence-progressive variant. |
 | DPRM-DCM on Dentate Gyrus | DCM-random vs ordering-aware DCM variants | Token recovery improves from `63.97%` to `75.92%` for DPRM(random)-DCM, a `+18.7%` relative gain; MAE decreases from `0.821` to `0.654`, a `20.4%` reduction; zero-expression accuracy improves from `78.39%` to `99.90%`. |
+| DPRM-GenMol V2 molecular generation | GenMol V2 vs ordering-aware GenMol V2 variants | The pilot is mixed on de novo generation: GenMol V2 remains strongest on quality (`0.854`) and uniqueness (`0.582`), while DPRM(random)-GenMol has highest validity (`0.997`) and Progressive-GenMol has highest diversity (`0.853`). On the stable fragment-constrained subset, DPRM(random)-GenMol improves linker-design validity from `0.142` to `0.429` and linker-onestep validity from `0.430` to `0.573`; Progressive/DPRM-confidence improve motif-extension quality from `0.280` to `0.421` and scaffold-decoration quality from `0.429` to `0.712`. |
 
 For protein co-generation, the strongest TM-score, pLDDT, and designable rate come from the confidence-progressive variant, while DPRM-DPLM has the smallest CoGen RMSD penalty among the ordering-aware methods. This is expected: protein generation is multi-objective, and ordering affects foldability, geometry, and designability differently.
 
@@ -167,7 +169,8 @@ DPRM-DLLM/
 │   ├── dplm/
 │   ├── dmpo/
 │   ├── prism/
-│   └── dcm/
+│   ├── dcm/
+│   └── genmol/
 ├── statistics_outputs/       # result summaries and uncertainty plots
 ├── examples/                 # small runnable examples
 ├── docs/                     # attribution and release notes
@@ -228,6 +231,12 @@ Patch map: [`integrations/prism`](./integrations/prism)
 Keep the single-cell count-bin preprocessing, DCM/SEDD denoising objective, train/validation split, and optimizer fixed. Replace only the masked gene-position reveal order. Use self-supervised reconstruction utility, such as selected-bin token recovery, unless the host already exposes a downstream biological utility.
 
 Patch map: [`integrations/dcm`](./integrations/dcm)
+
+### Molecular SAFE diffusion, e.g. GenMol V2
+
+Keep GenMol V2's SAFE / bracket-SAFE representation, denoising model, molecular sampling tasks, and RDKit-based evaluation fixed. Replace only the mask-reveal order used in de novo and fragment-conditioned decoding. Validity, QED/SA quality, fragment retention, or task-specific oracle scores can serve as DPRM utilities depending on whether the host is training or doing test-time constrained generation.
+
+Patch map: [`integrations/genmol`](./integrations/genmol)
 
 ## Open-Source Boundary
 

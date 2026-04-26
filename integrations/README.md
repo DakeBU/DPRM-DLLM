@@ -7,6 +7,7 @@ This directory contains host-specific patch maps extracted from the local resear
 - [dplm](./dplm): protein diffusion overlay for DPLM / DPLM-2 Bit.
 - [prism](./prism): test-time scaling overlay for HTS-based decoding.
 - [dcm](./dcm): single-cell gene-expression discrete diffusion overlay for DCM.
+- [genmol](./genmol): molecular SAFE diffusion overlay for GenMol V2.
 
 Each folder contains:
 
