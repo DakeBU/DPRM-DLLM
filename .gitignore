@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Experiment artifacts
+wandb/
+outputs/
+eval_outputs/
+checkpoints/
+ckpts/
+logs/
+*.log
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Large data directories
+data/
+data-bin/
+datasets/
+

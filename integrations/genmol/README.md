@@ -1,0 +1,21 @@
+# DPRM-GenMol Patch Map
+
+This integration targets [NVIDIA-Digital-Bio/genmol](https://github.com/NVIDIA-Digital-Bio/genmol), specifically the GenMol V2 SAFE / bracket-SAFE diffusion workflow described in the [GenMol paper](https://arxiv.org/abs/2501.06158).
+
+The intended intervention is narrow:
+
+- keep the GenMol V2 tokenizer, SAFE representation, model architecture, denoising objective, checkpoint format, and RDKit evaluation unchanged;
+- replace only the ordering policy that chooses which masked molecular tokens are generated or committed next;
+- preserve the original GenMol ordering as a baseline flag;
+- log per-sample molecular validity, QED, SA, uniqueness, and fragment-task metrics so bootstrap intervals can be computed after generation.
+
+Recommended controller variants:
+
+- `baseline`: original GenMol V2 reveal order.
+- `progressive`: confidence-ranked reveal order throughout training / decoding.
+- `dprm_random`: random warmup followed by online DPRM Soft-BoN.
+- `dprm_confidence`: confidence warmup followed by online DPRM Soft-BoN.
+
+For training-time use, a cheap self-supervised utility can be computed from selected-token reconstruction or molecule-level validity/quality accumulated after decoding. For test-time constrained generation, use the available molecular utility already computed by the host, such as validity, QED/SA quality, fragment retention, or task-specific oracle score.
+
+The pilot results in `statistics_outputs/genmol/` should be read as an ordering diagnostic, not a full reproduction of the GenMol V2 benchmark. They show task-dependent behavior: GenMol V2 remains strongest on de novo quality and uniqueness, while ordering-aware variants improve selected fragment-constrained metrics.

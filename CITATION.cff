@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use DPRM-DLLM, please cite the DPRM-DLLM paper and the host method you integrate with."
+title: "DPRM-DLLM: Plug-in Doob Process-Reward Token Ordering for Diffusion Language Models"
+authors:
+  - name: "Anonymous Authors"
+version: 0.1.0
+date-released: 2026-04-25
+url: "https://anonymous.4open.science/r/DPRM-DLLM"
+repository-code: "https://anonymous.4open.science/r/DPRM-DLLM"

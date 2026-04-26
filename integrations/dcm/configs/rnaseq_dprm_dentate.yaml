@@ -1,0 +1,46 @@
+# Real Dentate Gyrus unconditional RNA-seq training with random-to-DPRM ordering.
+model:
+  name: SEDDTransformerSmall
+  hidden_dim: 128
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+
+data:
+  data_path: datasets/dentate/dentate_5000_bins32.h5ad
+  val_fraction: 0.1
+
+training:
+  batch_size: 8
+  num_epochs: 50
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  mask_ratio: 0.15
+  gradient_clip: 1.0
+  use_amp: true
+  amp_dtype: bfloat16
+  order_policy: dprm_random
+  loss_token_fraction: 0.5
+  dprm_num_phases: 8
+  dprm_confidence_bins: 16
+  dprm_reward_temperature: 1.0
+  dprm_guidance_scale: 1.0
+  dprm_warmup_steps: 500
+  dprm_switch_steps: 2000
+  dprm_ready_count: 128
+  dprm_candidate_multiplier: 4
+  dprm_min_candidates: 8
+  dprm_max_candidates: 64
+
+checkpointing:
+  checkpoint_dir: experiments/dcm_single_cell_real_dprm
+  save_interval: 5
+  resume: auto
+
+logging:
+  log_interval: 50
+  val_interval: 1
+
+other:
+  seed: 42
+  num_workers: 4
