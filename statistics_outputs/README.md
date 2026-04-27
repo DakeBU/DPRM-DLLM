@@ -37,6 +37,10 @@ The root-level CSVs and PNGs are earlier journal-style exports for DMPO, Prism, 
 - `dplm_forward_summary.csv`
 - `dplm_cogen_summary.csv`
 
+## SDPO-DNA DNA sequence design
+
+The artifacts under [`sdpo/`](./sdpo) report an ordering ablation for reward-guided discrete diffusion DNA design (SDPO). Four ordering variants (baseline SDPO, progressive, DPRM-confidence, DPRM-random) are compared on HepG2 expression prediction, ATAC accessibility accuracy, 3-mer Pearson correlation, log-likelihood, and a composite total metric. Each method generates 640 DNA sequences; 1000 bootstrap iterations produce 95% confidence intervals.
+
 When a newer file exists under `latest/`, use the `latest/` file.
 
 ## GenMol V2 pilot

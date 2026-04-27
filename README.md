@@ -129,6 +129,7 @@ Ask the assistant to return:
 | DPRM-Prism | Prism | Test-time scaling | Reasoning | [Prism paper](https://arxiv.org/abs/2602.01842) | [viiika/Prism](https://github.com/viiika/Prism) |
 | DPRM-DCM | DCM | Generative modeling | Single-cell gene expression | [DCM paper](https://www.biorxiv.org/content/10.64898/2026.02.19.705033v1.full.pdf) | [sanjukta7/aivc-dcm](https://github.com/sanjukta7/aivc-dcm) |
 | DPRM-GenMol | GenMol V2 | Generative modeling | Molecular / drug design | [GenMol paper](https://arxiv.org/abs/2501.06158) | [NVIDIA-Digital-Bio/genmol](https://github.com/NVIDIA-Digital-Bio/genmol) |
+| DPRM-SDPO | SDPO | Post-training | DNA sequence design | [SDPO paper](https://arxiv.org/pdf/2507.04832) | [hanjq17/discrete-diffusion-sdpo](https://github.com/hanjq17/discrete-diffusion-sdpo) |
 
 The folders in [`integrations/`](./integrations) are lightweight patch maps and overlay snippets. They are not full third-party repositories and do not include checkpoints, datasets, or generated evaluation outputs.
 
@@ -146,6 +147,7 @@ All comparisons keep the host model and task protocol fixed as much as possible,
 | DPRM-DPLM designability | DPLM-2 Bit vs DPRM-DPLM and confidence-progressive DPLM | Designable rate improves from `23.6%` to `40.0%` for DPRM-DPLM and `40.4%` for the confidence-progressive variant. |
 | DPRM-DCM on Dentate Gyrus | DCM-random vs ordering-aware DCM variants | Token recovery improves from `63.97%` to `75.92%` for DPRM(random)-DCM, a `+18.7%` relative gain; MAE decreases from `0.821` to `0.654`, a `20.4%` reduction; zero-expression accuracy improves from `78.39%` to `99.90%`. |
 | DPRM-GenMol V2 molecular generation | GenMol V2 vs ordering-aware GenMol V2 variants | The pilot is mixed on de novo generation: GenMol V2 remains strongest on quality (`0.854`) and uniqueness (`0.582`), while DPRM(random)-GenMol has highest validity (`0.997`) and Progressive-GenMol has highest diversity (`0.853`). On the stable fragment-constrained subset, DPRM(random)-GenMol improves linker-design validity from `0.142` to `0.429` and linker-onestep validity from `0.430` to `0.573`; Progressive/DPRM-confidence improve motif-extension quality from `0.280` to `0.421` and scaffold-decoration quality from `0.429` to `0.712`. |
+| DPRM-SDPO on Gosai DNA design | SDPO-DNA vs ordering-aware SDPO-DNA variants | DPRM-SDPO preserves HepG2 expression (`4.06`) and ATAC accuracy (`0.31`) close to the SDPO-DNA baseline (`3.95` / `0.36`), while Progressive-SDPO-DNA achieves the highest HepG2 (`4.60`) at the cost of lower ATAC accuracy (`0.07`). DPRM-SDPO maintains the strongest K-mer distribution alignment among the non-baseline methods (`0.71` Pearson), demonstrating that DPRM ordering provides a favorable trade-off between expression optimization and distribution fidelity. |
 
 For protein co-generation, the strongest TM-score, pLDDT, and designable rate come from the confidence-progressive variant, while DPRM-DPLM has the smallest CoGen RMSD penalty among the ordering-aware methods. This is expected: protein generation is multi-objective, and ordering affects foldability, geometry, and designability differently.
 
@@ -170,7 +172,8 @@ DPRM-DLLM/
 │   ├── dmpo/
 │   ├── prism/
 │   ├── dcm/
-│   └── genmol/
+│   ├── genmol/
+│   └── sdpo/
 ├── statistics_outputs/       # result summaries and uncertainty plots
 ├── examples/                 # small runnable examples
 ├── docs/                     # attribution and release notes
@@ -237,6 +240,12 @@ Patch map: [`integrations/dcm`](./integrations/dcm)
 Keep GenMol V2's SAFE / bracket-SAFE representation, denoising model, molecular sampling tasks, and RDKit-based evaluation fixed. Replace only the mask-reveal order used in de novo and fragment-conditioned decoding. Validity, QED/SA quality, fragment retention, or task-specific oracle scores can serve as DPRM utilities depending on whether the host is training or doing test-time constrained generation.
 
 Patch map: [`integrations/genmol`](./integrations/genmol)
+
+### Reward-guided discrete diffusion, e.g. SDPO
+
+Keep the discrete diffusion architecture (CNN backbone), substitution parameterization, noise schedule, and SDPO reward-weighted training objective fixed. Replace only the token reveal order during the DDPM sampling loop. Use the Enformer-based oracle expression prediction (or another downstream biological utility) as the DPRM reward.
+
+Patch map: [`integrations/sdpo`](./integrations/sdpo)
 
 ## Open-Source Boundary
 
