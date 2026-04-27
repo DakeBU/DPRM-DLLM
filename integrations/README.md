@@ -8,6 +8,7 @@ This directory contains host-specific patch maps extracted from the local resear
 - [prism](./prism): test-time scaling overlay for HTS-based decoding.
 - [dcm](./dcm): single-cell gene-expression discrete diffusion overlay for DCM.
 - [genmol](./genmol): molecular SAFE diffusion overlay for GenMol V2.
+- [sdpo](./sdpo): reward-guided DNA sequence design overlay for discrete-diffusion-sdpo.
 
 Each folder contains:
 
