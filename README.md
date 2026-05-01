@@ -125,6 +125,7 @@ Ask the assistant to return:
 |---|---|---|---|---|---|
 | DPRM-PUMA | PUMA | Pretraining | Language reasoning | [PUMA paper](https://arxiv.org/abs/2602.10314) | [JaeyeonKim01/PUMA](https://github.com/JaeyeonKim01/PUMA) |
 | DPRM-DPLM | DPLM-2 Bit | Generative modeling | Protein inverse folding | [DPLM-2 paper](https://arxiv.org/abs/2504.11454), [design-space protocol](https://bytedance.github.io/dplm/dplm-2.1/) | [bytedance/dplm](https://github.com/bytedance/dplm) |
+| DPRM-MapDiff | MapDiff | Generative modeling | Protein inverse folding | [MapDiff paper](https://www.nature.com/articles/s42256-025-01042-6) | [peizhenbai/MapDiff](https://github.com/peizhenbai/MapDiff) |
 | DPRM-DMPO | DMPO | Post-training | Reasoning | [DMPO paper](https://arxiv.org/abs/2510.08233) | [yuchen-zhu-zyc/DMPO](https://github.com/yuchen-zhu-zyc/DMPO) |
 | DPRM-Prism | Prism | Test-time scaling | Reasoning | [Prism paper](https://arxiv.org/abs/2602.01842) | [viiika/Prism](https://github.com/viiika/Prism) |
 | DPRM-DCM | DCM | Generative modeling | Single-cell gene expression | [DCM paper](https://www.biorxiv.org/content/10.64898/2026.02.19.705033v1.full.pdf) | [sanjukta7/aivc-dcm](https://github.com/sanjukta7/aivc-dcm) |
@@ -145,11 +146,12 @@ All comparisons keep the host model and task protocol fixed as much as possible,
 | DPRM-Prism on GSM8K | Prism confidence HTS vs DPRM-Prism under the same search scaffold | Voted accuracy improves from `82.41` to `83.85`, a `+1.44` point gain. |
 | DPRM-DPLM forward folding | DPLM-2 Bit vs ordering-aware variants | FF RMSD decreases from `35.47` to `29.43`, a `17.0%` reduction; FF TM increases from `0.3071` to `0.3321`, a `+8.1%` relative gain. |
 | DPRM-DPLM designability | DPLM-2 Bit vs DPRM-DPLM and confidence-progressive DPLM | Designable rate improves from `23.6%` to `40.0%` for DPRM-DPLM and `40.4%` for the confidence-progressive variant. |
+| DPRM-MapDiff on CATH4.2 | MapDiff vs ordering-aware MapDiff variants | The gains are small but consistent: DPRM(random)-MapDiff improves sequence recovery from `0.5928` to `0.5934` and BLOSUM90/NSSR90 from `0.7542` to `0.7554`. Bootstrap intervals overlap, so this should be read as portability evidence rather than a statistically separated win. |
 | DPRM-DCM on Dentate Gyrus | DCM-random vs ordering-aware DCM variants | Token recovery improves from `63.97%` to `75.92%` for DPRM(random)-DCM, a `+18.7%` relative gain; MAE decreases from `0.821` to `0.654`, a `20.4%` reduction; zero-expression accuracy improves from `78.39%` to `99.90%`. |
 | DPRM-GenMol V2 molecular generation | GenMol V2 vs ordering-aware GenMol V2 variants | The pilot is mixed on de novo generation: GenMol V2 remains strongest on quality (`0.854`) and uniqueness (`0.582`), while DPRM(random)-GenMol has highest validity (`0.997`) and Progressive-GenMol has highest diversity (`0.853`). On the stable fragment-constrained subset, DPRM(random)-GenMol improves linker-design validity from `0.142` to `0.429` and linker-onestep validity from `0.430` to `0.573`; Progressive/DPRM-confidence improve motif-extension quality from `0.280` to `0.421` and scaffold-decoration quality from `0.429` to `0.712`. |
 | DPRM-SDPO on Gosai DNA design | SDPO-DNA vs ordering-aware SDPO-DNA variants | DPRM-SDPO preserves HepG2 expression (`4.06`) and ATAC accuracy (`0.31`) close to the SDPO-DNA baseline (`3.95` / `0.36`), while Progressive-SDPO-DNA achieves the highest HepG2 (`4.60`) at the cost of lower ATAC accuracy (`0.07`). DPRM-SDPO maintains the strongest K-mer distribution alignment among the non-baseline methods (`0.71` Pearson), demonstrating that DPRM ordering provides a favorable trade-off between expression optimization and distribution fidelity. |
 
-For protein co-generation, the strongest TM-score, pLDDT, and designable rate come from the confidence-progressive variant, while DPRM-DPLM has the smallest CoGen RMSD penalty among the ordering-aware methods. This is expected: protein generation is multi-objective, and ordering affects foldability, geometry, and designability differently.
+For protein experiments, DPLM-2 Bit remains the main large-scale protein case. MapDiff is included as a second CATH protein host with a different backbone-conditioned denoising architecture. The DPLM co-generation results show clear multi-objective behavior: the strongest TM-score, pLDDT, and designable rate come from the confidence-progressive variant, while DPRM-DPLM has the smallest CoGen RMSD penalty among the ordering-aware methods.
 
 Journal-style statistical exports are under [`statistics_outputs/`](./statistics_outputs). The latest PUMA and DPLM rerun artifacts are in [`statistics_outputs/latest/`](./statistics_outputs/latest), while older root-level CSVs are retained as legacy aggregate exports. The default reporting policy is:
 
@@ -171,6 +173,7 @@ DPRM-DLLM/
 │   ├── dplm/
 │   ├── dmpo/
 │   ├── prism/
+│   ├── mapdiff/
 │   ├── dcm/
 │   ├── genmol/
 │   └── sdpo/
@@ -217,11 +220,13 @@ Keep the reward-tilted target distribution, weighted denoising loss, replay reus
 
 Patch map: [`integrations/dmpo`](./integrations/dmpo)
 
-### Protein diffusion, e.g. DPLM-2 Bit
+### Protein diffusion, e.g. DPLM-2 Bit and MapDiff
 
-Keep the DPLM-2 Bit architecture, structure tokenizer, multimodal conditioning, and denoising losses fixed. Use amino-acid recovery or another self-supervised terminal utility as DPRM reward. Optional protein-specific buckets can be added only if they are already cheap in the host.
+Keep the host protein denoiser fixed. For DPLM-2 Bit this means preserving the architecture, structure tokenizer, multimodal conditioning, and denoising losses. For MapDiff this means preserving the graph/backbone conditioning, mask prior, and denoising network. Use amino-acid recovery or another self-supervised terminal utility as DPRM reward. Optional protein-specific buckets can be added only if they are already cheap in the host.
 
 Patch map: [`integrations/dplm`](./integrations/dplm)
+
+Additional MapDiff patch map: [`integrations/mapdiff`](./integrations/mapdiff)
 
 ### Test-time scaling, e.g. Prism
 

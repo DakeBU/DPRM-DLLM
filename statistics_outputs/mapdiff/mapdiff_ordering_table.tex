@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{MapDiff CATH4.2 ordering comparison. Metrics are averaged over test proteins with 95\% bootstrap intervals over examples. Higher is better for all metrics.}
+\label{tab:mapdiff_ordering_results}
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Recovery} & \textbf{BLOSUM45} & \textbf{BLOSUM62} & \textbf{BLOSUM80} & \textbf{BLOSUM90} \\
+\midrule
+MapDiff & 0.5928 [0.5871, 0.5985] & 0.7924 [0.7880, 0.7967] & 0.7841 [0.7795, 0.7885] & 0.7828 [0.7785, 0.7871] & 0.7542 [0.7494, 0.7590] \\
+Progressive-MapDiff & 0.5931 [0.5875, 0.5987] & 0.7920 [0.7878, 0.7961] & 0.7838 [0.7793, 0.7882] & 0.7824 [0.7781, 0.7867] & 0.7543 [0.7495, 0.7590] \\
+DPRM-MapDiff & 0.5930 [0.5875, 0.5986] & 0.7924 [0.7882, 0.7966] & 0.7843 [0.7798, 0.7887] & 0.7829 [0.7785, 0.7871] & 0.7546 [0.7499, 0.7594] \\
+DPRM(random)-MapDiff & 0.5934 [0.5878, 0.5989] & 0.7926 [0.7883, 0.7968] & 0.7843 [0.7798, 0.7885] & 0.7830 [0.7786, 0.7874] & 0.7554 [0.7507, 0.7600] \\
+\bottomrule
+\end{tabular}}
+\end{table}
