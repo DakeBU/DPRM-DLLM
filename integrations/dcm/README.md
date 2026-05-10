@@ -24,6 +24,14 @@ Upstream resources:
 - DPRM state is checkpointed with the model and loaded by the evaluator.
 - The evaluation script decodes from the all-mask state with the same ordering family used at training time, then reports per-cell token recovery, mean absolute error, and zero-expression accuracy with bootstrap confidence intervals.
 
+## Current Dentate Gyrus Result
+
+The matched four-way evaluation is summarized in `statistics_outputs/dcm/` and mirrored in `statistics_outputs/latest/`.
+
+- Token recovery improves from `66.76%` for DCM-random to `76.07%` for Progressive-DCM and `76.00%` for DPRM(conf.)-DCM.
+- MAE decreases from `0.758` for DCM-random to `0.628` for Progressive-DCM and `0.642` for DPRM(conf.)-DCM.
+- Zero-expression accuracy improves from `82.83%` for DCM-random to `99.86%` for DPRM(random)-DCM.
+
 ## Reproduction Sketch
 
 Clone the upstream host repository, then apply the DCM overlay pattern from the research fork. The Dentate Gyrus run used the small SEDD-style DCM configuration:

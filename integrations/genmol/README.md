@@ -16,6 +16,13 @@ Recommended controller variants:
 - `dprm_random`: random warmup followed by online DPRM Soft-BoN.
 - `dprm_confidence`: confidence warmup followed by online DPRM Soft-BoN.
 
-For training-time use, a cheap self-supervised utility can be computed from selected-token reconstruction or molecule-level validity/quality accumulated after decoding. For test-time constrained generation, use the available molecular utility already computed by the host, such as validity, QED/SA quality, fragment retention, or task-specific oracle score.
+The current training integration uses a cheap self-supervised reconstruction-confidence utility. For property-targeted training or test-time constrained generation, the same controller can instead use molecular utilities already computed by the host, such as validity, QED/SA quality, fragment retention, or task-specific oracle score.
 
 The pilot results in `statistics_outputs/genmol/` should be read as an ordering diagnostic, not a full reproduction of the GenMol V2 benchmark. They show task-dependent behavior: GenMol V2 remains strongest on de novo quality and uniqueness, while ordering-aware variants improve selected fragment-constrained metrics.
+
+Current result snapshot:
+
+- DPRM(random)-GenMol has the highest de novo validity, `0.997`.
+- Progressive-GenMol has the highest de novo diversity, `0.853`.
+- DPRM(random)-GenMol improves linker-design validity from `0.142` to `0.429` and linker-onestep validity from `0.430` to `0.573`.
+- Progressive/DPRM-confidence improve motif-extension quality from `0.280` to `0.421` and scaffold-decoration quality from `0.429` to `0.712`.

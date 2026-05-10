@@ -16,7 +16,7 @@ The upstream repository is released under the **MIT License**.
 - `confidence`: per-token proposal probability from the discrete diffusion denoiser (CNN backbone with substitution parameterization).
 - `candidate_mask`: currently masked DNA positions eligible for reveal at each diffusion step.
 - `phase_ids`: diffusion-phase bucket derived from the current mask fraction (`(1 - mask_frac) * num_phase_bins`).
-- `rewards`: terminal oracle reward from an Enformer-based regulatory expression predictor (HepG2 expression level), scaled by `exp(beta * reward)`.
+- `rewards`: terminal oracle reward supplied by the SDPO DNA reward path, scaled by `exp(beta * reward)`. Evaluation tracks HepG2 expression, ATAC accessibility, high-expression k-mer alignment, reference-model log-likelihood, and the product-style total metric.
 
 ## What Changed In The Local Fork
 
@@ -25,6 +25,15 @@ The upstream repository is released under the **MIT License**.
 - DPRM statistics (phase x confidence bin counts and reward-weighted sums) are maintained as registered buffers and updated online during training via `update_dprm_stats_from_batch`.
 - A three-stage schedule controls the DPRM gate: random/confidence ordering before `warmup_steps`, linear ramp from `warmup_steps` to `switch_steps`, then full DPRM guidance gated by per-bin readiness.
 - The evaluation script (`eval_dna_bootstrap.py`) generates DNA sequences from the all-mask state with the same ordering family used at training time, then reports HepG2 predicted expression, ATAC accessibility accuracy, 3-mer Pearson correlation with high-expression sequences, log-likelihood under the reference model, and a composite total metric with bootstrap confidence intervals.
+
+## Current Gosai DNA Result
+
+The matched SDPO-DNA comparison is summarized in `statistics_outputs/sdpo/` and mirrored in `statistics_outputs/latest/`.
+
+- DPRM(random)-SDPO improves the total metric from `1.155` to `2.192`.
+- DPRM(random)-SDPO improves ATAC accuracy from `0.356` to `0.785`.
+- DPRM(random)-SDPO improves k-mer Pearson from `0.833` to `0.846`.
+- DPRM(conf.)-SDPO reaches the highest HepG2 expression score, `4.61`.
 
 ## Reproduction Sketch
 

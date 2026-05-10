@@ -274,3 +274,12 @@ To reproduce a host experiment, clone the relevant upstream host repository list
 ## Citation
 
 If this repository is useful, cite the DPRM-DLLM paper draft and the relevant host paper used in your experiment. A `CITATION.cff` template is provided and should be updated with final metadata before public release.
+
+```bibtex
+@article{bu2026dprm,
+  title={DPRM: A Plug-in Doob h transform-induced Token-Ordering Module for Diffusion Language Models},
+  author={Bu, Dake and Huang, Wei and Han, Andi and Wong, Hau-San and Zhang, Qingfu and Suzuki, Taiji and Nitanda, Atsushi},
+  journal={arXiv preprint arXiv:2604.24357},
+  year={2026}
+}
+```

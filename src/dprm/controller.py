@@ -184,6 +184,10 @@ class OnlineDPRMController:
                     self.cfg.max_candidates,
                     int(active.numel()),
                 )
+                shortlist_size = min(
+                    int(active.numel()),
+                    max(shortlist_size, k),
+                )
                 proposal = confidence[row, active].float().clamp_min(0.0)
                 if proposal.sum().item() <= 0:
                     proposal = torch.ones_like(proposal)
