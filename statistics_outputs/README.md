@@ -1,10 +1,10 @@
 # Statistical Outputs
 
-This directory contains compact result summaries and plots used by the paper draft and repository README.
+This directory contains compact public result summaries and plots used by the paper and repository README.
 
-## Current headline exports
+## Current public exports
 
-The most recent PUMA and DPLM rerun artifacts are under [`latest/`](./latest):
+The most recent PUMA and DPLM exports are under [`latest/`](./latest):
 
 - `puma_1530k_tinygsm_comparison_results.json`
 - `puma_accuracy_ci_1530k.png`
@@ -27,9 +27,19 @@ The most recent PUMA and DPLM rerun artifacts are under [`latest/`](./latest):
 
 These are the preferred artifacts for README-level reporting.
 
-## Legacy aggregate exports
+## Multimodal and mechanism summaries
 
-The root-level CSVs and PNGs are earlier journal-style exports for DMPO, Prism, and preliminary PUMA/DPLM summaries. They are retained because they document the uncertainty policy and contain useful baselines:
+The root directory contains compact summaries for multimodal and mechanism diagnostics:
+
+- `multimodal_order_results.csv`: Omni-Diffusion and LLaDA-V four-order comparisons.
+- `mechanism_controls.csv`: entropy-only, shuffled-bucket, gate/count-only, EOT, and cost-quality controls.
+- `boundary_result_summaries.csv`: compact DPLM-2 Bit and GenMol mixed-result summaries.
+
+These files are intentionally small. They do not include raw generated images, full VQA outputs, checkpoints, W&B logs, or training directories.
+
+## Earlier aggregate exports
+
+The older root-level CSVs and PNGs for DMPO, Prism, PUMA, and DPLM are retained because they document the uncertainty policy and contain useful baselines:
 
 - `dmpo_summary.csv`
 - `prism_summary.csv`

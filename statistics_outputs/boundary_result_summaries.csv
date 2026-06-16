@@ -1,0 +1,7 @@
+task,protocol,metric,random_or_baseline,progressive_confidence,dprm_confidence_warmup,dprm_random_warmup,interpretation
+DPLM-2 Bit co-generation,seeds 42-44 macro mean,backbone TM-score,NA,0.404275,0.356460,0.367462,"Mixed/negative for DPRM; confidence-progressive is best on TM-score."
+DPLM-2 Bit co-generation,seeds 42-44 macro mean,mean pLDDT,NA,70.950269,59.349928,62.589681,"Mixed/negative for DPRM; confidence-progressive is best on pLDDT."
+GenMol V2 robust 5000-step eval,1000 de novo samples,validity,0.973,0.993,1.000,0.999,"DPRM variants improve validity, but this is not a uniform molecular-design win."
+GenMol V2 robust 5000-step eval,1000 de novo samples,quality,0.786,0.584,0.669,0.825,"DPRM-random has the highest de novo quality in the robust pass."
+GenMol V2 robust 5000-step eval,1000 de novo samples,uniqueness,0.942446,0.768379,0.555,0.584585,"Baseline has the highest uniqueness."
+GenMol V2 robust 5000-step eval,1000 de novo samples,diversity,0.838065,0.859425,0.823945,0.782382,"Confidence-progressive has the highest diversity."

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=${ROOT:-/home/nitanda_sub/mark/repos/DPRM/discrete-diffusion-sdpo/SDPO_dna}
-ENV=${ENV:-/home/nitanda_sub/mark/env/bin/activate}
+ROOT=${ROOT:-<SDPO_HOST_REPO>}
+ENV=${ENV:-<PYTHON_ENV>/bin/activate}
 GPU=${GPU:-0}
 BASE_PATH=${BASE_PATH:-data_and_model/}
 EVAL_BATCHES=${EVAL_BATCHES:-10}
@@ -13,6 +13,11 @@ DPRM_WARMUP_STEPS=${DPRM_WARMUP_STEPS:-100}
 DPRM_SWITCH_STEPS=${DPRM_SWITCH_STEPS:-400}
 DPRM_READY_COUNT=${DPRM_READY_COUNT:-64}
 DPRM_SHORTLIST_SIZE=${DPRM_SHORTLIST_SIZE:-64}
+
+if [[ "$ROOT" == "<SDPO_HOST_REPO>" || "$ENV" == "<PYTHON_ENV>/bin/activate" ]]; then
+  echo "Set ROOT to the SDPO host repo and ENV to a Python environment before running." >&2
+  exit 1
+fi
 
 cd "${ROOT}"
 source "${ENV}"

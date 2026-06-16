@@ -5,11 +5,12 @@ This directory contains host-specific patch maps extracted from the local resear
 - [dmpo](./dmpo): reward-aware post-training overlay.
 - [puma](./puma): pretraining overlay with progressive teacher-forced unmasking.
 - [dplm](./dplm): protein diffusion overlay for DPLM / DPLM-2 Bit.
-- [mapdiff](./mapdiff): protein inverse-folding overlay for MapDiff on CATH4.2.
 - [prism](./prism): test-time scaling overlay for HTS-based decoding.
 - [dcm](./dcm): single-cell gene-expression discrete diffusion overlay for DCM.
 - [genmol](./genmol): molecular SAFE diffusion overlay for GenMol V2.
 - [sdpo](./sdpo): reward-guided DNA sequence design overlay for discrete-diffusion-sdpo.
+- [omni_diffusion](./omni_diffusion): visual-token ordering overlay for Omni-Diffusion text-to-image generation.
+- [llada_v](./llada_v): text-token ordering overlay for LLaDA-V image-conditioned generation.
 
 Each folder contains:
 

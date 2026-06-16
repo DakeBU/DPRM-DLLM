@@ -1,6 +1,6 @@
 # DPRM-DLLM
 
-Official implementation of paper *DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models*.
+Official implementation of **ICML 2026 Fogen Oral**  paper [*DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models*](https://arxiv.org/pdf/2604.24357).
 
 **DPRM-DLLM** is a plug-in token-ordering module for masked discrete diffusion and diffusion language models.
 
@@ -108,7 +108,7 @@ Use these prompt templates:
 
 Shortest useful prompt:
 
-> Integrate DPRM into `<HOST_REPO_PATH>`. This is a `<progressive pretraining / post-training / protein diffusion / test-time scaling>` setup. Keep the model, objective, data pipeline, verifier, and compute budget unchanged. Only replace the token-ordering policy. Use `<reward / verifier score / reconstruction utility / amino-acid recovery>` as the DPRM utility. Preserve the original ordering as a baseline flag.
+> Integrate DPRM into `<HOST_REPO_PATH>`. This is a `<progressive pretraining / post-training / protein diffusion / test-time scaling / multimodal text-token generation / visual-token generation>` setup. Keep the model, objective, data pipeline, verifier, and compute budget unchanged. Only replace the token-ordering policy. Use `<reward / verifier score / reconstruction utility / amino-acid recovery / VQA correctness / image-text score>` as the DPRM utility. Preserve the original ordering as a baseline flag.
 
 Ask the assistant to return:
 
@@ -125,16 +125,17 @@ Ask the assistant to return:
 |---|---|---|---|---|---|
 | DPRM-PUMA | PUMA | Pretraining | Language reasoning | [PUMA paper](https://arxiv.org/abs/2602.10314) | [JaeyeonKim01/PUMA](https://github.com/JaeyeonKim01/PUMA) |
 | DPRM-DPLM | DPLM-2 Bit | Generative modeling | Protein inverse folding | [DPLM-2 paper](https://arxiv.org/abs/2504.11454), [design-space protocol](https://bytedance.github.io/dplm/dplm-2.1/) | [bytedance/dplm](https://github.com/bytedance/dplm) |
-| DPRM-MapDiff | MapDiff | Generative modeling | Protein inverse folding | [MapDiff paper](https://www.nature.com/articles/s42256-025-01042-6) | [peizhenbai/MapDiff](https://github.com/peizhenbai/MapDiff) |
 | DPRM-DMPO | DMPO | Post-training | Reasoning | [DMPO paper](https://arxiv.org/abs/2510.08233) | [yuchen-zhu-zyc/DMPO](https://github.com/yuchen-zhu-zyc/DMPO) |
 | DPRM-Prism | Prism | Test-time scaling | Reasoning | [Prism paper](https://arxiv.org/abs/2602.01842) | [viiika/Prism](https://github.com/viiika/Prism) |
 | DPRM-DCM | DCM | Generative modeling | Single-cell gene expression | [DCM paper](https://www.biorxiv.org/content/10.64898/2026.02.19.705033v1.full.pdf) | [sanjukta7/aivc-dcm](https://github.com/sanjukta7/aivc-dcm) |
 | DPRM-GenMol | GenMol V2 | Generative modeling | Molecular / drug design | [GenMol paper](https://arxiv.org/abs/2501.06158) | [NVIDIA-Digital-Bio/genmol](https://github.com/NVIDIA-Digital-Bio/genmol) |
 | DPRM-SDPO | SDPO | Post-training | DNA sequence design | [SDPO paper](https://arxiv.org/pdf/2507.04832) | [hanjq17/discrete-diffusion-sdpo](https://github.com/hanjq17/discrete-diffusion-sdpo) |
+| DPRM-Omni | Omni-Diffusion | Generative modeling | Text-to-image visual-token generation | [Omni-Diffusion code](https://github.com/VITA-MLLM/Omni-Diffusion) | [VITA-MLLM/Omni-Diffusion](https://github.com/VITA-MLLM/Omni-Diffusion) |
+| DPRM-LLaDA-V | LLaDA-V | Decoding / evaluation | Image-conditioned text generation | [LLaDA-V model](https://huggingface.co/GSAI-ML/LLaDA-V) | [GSAI-ML/LLaDA-V](https://huggingface.co/GSAI-ML/LLaDA-V) |
 
 The folders in [`integrations/`](./integrations) are lightweight patch maps and overlay snippets. They are not full third-party repositories and do not include checkpoints, datasets, or generated evaluation outputs.
 
-## Headline Results
+## Result Summaries
 
 All comparisons keep the host model and task protocol fixed as much as possible, and change only token ordering.
 
@@ -145,19 +146,33 @@ All comparisons keep the host model and task protocol fixed as much as possible,
 | DPRM-DMPO on Countdown Hard | Progressive DMPO vs DMPO-DPRM | Average pass@K improves from `29.6` to `33.4`, a `+12.8%` relative gain. |
 | DPRM-Prism on GSM8K | Prism confidence HTS vs DPRM-Prism under the same search scaffold | Voted accuracy improves from `82.41` to `83.85`, a `+1.44` point gain. |
 | DPRM-DPLM forward folding | DPLM-2 Bit vs ordering-aware variants | FF RMSD decreases from `35.47` to `29.43`, a `17.0%` reduction; FF TM increases from `0.3071` to `0.3321`, a `+8.1%` relative gain. |
-| DPRM-DPLM designability | DPLM-2 Bit vs DPRM-DPLM and confidence-progressive DPLM | Designable rate improves from `23.6%` to `40.0%` for DPRM-DPLM and `40.4%` for the confidence-progressive variant. |
-| DPRM-MapDiff on CATH4.2 | MapDiff vs ordering-aware MapDiff variants | The gains are small but consistent: DPRM(random)-MapDiff improves sequence recovery from `0.5928` to `0.5934` and BLOSUM90/NSSR90 from `0.7542` to `0.7554`. Bootstrap intervals overlap, so this should be read as portability evidence rather than a statistically separated win. |
+| DPRM-DPLM co-generation | DPLM-2 Bit vs ordering-aware variants | Co-generation is mixed: confidence-progressive is strongest on macro TM-score and pLDDT in the retained three-seed summary, while DPRM variants are not uniform wins. |
 | DPRM-DCM on Dentate Gyrus | DCM-random vs ordering-aware DCM variants | In the matched four-way evaluation, token recovery improves from `66.76%` to `76.07%` for Progressive-DCM, while DPRM(conf.) reaches `76.00%`; MAE decreases from `0.758` to `0.628` for Progressive-DCM and `0.642` for DPRM(conf.); zero-expression accuracy improves from `82.83%` to `99.86%` for DPRM(random)-DCM. |
-| DPRM-GenMol V2 molecular generation | GenMol V2 vs ordering-aware GenMol V2 variants | The pilot is mixed on de novo generation: GenMol V2 remains strongest on quality (`0.854`) and uniqueness (`0.582`), while DPRM(random)-GenMol has highest validity (`0.997`) and Progressive-GenMol has highest diversity (`0.853`). On the stable fragment-constrained subset, DPRM(random)-GenMol improves linker-design validity from `0.142` to `0.429` and linker-onestep validity from `0.430` to `0.573`; Progressive/DPRM-confidence improve motif-extension quality from `0.280` to `0.421` and scaffold-decoration quality from `0.429` to `0.712`. |
+| DPRM-GenMol V2 molecular generation | GenMol V2 vs ordering-aware GenMol V2 variants | The clean robust eval is mixed: DPRM(random)-GenMol has the highest de novo quality (`0.825`) with near-perfect validity (`0.999`), while baseline GenMol has the highest uniqueness (`0.942`) and Progressive-GenMol has the highest diversity (`0.859`). Fragment-conditioned metrics are not uniformly improved in the robust pass, so this is portability evidence rather than a uniform molecular-design win. |
 | DPRM-SDPO on Gosai DNA design | SDPO-DNA vs ordering-aware SDPO-DNA variants | DPRM(random)-SDPO improves the total metric from `1.155` to `2.192`, ATAC accuracy from `0.356` to `0.785`, and k-mer Pearson from `0.833` to `0.846`; DPRM(conf.)-SDPO achieves the highest HepG2 (`4.61`). |
+| DPRM-Omni-Diffusion text-to-image | Visual-token confidence-progressive vs DPRM-confidence | On the 64-prompt official-step split, CLIP-L/14 mean cosine is `0.24915` for DPRM-confidence and `0.24744` for confidence-progressive; DPRM-random is negative (`0.21456`). |
+| DPRM-LLaDA-V image-conditioned VQA | Text-token four-order comparison | AI2D improves from confidence-progressive `0.658` to DPRM-confidence `0.692`; RealWorldQA is a boundary case where confidence-progressive remains strongest (`0.46013`). |
 
-For protein experiments, DPLM-2 Bit remains the main large-scale protein case. MapDiff is included as a second CATH protein host with a different backbone-conditioned denoising architecture. The DPLM co-generation results show clear multi-objective behavior: the strongest TM-score, pLDDT, and designable rate come from the confidence-progressive variant, while DPRM-DPLM has the smallest CoGen RMSD penalty among the ordering-aware methods.
+## Mechanism And Boundary Diagnostics
 
-Journal-style statistical exports are under [`statistics_outputs/`](./statistics_outputs). The current PUMA and DPLM artifacts are in [`statistics_outputs/latest/`](./statistics_outputs/latest), while older root-level CSVs are retained as legacy aggregate exports. The default reporting policy is:
+The repository also includes compact diagnostics for two common questions:
+whether DPRM is only increasing uncertainty, and whether bucketized statistics
+capture useful low-dimensional order structure.
 
-- use paired bootstrap when the same evaluation units are observed under two methods;
-- use ordinary bootstrap for single-model summaries;
-- use Wilson intervals only when a host did not save per-example outcomes.
+| Diagnostic | Result | Interpretation |
+|---|---|---|
+| SDPO-DNA entropy and bucket controls | Three-seed total metric: DPRM-random `2.1287`, entropy-only `1.1411`, shuffled bucket `1.8660`, gate/count-only `2.0699`. | Reward-blind entropy is not enough; bucket values help, but readiness/count structure also contributes. |
+| LLaDA-V EOT and uncertainty controls | AI2D: DPRM-confidence `0.690`, SACM `0.678`, progressive `0.658`, entropy `0.634`. RealWorldQA: EOT suppression `0.498`, progressive `0.460`, entropy `0.446`, DPRM-confidence `0.418`. | DPRM can capture useful text-order structure on short structured answers; broad VQA needs task-format or EOT-aware auxiliary bins. |
+| DMPO Countdown retained control checkpoint | DPRM is much stronger than entropy-only at pass@16/32, but confidence-progressive remains best on that retained checkpoint and shuffled/gate/count ablations are close. | This rejects a pure entropy-only explanation but should not be used as a clean bucket-value isolation result. |
+| Prism cost-quality control | Representative GSM8K rows: confidence rank1 `0.828` at mean NFE `610.56`; DPRM warmup-0.2 rank1 `0.860` at mean NFE `1061.06`; confidence `N=32` rank1 `0.844` at mean NFE `745.21`. | DPRM improves quality in this setting while increasing compute; compare cost-quality, not accuracy alone. |
+
+Compact public CSVs:
+
+- [`statistics_outputs/multimodal_order_results.csv`](./statistics_outputs/multimodal_order_results.csv)
+- [`statistics_outputs/mechanism_controls.csv`](./statistics_outputs/mechanism_controls.csv)
+
+Method definitions for these controls are in [`docs/MECHANISM_CONTROLS.md`](./docs/MECHANISM_CONTROLS.md).
+
 
 ## Repository Layout
 
@@ -166,6 +181,7 @@ DPRM-DLLM/
 ├── src/dprm/                 # reusable DPRM package
 │   ├── controller.py         # host-agnostic online controller
 │   ├── contracts.py          # minimal host-to-DPRM interface
+│   ├── tables.py             # offline table scoring and trace utilities
 │   └── adapters/             # pattern-specific adapters
 ├── prompts/                  # Codex and Claude integration prompts
 ├── integrations/             # host-specific patch maps and overlays
@@ -173,10 +189,11 @@ DPRM-DLLM/
 │   ├── dplm/
 │   ├── dmpo/
 │   ├── prism/
-│   ├── mapdiff/
 │   ├── dcm/
 │   ├── genmol/
-│   └── sdpo/
+│   ├── sdpo/
+│   ├── omni_diffusion/
+│   └── llada_v/
 ├── statistics_outputs/       # result summaries and uncertainty plots
 ├── examples/                 # small runnable examples
 ├── docs/                     # attribution and release notes
@@ -204,7 +221,7 @@ The gate is the product of:
 - a global schedule from `warmup_steps` to `switch_steps`;
 - a local readiness factor based on bucket count and `ready_count`.
 
-This makes early behavior match the host's original ordering, and only turns on DPRM guidance when the online estimator has enough support.
+This makes early behavior match the host's original ordering, and only turns on DPRM guidance when the online estimator has enough support. For trace-first integrations such as LLaDA-V and Omni-Diffusion, [`src/dprm/tables.py`](./src/dprm/tables.py) provides the matching offline-table path: log selected buckets, join them with terminal rewards, build a JSON table with [`examples/build_bucket_table_from_traces.py`](./examples/build_bucket_table_from_traces.py), and load it at inference time.
 
 ## Integration Notes By Host Type
 
@@ -220,13 +237,11 @@ Keep the reward-tilted target distribution, weighted denoising loss, replay reus
 
 Patch map: [`integrations/dmpo`](./integrations/dmpo)
 
-### Protein diffusion, e.g. DPLM-2 Bit and MapDiff
+### Protein diffusion, e.g. DPLM-2 Bit
 
-Keep the host protein denoiser fixed. For DPLM-2 Bit this means preserving the architecture, structure tokenizer, multimodal conditioning, and denoising losses. For MapDiff this means preserving the graph/backbone conditioning, mask prior, and denoising network. Use amino-acid recovery or another self-supervised terminal utility as DPRM reward. Optional protein-specific buckets can be added only if they are already cheap in the host.
+Keep the host protein denoiser fixed. For DPLM-2 Bit this means preserving the architecture, structure tokenizer, multimodal conditioning, and denoising losses. Use amino-acid recovery or another self-supervised terminal utility as DPRM reward. Optional protein-specific buckets can be added only if they are already cheap in the host.
 
 Patch map: [`integrations/dplm`](./integrations/dplm)
-
-Additional MapDiff patch map: [`integrations/mapdiff`](./integrations/mapdiff)
 
 ### Test-time scaling, e.g. Prism
 
@@ -251,6 +266,18 @@ Patch map: [`integrations/genmol`](./integrations/genmol)
 Keep the discrete diffusion architecture (CNN backbone), substitution parameterization, noise schedule, and SDPO reward-weighted training objective fixed. Replace only the token reveal order during the DDPM sampling loop. Use the Enformer-based oracle expression prediction (or another downstream biological utility) as the DPRM reward.
 
 Patch map: [`integrations/sdpo`](./integrations/sdpo)
+
+### Multimodal visual-token diffusion, e.g. Omni-Diffusion
+
+Keep the multimodal denoiser, image tokenizer, prompt protocol, and image-scoring metric fixed. Replace only the visual-token reveal order. Use a compact image-level utility such as CLIP image-text cosine to build the DPRM table.
+
+Patch map: [`integrations/omni_diffusion`](./integrations/omni_diffusion)
+
+### Multimodal text-token diffusion, e.g. LLaDA-V
+
+Keep the image encoder, projector, language denoiser, tokenizer, and VQA evaluation fixed. Replace only the masked answer-token reveal order. Log EOT and answer-position diagnostics when evaluating broad VQA tasks.
+
+Patch map: [`integrations/llada_v`](./integrations/llada_v)
 
 ## Open-Source Boundary
 

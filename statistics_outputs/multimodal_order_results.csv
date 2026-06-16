@@ -1,0 +1,4 @@
+task,metric,n,random,progressive_confidence,dprm_confidence_warmup,dprm_random_warmup,interpretation
+Omni-Diffusion T2I,CLIP-L/14 mean image-text cosine,64,0.22184,0.24744,0.24915,0.21456,"Small positive DPRM-confidence visual-token result; DPRM-random is negative."
+LLaDA-V AI2D,target-normalized accuracy,500,0.62800,0.65800,0.69200,0.65400,"Positive DPRM-confidence image-conditioned text-token result."
+LLaDA-V RealWorldQA,target-normalized accuracy,765,0.44575,0.46013,0.41699,0.43791,"Negative transfer; confidence-progressive remains best."

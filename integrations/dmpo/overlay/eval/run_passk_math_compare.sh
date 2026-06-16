@@ -9,7 +9,7 @@ source "$ENV_ACTIVATE"
 
 BASE_MODEL_PATH="${BASE_MODEL_PATH:-GSAI-ML/LLaDA-8B-Instruct}"
 RANDOM_RUN_DIR="${RANDOM_RUN_DIR:-<DMPO_DPRM_REPO>/outputs/math/random/dmpo-math-random-5000-2gpu}"
-PROGRESSIVE_RUN_DIR="${PROGRESSIVE_RUN_DIR:-/var/tmp/nitanda_sub_dmpo/outputs/math/progressive/dmpo-math-progressive-5000-2gpu}"
+PROGRESSIVE_RUN_DIR="${PROGRESSIVE_RUN_DIR:-<DMPO_DPRM_REPO>/outputs/math/progressive/dmpo-math-progressive-5000-2gpu}"
 OUTPUT_DIR="${OUTPUT_DIR:-<DMPO_DPRM_REPO>/eval_outputs/passk_math_step5000}"
 GPU_IDS="${GPU_IDS:-1,2}"
 VANILLA_GPU_ID="${VANILLA_GPU_ID:-}"
