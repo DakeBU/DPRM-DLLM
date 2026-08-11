@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use DPRM-DLLM, please cite the DPRM-DLLM paper and the host method you integrate with."
-title: "DPRM-DLLM: Plug-in Doob Process-Reward Token Ordering for Diffusion Language Models"
+title: "DPRM: Token Ordering as a Control Axis for Diffusion Language Models"
 authors:
   - family-names: "Bu"
     given-names: "Dake"
@@ -8,6 +8,8 @@ authors:
     given-names: "Wei"
   - family-names: "Han"
     given-names: "Andi"
+  - family-names: "Wu"
+    given-names: "Si"
   - family-names: "Wong"
     given-names: "Hau-San"
   - family-names: "Zhang"
@@ -17,6 +19,6 @@ authors:
   - family-names: "Nitanda"
     given-names: "Atsushi"
 version: 0.1.0
-date-released: 2026-06-16
+date-released: 2026-08-11
 url: "https://github.com/DakeBU/DPRM-DLLM"
 repository-code: "https://github.com/DakeBU/DPRM-DLLM"

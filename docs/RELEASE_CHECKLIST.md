@@ -2,8 +2,8 @@
 
 Before pushing this repository publicly:
 
-- confirm the final author metadata in `CITATION.cff`;
-- confirm the final repository URL in `README.md`;
+- confirm the author metadata in `CITATION.cff`;
+- confirm the repository URL in `README.md`;
 - verify that no checkpoints, W&B runs, datasets, or generated sample dumps are tracked;
 - verify that no local absolute paths, private cache paths, or machine-specific launcher commands remain in public docs;
 - verify that generated Python caches are absent with `find . -name __pycache__ -o -name '*.pyc'`;

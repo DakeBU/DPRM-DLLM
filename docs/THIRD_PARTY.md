@@ -14,7 +14,7 @@ They are not full copies of the upstream repositories.
 | GenMol V2 | https://arxiv.org/abs/2501.06158 | https://github.com/NVIDIA-Digital-Bio/genmol | MIT |
 | SDPO | https://arxiv.org/pdf/2507.04832 | https://github.com/hanjq17/discrete-diffusion-sdpo | MIT |
 | Omni-Diffusion | https://github.com/VITA-MLLM/Omni-Diffusion | https://github.com/VITA-MLLM/Omni-Diffusion | Check upstream |
-| LLaDA-V | https://huggingface.co/GSAI-ML/LLaDA-V | https://huggingface.co/GSAI-ML/LLaDA-V | Check upstream model/code terms |
+| LLaDA-V | https://huggingface.co/GSAI-ML/LLaDA-V | https://github.com/ML-GSAI/LLaDA-V | Check upstream model/code terms |
 
 Users should check upstream licenses and dataset/model terms before redistributing
 modified host code or trained weights.

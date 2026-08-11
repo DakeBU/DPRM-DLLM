@@ -1,78 +1,41 @@
-# DPRM-LLaDA-V Patch Map
+# DPRM-LLaDA-V
 
-`DPRM-LLaDA-V` applies DPRM to image-conditioned text generation. The vision
-encoder, multimodal projector, language denoiser, tokenizer, and VQA evaluation
-protocol stay fixed. DPRM changes only which masked answer tokens are revealed
-at each denoising step.
+LLaDA-V conditions a diffusion language model on an encoded image. DPRM orders
+masked answer-token positions; token identities still come from the same
+image-conditioned logits. The bucket key contains decode phase, confidence,
+prompt-only answer format, candidate EOT status, and relative answer position.
+Terminal utility is task-normalized VQA correctness.
 
-Upstream resources:
+## Order Policies
 
-- Model card: <https://huggingface.co/GSAI-ML/LLaDA-V>
-- Code release used by the host project: the LLaDA-V training/evaluation stack
-  around `generate_with_embeds` and `lmms-eval`.
+- `random`;
+- `progressive_confidence`;
+- `dprm_confidence_warmup`;
+- `dprm_random_warmup`.
 
-## Host Mapping
+Entropy and EOT/suffix-anchor policies are mechanism controls, not DPRM
+variants.
 
-- `confidence`: probability assigned to the host model's proposed answer token.
-- `candidate_mask`: currently masked answer positions that can be revealed.
-- `phase_ids`: denoising step bucket across the answer-generation schedule.
-- `aux_bin_ids`: relative answer-position bin; task or answer-type bins can be
-  added for heterogeneous VQA.
-- `rewards`: target-normalized VQA correctness or another task-level utility
-  computed after the answer is decoded.
+## Paper Configuration
 
-## Ordering Variants
+AI2D uses `500` documents. RealWorldQA uses documents `0:128` for table fitting,
+`128:256` for controller selection, and `256:765` for the strict held-out
+interval. The selected table uses one phase, `8` confidence bins, four relative
+position bins, prompt-format and candidate-EOT state, guidance `4`, and the
+symmetric zero-count normalization. The table and guidance are frozen before
+evaluation on `500` ChartQA documents.
 
-- `random`: reveal eligible answer positions uniformly at random.
-- `progressive_confidence`: reveal highest-confidence proposed answer tokens.
-- `dprm_confidence_warmup`: confidence warmup, then DPRM table guidance.
-- `dprm_random_warmup`: random warmup, then DPRM table guidance.
-- `entropy`: reward-blind uncertainty control using `1 - confidence`.
-- `eot_suppression` / SACM-style controls: diagnostic baselines for early
-  end-of-turn and suffix-anchor overconfidence.
+## Reproduction
 
-The token values still come from LLaDA-V. DPRM only changes reveal order.
+1. Copy `overlay/dprm_generation.py` and `overlay/host/` into the LLaDA-V
+   checkout.
+2. Run random and confidence policies with order tracing.
+3. Build the table with `scripts/build_dprm_table.py`.
+4. Select only on the development interval with `scripts/select_controller.py`.
+5. Evaluate `dprm_confidence_warmup` on the held-out interval and use
+   `audit_chartqa_transfer.py` for frozen transfer.
 
-## Overlay Files
-
-- `overlay/dprm_generation.py`: host-facing helpers for table lookup, DPRM score
-  mixing, trace logging, and EOT diagnostics.
-
-Use this overlay by importing the helper in the host `modeling_llada.py` file and
-calling it where the host currently computes the remasking score before `topk`.
-
-## Public Result Summary
-
-The compact four-order VQA summary is in
-`statistics_outputs/multimodal_order_results.csv`.
-
-- AI2D: DPRM-confidence reaches `0.692` target-normalized accuracy, above
-  confidence-progressive `0.658`.
-- RealWorldQA: confidence-progressive remains strongest at `0.46013`; the coarse
-  DPRM table transfers negatively on this broader distribution.
-
-The mechanism controls in `statistics_outputs/mechanism_controls.csv` include
-entropy-only, EOT suppression, and SACM-style rows. They should be interpreted as
-boundary diagnostics: DPRM helps on short structured AI2D answers, while direct
-EOT handling is better on RealWorldQA.
-
-## Reproduction Sketch
-
-1. Clone and set up the upstream LLaDA-V host.
-2. Add `overlay/dprm_generation.py` to the host import path.
-3. Run `random` and `progressive_confidence` with `trace_order_stats` enabled.
-4. Build a DPRM table with `examples/build_bucket_table_from_traces.py`.
-5. Re-run evaluation with `dprm_table=<table.json>` and the same generation
-   length, block length, task split, and seed set.
-
-## Codex / Claude Guidance
-
-Ask the assistant to preserve:
-
-- the image encoder, projector, language model, tokenizer, and lmms-eval task
-  definitions;
-- the generation budget (`gen_length`, `block_length`, `gen_steps`) and seed set;
-- the original `random` and `progressive_confidence` remasking modes;
-- per-example outputs and order traces for paired or target-normalized analysis.
-
-The only intervention should be replacing the answer-token reveal order.
+Set `DPRM_LLADAV_TABLE` to the selected JSON table. A DPRM policy without a
+table raises an error unless explicit diagnostic fallback is enabled. The
+compact task and class-level statistics are in
+[`../../results/artifacts/multimodal_summary.json`](../../results/artifacts/multimodal_summary.json).

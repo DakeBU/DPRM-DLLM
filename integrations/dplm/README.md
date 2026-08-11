@@ -1,39 +1,34 @@
-# DPRM-DPLM Overlay
+# DPRM-DPLM-2 Bit
 
-`DPRM-DPLM` keeps the DPLM / DPLM-2 Bit architecture, multimodal conditioning, structure tokenizer, and denoising losses fixed. The intervention is ordering-only.
+DPRM-DPLM preserves the DPLM-2 Bit backbone, sequence/structure tokenizers,
+multimodal losses, data, optimizer, and 500-step sampler. The action is a masked
+residue position. The two multi-objective utilities combine provisional
+amino-acid recovery and structure-token recovery by a normalized weighted sum
+or smooth augmented Tchebycheff scalarization.
 
-The main fair experiment is the `DPLM-2 Bit` path: same backbone, same data, same training budget, only token ordering changes.
+## Four Registered Orders
 
-## Host Mapping
+- host random/default masking (`model.order.enable=false`);
+- confidence-progressive training and confidence decoding;
+- weighted-sum DPRM;
+- Tchebycheff DPRM.
 
-- `confidence`: amino-acid token confidence from the current diffusion denoiser.
-- `candidate_mask`: masked residue positions eligible for reveal.
-- `phase_ids`: progressive masking phase during training or decode-step bucket during skeptical decoding.
-- `aux_bin_ids`: optional structure bucket, contact-density bucket, or other protein-specific state bucket.
-- `rewards`: self-supervised terminal utility such as amino-acid recovery.
+## Paper Configuration
 
-## What Changed In The Local Fork
+The matched runs use `5000` updates, eight phases, `16` confidence bins, one
+modality-specific sequence/structure stream, reward temperature `8`, guidance
+`1`, warmup `500`, switch `2000`, readiness `128`, and shortlist
+`min(32, max(8, 4*m_t))`. Multi-objective weights are `(0.5,0.5)`;
+Tchebycheff temperature and augmentation are `0.05`.
 
-- `src/byprot/models/dplm/dprm_order.py` provides a host-specific controller with optional structure bins;
-- `src/byprot/models/dplm/modules/dplm_adapter.py` and `src/byprot/models/dplm2/dplm2.py` call the controller during training and decoding;
-- `configs/experiment/dplm2/progressive_dplm2_bit_650m.yaml` is the confidence-only progressive baseline;
-- `configs/experiment/dplm2/dprm_random_dplm2_bit_650m.yaml` is the random-to-DPRM warmup variant;
-- `configs/experiment/dplm2/dprm_dplm_650m.yaml` is the confidence-to-DPRM fair `DPLM-2 Bit` run;
-- `configs/experiment/dplm/cond_dprm_dplm_650m.yaml` is a conditional inverse-folding auxiliary experiment.
+## Overlay and Evaluation
 
-## Current DPLM-2 Bit Result
-
-The matched ordering comparison is summarized in `statistics_outputs/latest/`.
-
-- Forward-folding RMSD decreases from `35.47` for DPLM-2 Bit to `29.43` for the best ordering-aware variant.
-- Forward-folding TM-score improves from `0.3071` to `0.3321`.
-- Co-generation remains multi-objective: the confidence-progressive variant is strongest on TM-score, pLDDT, and designable rate, while DPRM-DPLM has the smallest CoGen RMSD penalty among ordering-aware variants.
-
-## Codex / Claude Guidance
-
-Tell the assistant to:
-
-- leave the protein model and tokenizer untouched;
-- preserve the original max-step budget and datamodule;
-- use protein-specific auxiliary buckets only if the host already computes them cheaply;
-- keep the original low-confidence decoder as a baseline option.
+Set `DPLM_ROOT` to the upstream checkout and `DPLM2_BIT_CHECKPOINT` to the
+pretrained DPLM-2 Bit checkpoint. Copy `overlay/src/` and `overlay/configs/` into
+the upstream checkout, then use `overlay/run/train_dprm_dplm2_bit_650m_fair.sh`
+or the Hydra commands in the registry. Set
+`DPLM_CONFIG=dprm_joint_tcheby_dplm_650m` for the Tchebycheff controller; the
+weighted controller is used otherwise. CAMEO uses all `163` targets. CoGen-200
+is a predeclared 10-sample development gate; the release reports it as a diagnostic
+because neither scalarization passed the bootstrap threshold for full
+five-length confirmation.

@@ -1,27 +1,31 @@
-# DPRM-DMPO Overlay
+# DPRM-DMPO
 
-`DPRM-DMPO` keeps DMPO's reward-tilted clean target, WDCE loss, replay reuse, and LoRA fine-tuning setup fixed. The only algorithmic change is token ordering inside progressive teacher-forced masked states and aligned decode-time remasking.
+DPRM-DMPO preserves the LLaDA-8B-Instruct base, DMPO reward-tilted clean target,
+WDCE loss, replay reuse, optimizer, rollout reward, and decode budget. DPRM
+orders masked response positions during teacher-forced progressive training and
+uses the saved bucket estimator for aligned decoding.
 
-## Host Mapping
+## Order Policies
 
-- `confidence`: max token probability at each masked position.
-- `candidate_mask`: masked non-prompt positions eligible for reveal.
-- `phase_ids`: progressive unmasking phase.
-- `aux_bin_ids`: unused in the current DMPO implementation.
-- `rewards`: the sequence-level DMPO reward already computed by the trainer.
+- `LOSS_MASK_SAMPLER=random`: DMPO random masking.
+- `LOSS_MASK_SAMPLER=progressive` and `LOSS_PROGRESSIVE_ORDER_POLICY=confidence`.
+- `dprm_soft_bon` with `DPRM_WARMUP_POLICY=confidence`.
+- `dprm_soft_bon` with `DPRM_WARMUP_POLICY=random`.
 
-## What Changed In The Local Fork
+## Paper Configuration
 
-- training-time progressive unmasking can use `dprm_soft_bon` instead of pure confidence;
-- the trainer updates an online DPRM estimator during teacher-forced reveal;
-- evaluation can decode with aligned `dprm_soft_bon` remasking;
-- pass@K plotting scripts can merge DPRM curves into the baseline figures.
+Eight progressive phases, `16` confidence bins, `beta=1`, warmup `500`, switch
+`2000`, readiness `128`, and shortlist `min(32, max(8, 4*m_t))`. The reasoning
+runs use `5000` updates, `128` diffusion steps, generation length `256`, block
+length `32`, and temperature `0.2`. Evaluation reports pass@K for
+`K={1,2,4,8,16,32}`.
 
-## Codex / Claude Guidance
+## Overlay
 
-When adapting another DMPO-like codebase, tell the assistant:
+Copy `overlay/DMPO/` and `overlay/dprm_guidance.py` into the upstream checkout.
+`run_dmpo.sh` trains a named policy. The scripts in `overlay/eval/` require
+explicit `RANDOM_RUN_DIR` and `PROGRESSIVE_RUN_DIR`; no machine-local checkpoint
+path is assumed.
 
-- keep the clean-sequence target distribution untouched;
-- replace only the masked-state sampler and decode ordering;
-- reuse the host reward already computed for WDCE or policy weighting;
-- save the DPRM estimator next to checkpoints so evaluation can load it later.
+The exact four commands are listed under `dmpo` in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).

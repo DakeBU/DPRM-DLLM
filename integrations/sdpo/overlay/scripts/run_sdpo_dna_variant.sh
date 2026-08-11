@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=${ROOT:-<SDPO_HOST_REPO>}
-ENV=${ENV:-<PYTHON_ENV>/bin/activate}
-GPU=${GPU:?set GPU}
+ROOT=${SDPO_DNA_ROOT:?set SDPO_DNA_ROOT to the upstream SDPO_dna directory}
+ENV_ACTIVATE=${ENV_ACTIVATE:-}
+GPU=${GPU:-0}
 RUN_NAME=${RUN_NAME:?set RUN_NAME}
 ORDER_POLICY=${ORDER_POLICY:-baseline}
 
@@ -16,19 +16,18 @@ DPRM_BETA=${DPRM_BETA:-1.0}
 DPRM_WARMUP_STEPS=${DPRM_WARMUP_STEPS:-100}
 DPRM_SWITCH_STEPS=${DPRM_SWITCH_STEPS:-400}
 DPRM_READY_COUNT=${DPRM_READY_COUNT:-64}
+DPRM_PHASE_BINS=${DPRM_PHASE_BINS:-8}
+DPRM_CONF_BINS=${DPRM_CONF_BINS:-10}
 DPRM_SHORTLIST_SIZE=${DPRM_SHORTLIST_SIZE:-64}
+DPRM_ABLATION=${DPRM_ABLATION:-normal}
+DPRM_ABLATION_SEED=${DPRM_ABLATION_SEED:-20260611}
 EVAL_BATCHES=${EVAL_BATCHES:-10}
 EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE:-64}
 BOOTSTRAP=${BOOTSTRAP:-1000}
 SEED=${SEED:-0}
 
-if [[ "$ROOT" == "<SDPO_HOST_REPO>" || "$ENV" == "<PYTHON_ENV>/bin/activate" ]]; then
-  echo "Set ROOT to the SDPO host repo and ENV to a Python environment before running." >&2
-  exit 1
-fi
-
 cd "$ROOT"
-source "$ENV"
+if [[ -n "$ENV_ACTIVATE" ]]; then source "$ENV_ACTIVATE"; fi
 
 while [ ! -f "${BASE_PATH}/.ready" ]; do
   echo "Waiting for ${BASE_PATH}/.ready"
@@ -61,7 +60,11 @@ python finetune_sdpo.py \
   --dprm_warmup_steps "$DPRM_WARMUP_STEPS" \
   --dprm_switch_steps "$DPRM_SWITCH_STEPS" \
   --dprm_ready_count "$DPRM_READY_COUNT" \
-  --dprm_shortlist_size "$DPRM_SHORTLIST_SIZE"
+  --dprm_phase_bins "$DPRM_PHASE_BINS" \
+  --dprm_conf_bins "$DPRM_CONF_BINS" \
+  --dprm_shortlist_size "$DPRM_SHORTLIST_SIZE" \
+  --dprm_ablation "$DPRM_ABLATION" \
+  --dprm_ablation_seed "$DPRM_ABLATION_SEED"
 
 python eval_dna_bootstrap.py \
   --seed "$SEED" \
@@ -76,4 +79,8 @@ python eval_dna_bootstrap.py \
   --dprm_warmup_steps "$DPRM_WARMUP_STEPS" \
   --dprm_switch_steps "$DPRM_SWITCH_STEPS" \
   --dprm_ready_count "$DPRM_READY_COUNT" \
-  --dprm_shortlist_size "$DPRM_SHORTLIST_SIZE"
+  --dprm_phase_bins "$DPRM_PHASE_BINS" \
+  --dprm_conf_bins "$DPRM_CONF_BINS" \
+  --dprm_shortlist_size "$DPRM_SHORTLIST_SIZE" \
+  --dprm_ablation "$DPRM_ABLATION" \
+  --dprm_ablation_seed "$DPRM_ABLATION_SEED"

@@ -1,0 +1,50 @@
+model:
+  name: SEDDTransformerSmall
+  hidden_dim: 128
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+
+data:
+  data_path: datasets/dentate/dentate_5000_bins32.h5ad
+  val_fraction: 0.1
+
+training:
+  batch_size: 8
+  num_epochs: 50
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  mask_ratio: 0.15
+  gradient_clip: 1.0
+  use_amp: true
+  amp_dtype: bfloat16
+  order_policy: dprm_confidence
+  loss_token_fraction: 0.5
+  dprm_num_phases: 1
+  dprm_confidence_bins: 16
+  dprm_reward_temperature: 1.0
+  dprm_guidance_scale: 1.0
+  dprm_warmup_steps: 100
+  dprm_switch_steps: 500
+  dprm_ready_count: 32
+  dprm_candidate_multiplier: 4
+  dprm_min_candidates: 8
+  dprm_max_candidates: 64
+  dprm_reward_mode: reconstruction_weighted_sum
+  dprm_objective_weights: [0.45, 0.35, 0.20]
+  dprm_tchebycheff_temperature: 0.05
+  dprm_tchebycheff_augmentation: 0.05
+  wandb_mode: offline
+
+checkpointing:
+  checkpoint_dir: experiments/dprm_dcm_multiobjective
+  save_interval: 5
+  resume: auto
+
+logging:
+  log_interval: 50
+  val_interval: 1
+
+other:
+  seed: 42
+  num_workers: 4

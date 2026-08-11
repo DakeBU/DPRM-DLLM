@@ -149,8 +149,13 @@ class Diffusion(L.LightningModule):
     self.dprm_phase_bins = int(ordering.get('dprm_phase_bins', 8))
     self.dprm_conf_bins = int(ordering.get('dprm_conf_bins', 10))
     self.dprm_shortlist_size = int(ordering.get('dprm_shortlist_size', 64))
+    self.dprm_ablation = str(ordering.get('dprm_ablation', 'normal'))
+    self.dprm_ablation_seed = int(ordering.get('dprm_ablation_seed', 20260611))
+    if self.dprm_ablation not in {'normal', 'shuffled_bucket', 'gate_only', 'count_only'}:
+      raise ValueError(f'Unsupported DPRM ablation: {self.dprm_ablation}')
     self.register_buffer('dprm_count', torch.zeros(self.dprm_phase_bins, self.dprm_conf_bins))
     self.register_buffer('dprm_sum', torch.zeros(self.dprm_phase_bins, self.dprm_conf_bins))
+    self.reset_ordering_trace()
 
   def _current_step_for_ordering(self):
     try:
@@ -175,6 +180,82 @@ class Diffusion(L.LightningModule):
 
   def _conf_bin(self, conf):
     return (conf.clamp(0, 1 - 1e-7) * self.dprm_conf_bins).long().clamp(0, self.dprm_conf_bins - 1)
+
+  def reset_ordering_trace(self):
+    self._ordering_trace = {
+      'selected_total': 0.0,
+      'selected_ready': 0.0,
+      'selected_zero_gate': 0.0,
+      'selected_gate_sum': 0.0,
+      'selected_conf_sum': 0.0,
+      'selected_reward_sum': 0.0,
+    }
+
+  @torch.no_grad()
+  def _record_dprm_decisions(self, phase_idx, conf_idx, gate, conf, reward):
+    if self.order_policy not in {'dprm', 'dprm_random'}:
+      return
+    if conf_idx.numel() == 0:
+      return
+    phase_idx = phase_idx.detach().long()
+    conf_idx = conf_idx.detach().long()
+    gate = gate.detach().float()
+    conf = conf.detach().float()
+    reward = reward.detach().float()
+    counts = self.dprm_count[phase_idx, conf_idx]
+    trace = getattr(self, '_ordering_trace', None)
+    if trace is None:
+      self.reset_ordering_trace()
+      trace = self._ordering_trace
+    total = float(conf_idx.numel())
+    trace['selected_total'] += total
+    trace['selected_ready'] += float((counts >= self.dprm_ready_count).sum().item())
+    trace['selected_zero_gate'] += float((gate <= 1e-12).sum().item())
+    trace['selected_gate_sum'] += float(gate.sum().item())
+    trace['selected_conf_sum'] += float(conf.sum().item())
+    trace['selected_reward_sum'] += float(reward.sum().item())
+
+  def dprm_coverage_summary(self):
+    count = self.dprm_count.detach()
+    ready = count >= self.dprm_ready_count
+    total_buckets = int(count.numel())
+    nonzero = count > 0
+    summary = {
+      'order_policy': self.order_policy,
+      'dprm_phase_bins': int(self.dprm_phase_bins),
+      'dprm_conf_bins': int(self.dprm_conf_bins),
+      'dprm_ready_count': float(self.dprm_ready_count),
+      'dprm_ablation': self.dprm_ablation,
+      'dprm_ablation_seed': int(self.dprm_ablation_seed),
+      'dprm_nonzero_buckets': int(nonzero.sum().item()),
+      'dprm_ready_buckets': int(ready.sum().item()),
+      'dprm_total_buckets': total_buckets,
+      'dprm_nonzero_bucket_rate': float(nonzero.float().mean().item()) if total_buckets else 0.0,
+      'dprm_ready_bucket_rate': float(ready.float().mean().item()) if total_buckets else 0.0,
+      'dprm_nonzero_by_phase': [int(v) for v in nonzero.sum(dim=1).detach().cpu().tolist()],
+      'dprm_ready_by_phase': [int(v) for v in ready.sum(dim=1).detach().cpu().tolist()],
+    }
+    trace = getattr(self, '_ordering_trace', None)
+    if trace is not None and trace.get('selected_total', 0.0) > 0:
+      total = trace['selected_total']
+      summary.update({
+        'selected_decisions': int(total),
+        'selected_ready_rate': float(trace['selected_ready'] / total),
+        'selected_zero_gate_rate': float(trace['selected_zero_gate'] / total),
+        'selected_mean_gate': float(trace['selected_gate_sum'] / total),
+        'selected_mean_confidence': float(trace['selected_conf_sum'] / total),
+        'selected_mean_dprm_reward': float(trace['selected_reward_sum'] / total),
+      })
+    else:
+      summary.update({
+        'selected_decisions': 0,
+        'selected_ready_rate': None,
+        'selected_zero_gate_rate': None,
+        'selected_mean_gate': None,
+        'selected_mean_confidence': None,
+        'selected_mean_dprm_reward': None,
+      })
+    return summary
 
   @torch.no_grad()
   def update_dprm_stats_from_batch(self, x0, rewards, t):
@@ -206,10 +287,151 @@ class Diffusion(L.LightningModule):
       self.dprm_count[p].scatter_add_(0, b, torch.ones_like(b, dtype=self.dprm_count.dtype))
       self.dprm_sum[p].scatter_add_(0, b, weights[n].expand_as(b).to(self.dprm_sum.dtype))
 
+  @torch.no_grad()
+  def _ordered_training_xt(self, x0, move_chance, unet_conditioning, rewards=None):
+    """Teacher-forced ordered noising for train-test aligned SDPO-DNA.
+
+    Baseline SDPO samples random q(x_t|x_0). For progressive/DPRM variants we
+    match the same expected mask count, but obtain the state by revealing
+    ground-truth tokens from an all-mask state according to the same ordering
+    policy used by decoding.
+    """
+    if self.order_policy == 'baseline' or not self.training:
+      return self.q_xt(x0, move_chance)
+
+    batch_size, seq_len = x0.shape
+    desired_mask = torch.round(move_chance.squeeze(-1).clamp(0, 1) * seq_len)
+    desired_mask = desired_mask.long().clamp(0, seq_len)
+    reveal_counts = (seq_len - desired_mask).clamp(0, seq_len)
+    xt = torch.full_like(x0, self.mask_index)
+    if reveal_counts.max().item() <= 0:
+      return xt
+
+    model_output = self.forward(xt, unet_conditioning)
+    token_conf = torch.gather(
+      model_output.exp(), dim=-1, index=x0[:, :, None]).squeeze(-1).clamp(1e-12, 1.0)
+    bins = self._conf_bin(token_conf)
+    revealed = torch.zeros_like(x0, dtype=torch.bool)
+    event_phase = torch.full_like(x0, -1, dtype=torch.long)
+
+    for n in range(batch_size):
+      k = int(reveal_counts[n].item())
+      if k <= 0:
+        continue
+      active = torch.arange(seq_len, device=x0.device)
+      if self.order_policy == 'dprm_random' and self._current_step_for_ordering() < self.dprm_warmup_steps:
+        ordered = active[torch.randperm(seq_len, device=x0.device)[:k]]
+        cursor = 0
+        for p in range(self.dprm_phase_bins):
+          start = (seq_len * p) // self.dprm_phase_bins
+          end = (seq_len * (p + 1)) // self.dprm_phase_bins
+          take = max(0, min(k, end) - start)
+          if take <= 0:
+            continue
+          chosen = ordered[cursor:cursor + take]
+          cursor += take
+          revealed[n, chosen] = True
+          event_phase[n, chosen] = p
+      else:
+        remaining = torch.ones(seq_len, dtype=torch.bool, device=x0.device)
+        for p in range(self.dprm_phase_bins):
+          start = (seq_len * p) // self.dprm_phase_bins
+          end = (seq_len * (p + 1)) // self.dprm_phase_bins
+          take = max(0, min(k, end) - start)
+          if take <= 0:
+            continue
+          idx = active[remaining]
+          if idx.numel() == 0:
+            break
+          take = min(take, idx.numel())
+          conf_scores = token_conf[n, idx]
+          if self.order_policy == 'entropy':
+            scores = torch.log((1.0 - conf_scores).clamp_min(1e-12))
+          else:
+            scores = torch.log(conf_scores)
+          if self.order_policy in {'dprm', 'dprm_random'}:
+            b = bins[n, idx]
+            gate = self._dprm_gate(p, b)
+            scores = scores + self.dprm_beta * gate * self._dprm_reward(p, b)
+            shortlist = min(max(self.dprm_shortlist_size, take), idx.numel())
+            if shortlist < idx.numel():
+              proposal = token_conf[n, idx] / token_conf[n, idx].sum().clamp_min(1e-12)
+              cand = torch.multinomial(proposal, shortlist, replacement=False)
+              local = cand[torch.topk(scores[cand], take).indices]
+            else:
+              local = torch.topk(scores, take).indices
+          elif self.order_policy == 'entropy':
+            shortlist = min(max(self.dprm_shortlist_size, take), idx.numel())
+            if shortlist < idx.numel():
+              proposal = conf_scores / conf_scores.sum().clamp_min(1e-12)
+              cand = torch.multinomial(proposal, shortlist, replacement=False)
+              local = cand[torch.topk(scores[cand], take).indices]
+            else:
+              local = torch.topk(scores, take).indices
+          else:
+            local = torch.topk(scores, take).indices
+          chosen = idx[local]
+          revealed[n, chosen] = True
+          event_phase[n, chosen] = p
+          remaining[chosen] = False
+
+    xt = torch.where(revealed, x0, xt)
+
+    if self.order_policy in {'dprm', 'dprm_random'} and rewards is not None and revealed.any():
+      weights = torch.exp(self.dprm_beta * rewards.float()).clamp(max=1e6)
+      for n in range(batch_size):
+        idx = revealed[n].nonzero(as_tuple=False).flatten()
+        if idx.numel() == 0:
+          continue
+        b = bins[n, idx]
+        phases = event_phase[n, idx]
+        for phase_value in phases.unique():
+          p = int(phase_value.item())
+          if p < 0:
+            continue
+          phase_mask = phases == p
+          bp = b[phase_mask]
+          self.dprm_count[p].scatter_add_(0, bp, torch.ones_like(bp, dtype=self.dprm_count.dtype))
+          self.dprm_sum[p].scatter_add_(0, bp, weights[n].expand_as(bp).to(self.dprm_sum.dtype))
+      self._dprm_stats_from_ordered_train = True
+
+    return xt
+
+  def _dprm_reward_table(self):
+    numer = self.dprm_sum.clamp_min(1e-12)
+    denom = self.dprm_count.clamp_min(1.0)
+    table = torch.log(numer / denom) / max(self.dprm_beta, 1e-8)
+    table = torch.where(self.dprm_count > 0, table, torch.zeros_like(table))
+
+    if self.dprm_ablation == 'shuffled_bucket':
+      flat_table = table.flatten()
+      flat_count = self.dprm_count.flatten()
+      nonempty = flat_count > 0
+      if int(nonempty.sum().item()) > 1:
+        generator = torch.Generator()
+        generator.manual_seed(int(self.dprm_ablation_seed))
+        perm = torch.randperm(int(nonempty.sum().item()), generator=generator).to(device=table.device)
+        shuffled = flat_table.clone()
+        shuffled[nonempty] = flat_table[nonempty][perm]
+        table = shuffled.reshape_as(table)
+    return table
+
   def _dprm_reward(self, phase_idx, conf_idx):
-    numer = self.dprm_sum[phase_idx, conf_idx].clamp_min(1e-12)
-    denom = self.dprm_count[phase_idx, conf_idx].clamp_min(1.0)
-    return torch.log(numer / denom) / max(self.dprm_beta, 1e-8)
+    if self.dprm_ablation == 'gate_only':
+      return torch.zeros_like(conf_idx, dtype=self.dprm_sum.dtype, device=self.dprm_sum.device)
+
+    if self.dprm_ablation == 'count_only':
+      total_count = self.dprm_count.sum().clamp_min(1.0)
+      total_sum = self.dprm_sum.sum().clamp_min(1e-12)
+      value = torch.log(total_sum / total_count) / max(self.dprm_beta, 1e-8)
+      count = self.dprm_count[phase_idx, conf_idx]
+      return torch.where(
+        count > 0,
+        torch.full_like(count, float(value.item()), dtype=self.dprm_sum.dtype),
+        torch.zeros_like(count, dtype=self.dprm_sum.dtype),
+      )
+
+    return self._dprm_reward_table()[phase_idx, conf_idx]
 
   def _ordered_reveal_update(self, x, log_p_x0, move_chance_t, move_chance_s):
     if self.order_policy == 'baseline':
@@ -234,20 +456,33 @@ class Diffusion(L.LightningModule):
         chosen = idx[perm]
       else:
         conf_n = conf[n, idx].clamp_min(1e-12)
-        scores = torch.log(conf_n)
+        if self.order_policy == 'entropy':
+          scores = torch.log((1.0 - conf_n).clamp_min(1e-12))
+        else:
+          scores = torch.log(conf_n)
         if self.order_policy in {'dprm', 'dprm_random'}:
           bins = self._conf_bin(conf_n)
           p = int(phase[n].item())
           gate = self._dprm_gate(p, bins)
-          scores = scores + self.dprm_beta * gate * self._dprm_reward(p, bins)
+          reward = self._dprm_reward(p, bins)
+          scores = scores + self.dprm_beta * gate * reward
         shortlist = min(max(self.dprm_shortlist_size, budget), idx.numel())
-        if self.order_policy in {'dprm', 'dprm_random'} and shortlist < idx.numel():
+        if self.order_policy in {'dprm', 'dprm_random', 'entropy'} and shortlist < idx.numel():
           proposal = conf_n / conf_n.sum().clamp_min(1e-12)
           cand = torch.multinomial(proposal, shortlist, replacement=False)
           local = cand[torch.topk(scores[cand], budget).indices]
         else:
           local = torch.topk(scores, budget).indices
         chosen = idx[local]
+        if self.order_policy in {'dprm', 'dprm_random'}:
+          chosen_bins = bins[local]
+          chosen_phase = torch.full_like(chosen_bins, p)
+          self._record_dprm_decisions(
+            chosen_phase,
+            chosen_bins,
+            gate[local],
+            conf_n[local],
+            reward[local])
       out[n, chosen] = token_samples[n, chosen]
     return out
   
@@ -1179,7 +1414,11 @@ class Diffusion(L.LightningModule):
       unet_conditioning = sigma[:, None]
       move_chance = 1 - torch.exp(-sigma[:, None])
 
-    xt = self.q_xt(x0, move_chance) # q(xt|x0)
+    xt = self._ordered_training_xt(
+      x0,
+      move_chance,
+      unet_conditioning,
+      rewards=getattr(self, '_ordering_rewards', None))
     model_output = self.forward(xt, unet_conditioning)
     utils.print_nans(model_output, 'model_output')
 

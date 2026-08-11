@@ -20,6 +20,10 @@ class DPLMOrderConfig:
     use_structure_bins: bool = field(default=False)
     contact_threshold: float = field(default=10.0)
     reward: str = field(default="aar")
+    reward_aa_weight: float = field(default=0.5)
+    reward_structure_weight: float = field(default=0.5)
+    reward_tchebycheff_temperature: float = field(default=0.05)
+    reward_tchebycheff_augmentation: float = field(default=0.05)
     reward_temperature: float = field(default=1.0)
     guidance_scale: float = field(default=1.0)
     warmup_steps: int = field(default=0)
@@ -426,9 +430,10 @@ class DPRMOrderController(nn.Module):
                 design_mask=design_mask,
                 mask_id=mask_id,
             )
-            self.update_statistics(
-                reveal_mask, phase_ids, conf_bins, struct_bins, rewards
-            )
+            if self.training:
+                self.update_statistics(
+                    reveal_mask, phase_ids, conf_bins, struct_bins, rewards
+                )
             current_tokens = torch.where(reveal_mask, target_tokens, current_tokens)
             current_mask = current_mask & ~reveal_mask
 
@@ -462,9 +467,10 @@ class DPRMOrderController(nn.Module):
                 mask_id=mask_id,
             )
             struct_bins = self.structure_bin_indices(batch, design_mask)
-            self.update_statistics(
-                reveal_mask, phase_ids, conf_bins, struct_bins, rewards
-            )
+            if self.training:
+                self.update_statistics(
+                    reveal_mask, phase_ids, conf_bins, struct_bins, rewards
+                )
             current_tokens = torch.where(reveal_mask, target_tokens, current_tokens)
             current_mask = current_mask & ~reveal_mask
 

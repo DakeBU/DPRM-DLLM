@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=${ROOT:-<SDPO_HOST_REPO>}
-ENV=${ENV:-<PYTHON_ENV>/bin/activate}
+ROOT=${SDPO_DNA_ROOT:?set SDPO_DNA_ROOT to the upstream SDPO_dna directory}
+ENV_ACTIVATE=${ENV_ACTIVATE:-}
 GPU=${GPU:-0}
 BASE_PATH=${BASE_PATH:-data_and_model/}
 EVAL_BATCHES=${EVAL_BATCHES:-10}
@@ -14,13 +14,8 @@ DPRM_SWITCH_STEPS=${DPRM_SWITCH_STEPS:-400}
 DPRM_READY_COUNT=${DPRM_READY_COUNT:-64}
 DPRM_SHORTLIST_SIZE=${DPRM_SHORTLIST_SIZE:-64}
 
-if [[ "$ROOT" == "<SDPO_HOST_REPO>" || "$ENV" == "<PYTHON_ENV>/bin/activate" ]]; then
-  echo "Set ROOT to the SDPO host repo and ENV to a Python environment before running." >&2
-  exit 1
-fi
-
 cd "${ROOT}"
-source "${ENV}"
+if [[ -n "$ENV_ACTIVATE" ]]; then source "$ENV_ACTIVATE"; fi
 export CUDA_VISIBLE_DEVICES="${GPU}"
 export TOKENIZERS_PARALLELISM=false
 

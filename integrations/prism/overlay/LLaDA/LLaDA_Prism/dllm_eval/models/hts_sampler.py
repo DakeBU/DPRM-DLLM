@@ -204,7 +204,7 @@ class HTSSampler:
             "first_block_nfe": 0.0, "num_gen_blocks": [], "steps_per_block": []
         }
         dprm_controller = None
-        if order_policy == "dprm_soft_bon":
+        if order_policy in {"dprm_soft_bon", "dprm_random"}:
             dprm_controller = OnlineDPRMSoftBON(
                 total_steps=steps,
                 device=self.device,
@@ -219,6 +219,7 @@ class HTSSampler:
                     "candidate_multiplier": dprm_candidate_multiplier,
                     "min_candidates": dprm_min_candidates,
                     "max_candidates": dprm_max_candidates,
+                    "warmup_policy": "random" if order_policy == "dprm_random" else "confidence",
                 },
             )
 
@@ -319,7 +320,14 @@ class HTSSampler:
                 num_transfer = schedule[step].item()
                 confidence = torch.where(active_mask, x0_p, torch.zeros_like(x0_p))
                 transfer_idx = torch.zeros_like(x0, dtype=torch.bool)
-                if dprm_controller is None:
+                if order_policy == "random":
+                    for b in range(current_bsz):
+                        k_transfer = min(num_transfer, active_mask[b].sum().item())
+                        active_indices = torch.where(active_mask[b])[0]
+                        if k_transfer > 0:
+                            random_order = torch.randperm(active_indices.numel(), device=self.device)
+                            transfer_idx[b, active_indices[random_order[:k_transfer]]] = True
+                elif dprm_controller is None:
                     for b in range(current_bsz):
                         k_transfer = min(num_transfer, active_mask[b].sum().item())
                         active_indices = torch.where(active_mask[b])[0]

@@ -17,6 +17,7 @@ class DPRMConfig:
     guidance_scale: float = 1.0
     warmup_steps: int = 0
     switch_steps: int = 1000
+    warmup_policy: str = "confidence"
     ready_count: int = 64
     sampled_soft_bon: bool = True
     candidate_multiplier: int = 4
@@ -37,6 +38,8 @@ class OnlineDPRMController:
     """
 
     def __init__(self, cfg: DPRMConfig, device: Optional[torch.device] = None):
+        if cfg.warmup_policy not in {"confidence", "random"}:
+            raise ValueError("warmup_policy must be 'confidence' or 'random'")
         self.cfg = cfg
         self.device = device or torch.device("cpu")
 
@@ -86,9 +89,11 @@ class OnlineDPRMController:
         return torch.full((batch_size,), phase, dtype=torch.long, device=device)
 
     def _confidence_bins(self, confidence: torch.Tensor) -> torch.Tensor:
-        conf = confidence.detach().clamp_(0.0, 1.0 - self.cfg.eps)
+        # Host tensors may be broadcast views (for example static gene bins
+        # expanded across a batch), so avoid in-place ops on controller inputs.
+        conf = confidence.detach().clamp(0.0, 1.0 - self.cfg.eps)
         bins = torch.floor(conf * self.cfg.confidence_bins).long()
-        return bins.clamp_(0, self.cfg.confidence_bins - 1)
+        return bins.clamp(0, self.cfg.confidence_bins - 1)
 
     def _aux_bins(
         self,
@@ -97,7 +102,7 @@ class OnlineDPRMController:
     ) -> torch.Tensor:
         if aux_bin_ids is None:
             return torch.zeros_like(candidate_mask, dtype=torch.long)
-        return aux_bin_ids.long().clamp_(0, max(self.cfg.aux_bins - 1, 0))
+        return aux_bin_ids.long().clamp(0, max(self.cfg.aux_bins - 1, 0))
 
     def _global_gate(self, global_step: int, force_full: bool) -> float:
         if force_full:
@@ -171,6 +176,18 @@ class OnlineDPRMController:
                 continue
             k = min(k, int(active.numel()))
             if k <= 0:
+                continue
+
+            if (
+                self.cfg.warmup_policy == "random"
+                and self._global_gate(
+                    int(host.global_step), bool(host.force_full_dprm)
+                ) <= 0.0
+            ):
+                chosen = active[
+                    torch.randperm(active.numel(), device=active.device)[:k]
+                ]
+                picked[row, chosen] = True
                 continue
 
             shortlist = active

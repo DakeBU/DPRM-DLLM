@@ -71,6 +71,7 @@ class OnlineDPRMEstimator:
         dprm_lambda: float = 1.0,
         warmup_steps: int = 0,
         switch_steps: int = 1000,
+        warmup_policy: str = "confidence",
         ready_count: int = 128,
         mode: str = "analytic",
         candidate_multiplier: int = 4,
@@ -89,6 +90,8 @@ class OnlineDPRMEstimator:
             raise ValueError("dprm_lambda must be non-negative")
         if mode not in {"analytic", "sampled"}:
             raise ValueError(f"Unsupported DPRM mode: {mode}")
+        if warmup_policy not in {"confidence", "random"}:
+            raise ValueError("warmup_policy must be 'confidence' or 'random'")
 
         self.num_phases = int(num_phases)
         self.num_bins = int(num_bins)
@@ -96,6 +99,7 @@ class OnlineDPRMEstimator:
         self.dprm_lambda = float(dprm_lambda)
         self.warmup_steps = int(warmup_steps)
         self.switch_steps = int(max(switch_steps, warmup_steps))
+        self.warmup_policy = str(warmup_policy)
         self.ready_count = int(max(1, ready_count))
         self.mode = mode
         self.candidate_multiplier = int(max(1, candidate_multiplier))
@@ -119,6 +123,7 @@ class OnlineDPRMEstimator:
             "dprm_lambda": self.dprm_lambda,
             "warmup_steps": self.warmup_steps,
             "switch_steps": self.switch_steps,
+            "warmup_policy": self.warmup_policy,
             "ready_count": self.ready_count,
             "mode": self.mode,
             "candidate_multiplier": self.candidate_multiplier,
@@ -163,6 +168,7 @@ class OnlineDPRMEstimator:
             dprm_lambda=payload["dprm_lambda"],
             warmup_steps=payload["warmup_steps"],
             switch_steps=payload["switch_steps"],
+            warmup_policy=payload.get("warmup_policy", "confidence"),
             ready_count=payload["ready_count"],
             mode=payload.get("mode", "analytic"),
             candidate_multiplier=payload.get("candidate_multiplier", 4),
@@ -243,6 +249,21 @@ class OnlineDPRMEstimator:
             global_step=global_step,
             force_full=force_full,
         )
+
+        if summary.mix.max().item() <= 0.0 and self.warmup_policy == "random":
+            transfer_index = torch.zeros_like(mask, dtype=torch.bool)
+            generator = torch.Generator(device=probs.device)
+            generator.manual_seed(self.seed + int(global_step))
+            for row in range(mask.shape[0]):
+                k = min(int(num_select[row].item()), int(mask[row].sum().item()))
+                if k <= 0:
+                    continue
+                valid_idx = mask[row].nonzero(as_tuple=False).squeeze(1)
+                order = torch.randperm(
+                    valid_idx.numel(), device=valid_idx.device, generator=generator
+                )
+                transfer_index[row, valid_idx[order[:k]]] = True
+            return transfer_index, summary
 
         if self.mode == "analytic" or (summary.mix.max().item() <= 0.0):
             return _masked_topk(summary.adjusted_scores, num_select), summary

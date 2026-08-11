@@ -26,6 +26,7 @@ class BucketizedDPRMController:
             guidance_scale=float(cfg.get("value_scale", 1.0)),
             warmup_steps=int(cfg.get("warmup_steps", 0)),
             switch_steps=int(cfg.get("switch_steps", 1000)),
+            warmup_policy=str(cfg.get("warmup_policy", "confidence")),
             ready_count=max(int(cfg.get("ready_count", 64)), 1),
             sampled_soft_bon=bool(cfg.get("sampled_shortlist", False)),
             candidate_multiplier=max(int(cfg.get("candidate_multiplier", 4)), 1),

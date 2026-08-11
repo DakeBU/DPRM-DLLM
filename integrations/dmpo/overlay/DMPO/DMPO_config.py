@@ -188,6 +188,10 @@ class DMPOConfig(GRPOConfig):
         default=2000,
         metadata={"help": "By this many steps, the DPRM mixture weight reaches 1.0 for sufficiently observed bins."}
     )
+    loss_progressive_dprm_warmup_policy: str = field(
+        default="confidence",
+        metadata={"help": "DPRM warmup proposal. Can be 'confidence' or 'random'."}
+    )
     loss_progressive_dprm_ready_count: int = field(
         default=128,
         metadata={"help": "Minimum per-bin sample count before a confidence bucket is considered reliable."}

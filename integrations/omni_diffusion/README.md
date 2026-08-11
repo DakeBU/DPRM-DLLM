@@ -1,73 +1,69 @@
-# DPRM-Omni-Diffusion Patch Map
+# DPRM-Omni-Diffusion
 
-`DPRM-Omni-Diffusion` applies DPRM to visual-token ordering in text-to-image
-generation. The Omni-Diffusion denoiser, tokenizer, MagViT/VQ image tokenizer,
-prompt pipeline, and image sampler stay fixed. DPRM changes only which masked
-visual tokens are revealed at each denoising step.
+Omni-Diffusion represents an image as masked visual codebook tokens and applies
+a multimodal denoiser conditioned on text. The host sampler predicts token
+values and commits visual positions over `260` steps. DPRM changes the committed
+position; the denoiser, VQ tokenizer/decoder, prompt, seed, and continuation
+decoder stay fixed.
 
-Upstream resources:
+## Four Paper Orders
 
-- Code: <https://github.com/VITA-MLLM/Omni-Diffusion>
-- Model family: Omni-Diffusion multimodal discrete diffusion.
+- `random`: uniformly sampled visual positions;
+- `confidence`: highest-confidence visual positions;
+- `DPRM-BoN-2`: at step `96`, evaluate two fixed confidence-quantile actions
+  (`0.3`, `0.7`) plus the confidence fallback;
+- `DPRM-BoN-4`: evaluate four actions (`0.15`, `0.3`, `0.7`, `0.85`) plus the
+  confidence fallback.
 
-## Host Mapping
+Each action branch starts from the same partial visual canvas and completes with
+confidence decoding. Hard terminal-utility selection implements the high-tilt
+DPRM-BoN limit. The utility is CLIP-L/14 image-text cosine plus `0.01` times the
+LAION aesthetic-predictor score. Uniform-3 and Uniform-5 sample from the same
+branch records and are compute-matched controls.
 
-- `confidence`: probability or margin assigned to the proposed visual token.
-- `candidate_mask`: currently masked visual-token positions eligible for reveal.
-- `phase_ids`: denoising step bucket.
-- `aux_bin_ids`: relative visual-token position bin, usually a raster-position
-  bucket or coarse spatial bucket.
-- `rewards`: image-level utility from the host evaluation, e.g. CLIP image-text
-  cosine or another task-specific visual score.
+## Paper Protocol
 
-## Ordering Variants
+The held-out audit uses `96` prompts, one fixed seed per prompt, `256` generated
+visual tokens, and the official `260`-step path. DPRM-BoN-2/4 require `3/5`
+complete rollouts per prompt. CLIP-L/14 selects actions; CLIP-B/32 is an
+independent post-selection evaluator. The compact statistics are in
+[`../../results/artifacts/multimodal_summary.json`](../../results/artifacts/multimodal_summary.json).
 
-- `random`: reveal masked visual positions uniformly at random.
-- `progressive_confidence`: reveal highest-confidence visual-token proposals.
-- `dprm_confidence_warmup`: confidence warmup, then DPRM table guidance.
-- `dprm_random_warmup`: random warmup, then DPRM table guidance.
+## Reproduction
 
-For formal DPRM runs, a DPRM-labeled policy should consume a real table/hook
-after warmup. Silent fallback to confidence makes the run indistinguishable from
-the confidence baseline and should only be used for explicit debugging.
+1. Copy `overlay/host/generation_utils.py` and `scripts/` into the Omni-Diffusion
+   checkout. Set `OMNI_ROOT`, `OMNI_MODEL_PATH`, and
+   `OMNI_IMAGE_TOKENIZER_PATH`. Set the output directory explicitly, for example
+   `export OMNI_ACTION_ROOT="$OMNI_ROOT/outputs/omni_action_branches"`.
+2. Run `scripts/run_action_branches.sh`. It selects 96 deduplicated JourneyDB
+   prompts after offset 2000, assigns seed `20268000 + prompt_index`, and generates
+   the confidence baseline plus quantiles `0.15`, `0.3`, `0.7`, and `0.85` from
+   the same step-96 canvas. The prompt offset, count, seeds, quantiles, and GPUs
+   have environment-variable overrides in the script.
+3. Set `AESTHETIC_WEIGHTS` to the LAION aesthetic-predictor weights used by the
+   evaluator and score the complete branches:
 
-## Overlay Files
+   ```bash
+   python scripts/score_action_branches.py \
+     --root "$OMNI_ACTION_ROOT" \
+     --output "$OMNI_ACTION_ROOT/action_branches.json" \
+     --aesthetic-weights "$AESTHETIC_WEIGHTS"
+   ```
 
-- `overlay/generation_order.py`: a small hook for Omni-style one-dimensional
-  masked-token selection. It supports confidence/random/entropy/DPRM policies,
-  table scoring, and trace logging.
+4. Run both DPRM shortlists and the compute-matched analysis:
 
-Insert the hook where the host computes visual-token confidence and chooses
-`number_transfer_tokens` masked positions to reveal. The sampled token values
-still come from the Omni-Diffusion denoiser.
+   ```bash
+   python scripts/select_dprm_bon.py \
+     --records "$OMNI_ACTION_ROOT/action_branches.json" \
+     --output-dir "$OMNI_ACTION_ROOT/selection"
+   python scripts/analyze_compute_matched.py \
+     --records "$OMNI_ACTION_ROOT/action_branches.json" \
+     --output-dir "$OMNI_ACTION_ROOT/compute_matched"
+   ```
 
-## Public Result Summary
+5. Run random and confidence policies with the registry commands to reconstruct
+   the four-order table and visual audit.
 
-The compact four-order text-to-image summary is in
-`statistics_outputs/multimodal_order_results.csv`.
-
-On the corrected 64-prompt official-step split, CLIP-L/14 mean image-text cosine
-is `0.24915` for DPRM-confidence, `0.24744` for confidence-progressive, `0.22184`
-for random, and `0.21456` for DPRM-random. This is a small positive
-visual-token result for DPRM-confidence and a negative result for DPRM-random.
-
-## Reproduction Sketch
-
-1. Clone the upstream Omni-Diffusion host and install its model/tokenizer stack.
-2. Add `overlay/generation_order.py` to the host import path.
-3. Run `random` and `progressive_confidence` with order tracing enabled.
-4. Score generated images with a fixed image-text metric and write a reward CSV.
-5. Build a DPRM table with `examples/build_bucket_table_from_traces.py`.
-6. Re-run the same prompt split and generation budget with DPRM order policies.
-
-## Codex / Claude Guidance
-
-Ask the assistant to preserve:
-
-- the Omni-Diffusion model, tokenizer, image tokenizer, prompt split, and
-  generation step budget;
-- the original random/confidence order modes as explicit baselines;
-- the same image scoring script and prompt list for all four orders;
-- compact traces and result summaries, not raw images/checkpoints in this repo.
-
-The only intervention should be replacing visual-token reveal order.
+`generate_four_orders.py` rejects a DPRM label after warmup unless a real table
+or action-value model is supplied. Diagnostic confidence fallback requires an
+explicit flag and is excluded from formal results.

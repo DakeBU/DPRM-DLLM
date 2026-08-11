@@ -1,0 +1,35 @@
+defaults:
+  - base
+  - _self_
+
+loader:
+  global_batch_size: 128
+  num_workers: 4
+
+trainer:
+  devices: 1
+  max_steps: 5000
+  log_every_n_steps: 10
+
+callback:
+  every_n_train_steps: 1000
+
+training:
+  use_bracket_safe: true
+  order_policy: random_mdlm
+  order_num_phases: 8
+  dprm_num_phases: 8
+  dprm_confidence_bins: 16
+  dprm_reward_temperature: 1.0
+  dprm_reward_mode: selected_confidence
+  dprm_objective_weights: [0.55, 0.45]
+  dprm_tchebycheff_temperature: 0.05
+  dprm_tchebycheff_augmentation: 0.05
+  dprm_guidance_scale: 1.0
+  dprm_warmup_steps: 500
+  dprm_switch_steps: 2000
+  dprm_ready_count: 128
+  dprm_sampled_soft_bon: true
+  dprm_candidate_multiplier: 4
+  dprm_min_candidates: 8
+  dprm_max_candidates: 64

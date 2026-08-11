@@ -48,7 +48,7 @@ model:
     exp_path: airkingbd/struct_tokenizer
   bit:
     load_from_pretrained: false
-    load_path: /path/to/pretrained/dplm2_bit/model
+    load_path: ${oc.env:DPLM2_BIT_CHECKPOINT}
   order:
     enable: true
     train_order_policy: progressive_dprm

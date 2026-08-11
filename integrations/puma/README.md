@@ -1,28 +1,34 @@
-# DPRM-PUMA Overlay
+# DPRM-PUMA
 
-`DPRM-PUMA` keeps PUMA's teacher-forced progressive unmasking objective and train-test alignment logic, but upgrades the reveal order from top-confidence to an online DPRM Soft-BoN policy.
+DPRM-PUMA preserves PUMA's TinyGSM model, teacher-forced progressive denoising
+loss, optimizer, data, and reveal budget. The ordered action is a masked response
+position. Confidence is the model probability of its provisional token, and the
+bucket utility is the mean teacher-forced log-probability on newly revealed
+ground-truth tokens.
 
-## Host Mapping
+## Order Policies
 
-- `confidence`: token confidence from the current denoiser.
-- `candidate_mask`: currently masked positions.
-- `phase_ids`: progressive unmasking phase or decode-step bucket.
-- `aux_bin_ids`: unused in the current PUMA fork.
-- `rewards`: teacher-forced self-supervised reconstruction payoff or a lightweight decode-time pseudo-reward.
+- `random`: standard random masking.
+- `confidence`: confidence-progressive PUMA.
+- `dprm_soft_bon` with `warmup_policy=confidence`.
+- `dprm_soft_bon` with `warmup_policy=random`.
 
-## What Changed In The Local Fork
+## Paper Configuration
 
-- `src/dprm/adapters/puma.py` is now the shared adapter that maps PUMA's legacy reveal-order API to the generic `OnlineDPRMController`;
-- `progressive.py` and `progressive_block.py` can instantiate the adapter-backed DPRM controller;
-- `sampling.py` uses the same controller at decode time for aligned ordering;
-- YAML configs expose `order_policy=dprm_soft_bon` and the controller hyperparameters.
+Hidden size `512`, `14` layers, `8` heads, batch size `32`, learning rate
+`3e-4`, weight decay `0.01`, EMA `0.9999`, and `20` epochs. The progressive
+horizon increases from `K=12` to `K=42` by step `330k`. DPRM uses `16`
+confidence bins, `beta=1`, warmup `2k`, switch `60k`, readiness `128`, and a
+shortlist of `min(64, max(8, 4*m_t))`. Evaluation uses the shared `1.53M` EMA
+checkpoint, temperature `0`, and `unmasking_num` in `{2,3}`.
 
-## Codex / Claude Guidance
+## Overlay
 
-Ask the assistant to preserve:
+Copy `overlay/` into a prepared PUMA checkout, preserving relative paths. The
+training entry points are `train.py` and `train_block.py`; validation uses
+`sampling.py`. The saved checkpoint includes the DPRM bucket state. PUMA parses
+a single `--cfg` YAML argument, so the random-warmup policy has its own
+`tinygsm_puma_dprm_random.yaml` configuration.
 
-- PUMA's admissible teacher-forced forward process;
-- the train-test occupancy matching argument;
-- the existing reveal budget schedule.
-
-Only the ordering score should change from confidence-only to confidence plus online continuation correction.
+The exact four commands are listed under `puma` in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).

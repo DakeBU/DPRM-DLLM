@@ -28,9 +28,11 @@ def _load_models(args):
         "dprm_warmup_steps": args.dprm_warmup_steps,
         "dprm_switch_steps": args.dprm_switch_steps,
         "dprm_ready_count": args.dprm_ready_count,
-        "dprm_phase_bins": 8,
-        "dprm_conf_bins": 10,
+        "dprm_phase_bins": args.dprm_phase_bins,
+        "dprm_conf_bins": args.dprm_conf_bins,
         "dprm_shortlist_size": args.dprm_shortlist_size,
+        "dprm_ablation": args.dprm_ablation,
+        "dprm_ablation_seed": args.dprm_ablation_seed,
     }
     ref_path = os.path.join(args.base_path, args.ref_model_path)
     model_path = os.path.join(args.base_path, args.model_path)
@@ -67,16 +69,22 @@ def main():
     parser.add_argument("--bootstrap", type=int, default=1000)
     parser.add_argument("--output", type=str, required=True)
     parser.add_argument("--order_policy", type=str, default="baseline",
-                        choices=["baseline", "progressive", "dprm", "dprm_random"])
+                        choices=["baseline", "progressive", "entropy", "dprm", "dprm_random"])
     parser.add_argument("--dprm_beta", type=float, default=1.0)
     parser.add_argument("--dprm_warmup_steps", type=int, default=100)
     parser.add_argument("--dprm_switch_steps", type=int, default=400)
     parser.add_argument("--dprm_ready_count", type=int, default=64)
+    parser.add_argument("--dprm_phase_bins", type=int, default=8)
+    parser.add_argument("--dprm_conf_bins", type=int, default=10)
     parser.add_argument("--dprm_shortlist_size", type=int, default=64)
+    parser.add_argument("--dprm_ablation", type=str, default="normal",
+                        choices=["normal", "shuffled_bucket", "gate_only", "count_only"])
+    parser.add_argument("--dprm_ablation_seed", type=int, default=20260611)
     args = parser.parse_args()
 
     set_seed(args.seed, use_cuda=True)
     model, ref_model = _load_models(args)
+    model.reset_ordering_trace()
 
     all_raw, all_seqs = [], []
     for _ in tqdm(range(args.num_sample_batches), desc="sample"):
@@ -112,6 +120,7 @@ def main():
     metrics["n_samples"] = n
     metrics["order_policy"] = args.order_policy
     metrics["model_path"] = args.model_path
+    metrics["ordering_coverage"] = model.dprm_coverage_summary()
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     with open(args.output, "w") as f:
         json.dump(metrics, f, indent=2)

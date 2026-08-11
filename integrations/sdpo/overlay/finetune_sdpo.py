@@ -3,6 +3,7 @@ from tqdm import tqdm
 import lightning as L
 from argparse import ArgumentParser
 import os
+import json
 from hydra import initialize, compose
 from sdpo_gosai import DiffusionSDPO
 from lightning import Trainer
@@ -34,12 +35,17 @@ if __name__ == '__main__':
     parser.add_argument('--eval_every', type=int, default=20)
     parser.add_argument('--skip_final_inline_eval', action='store_true')
     parser.add_argument('--order_policy', type=str, default='baseline',
-                        choices=['baseline', 'progressive', 'dprm', 'dprm_random'])
+                        choices=['baseline', 'progressive', 'entropy', 'dprm', 'dprm_random'])
     parser.add_argument('--dprm_beta', type=float, default=1.0)
     parser.add_argument('--dprm_warmup_steps', type=int, default=100)
     parser.add_argument('--dprm_switch_steps', type=int, default=400)
     parser.add_argument('--dprm_ready_count', type=int, default=64)
+    parser.add_argument('--dprm_phase_bins', type=int, default=8)
+    parser.add_argument('--dprm_conf_bins', type=int, default=10)
     parser.add_argument('--dprm_shortlist_size', type=int, default=64)
+    parser.add_argument('--dprm_ablation', type=str, default='normal',
+                        choices=['normal', 'shuffled_bucket', 'gate_only', 'count_only'])
+    parser.add_argument('--dprm_ablation_seed', type=int, default=20260611)
     args = parser.parse_args()
     
     set_seed(args.seed, use_cuda=True)
@@ -54,9 +60,11 @@ if __name__ == '__main__':
         'dprm_warmup_steps': args.dprm_warmup_steps,
         'dprm_switch_steps': args.dprm_switch_steps,
         'dprm_ready_count': args.dprm_ready_count,
-        'dprm_phase_bins': 8,
-        'dprm_conf_bins': 10,
+        'dprm_phase_bins': args.dprm_phase_bins,
+        'dprm_conf_bins': args.dprm_conf_bins,
         'dprm_shortlist_size': args.dprm_shortlist_size,
+        'dprm_ablation': args.dprm_ablation,
+        'dprm_ablation_seed': args.dprm_ablation_seed,
     }
     
     if args.wandb:
@@ -141,9 +149,15 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
     torch.save(model.state_dict(), args.save_path)
     print(f"Saved model to {args.save_path}")
+    ordering_summary_path = os.path.join(os.path.dirname(args.save_path), "ordering_train_summary.json")
+    with open(ordering_summary_path, "w") as f:
+        json.dump(model.dprm_coverage_summary(), f, indent=2)
+    print(f"Saved ordering summary to {ordering_summary_path}")
 
     if args.skip_final_inline_eval:
-        return
+        if wandb.run is not None:
+            wandb.finish()
+        raise SystemExit(0)
 
     try:
         all_detokenized_samples, model_logl, generated_preds, generated_atac_acc, generated_p_coef = eval_model(model, ref_model, 10, 64, args.verbose)

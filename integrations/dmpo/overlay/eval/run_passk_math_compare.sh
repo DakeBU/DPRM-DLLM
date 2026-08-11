@@ -4,13 +4,14 @@ set -euo pipefail
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
-ENV_ACTIVATE="${ENV_ACTIVATE:-<PYTHON_ENV>/bin/activate}"
-source "$ENV_ACTIVATE"
+if [[ -n "${ENV_ACTIVATE:-}" ]]; then
+  source "$ENV_ACTIVATE"
+fi
 
 BASE_MODEL_PATH="${BASE_MODEL_PATH:-GSAI-ML/LLaDA-8B-Instruct}"
-RANDOM_RUN_DIR="${RANDOM_RUN_DIR:-<DMPO_DPRM_REPO>/outputs/math/random/dmpo-math-random-5000-2gpu}"
-PROGRESSIVE_RUN_DIR="${PROGRESSIVE_RUN_DIR:-<DMPO_DPRM_REPO>/outputs/math/progressive/dmpo-math-progressive-5000-2gpu}"
-OUTPUT_DIR="${OUTPUT_DIR:-<DMPO_DPRM_REPO>/eval_outputs/passk_math_step5000}"
+: "${RANDOM_RUN_DIR:?Set RANDOM_RUN_DIR to the random-order DMPO run directory}"
+: "${PROGRESSIVE_RUN_DIR:?Set PROGRESSIVE_RUN_DIR to the progressive or DPRM run directory}"
+OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/outputs/passk_math_compare}"
 GPU_IDS="${GPU_IDS:-1,2}"
 VANILLA_GPU_ID="${VANILLA_GPU_ID:-}"
 PROGRESSIVE_GPU_ID="${PROGRESSIVE_GPU_ID:-}"

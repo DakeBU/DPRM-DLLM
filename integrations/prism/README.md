@@ -1,39 +1,30 @@
-# DPRM-Prism Overlay
+# DPRM-Prism
 
-`DPRM-Prism` is a pure test-time scaling overlay. It leaves HTS, local branching, pruning cadence, verifier usage, and budget accounting fixed, and only changes the ranking heuristic used inside the search.
+DPRM-Prism preserves Prism's hierarchical trajectory search, branching width,
+pruning cadence, verifier, and survivor budget. The controller orders reveal
+and remask positions inside HTS. Terminal utility is the verifier score already
+computed by the search.
 
-## Host Mapping
+## Order Policies
 
-- `confidence`: token confidence from the host diffusion model.
-- `candidate_mask`: tokens eligible for reveal or remask inside HTS.
-- `phase_ids`: decode-step bucket or HTS progress bucket.
-- `aux_bin_ids`: optional verifier or search-state bucket.
-- `rewards`: verifier signal or terminal candidate quality already produced by Prism.
+- `ORDER_POLICY=random`.
+- `ORDER_POLICY=confidence`.
+- `ORDER_POLICY=dprm_soft_bon`, using confidence warmup.
+- `ORDER_POLICY=dprm_random`, using random warmup.
 
-## What Changed In The Local Fork
+## Paper Configuration
 
-- `src/dprm/adapters/prism.py` is the shared adapter that maps HTS-style search controllers to the generic DPRM core;
-- the HTS samplers can instantiate an online DPRM Soft-BoN controller through that adapter;
-- early search remains confidence-dominated;
-- later search reranks candidates using online continuation estimates;
-- low-score remasking uses DPRM scores instead of only low confidence.
+LLaDA-2.0-mini on GSM8K; initial width `16`, final survivors `4`, survivor count
+`2`, decay `1.8`, pruning interval `3`, block length `32`, `32` generation steps,
+length `256`, and temperature `0.7`. DPRM uses `8` phases, `16` confidence bins,
+`beta=1`, warmup `0.2T`, switch `0.7T`, readiness `64`, and shortlist
+`min(64, max(8, 4*m_t))`.
 
-## Codex / Claude Guidance
+## Overlay
 
-Ask the assistant to preserve:
-
-- the exact search budget and branching schedule;
-- the verifier and self-checking logic;
-- the original confidence policy as a fallback mode.
-
-The only module that should change is token ordering inside the HTS inner loop.
-
-A concise instruction that works well is:
-
-> Integrate DPRM into this Prism-style repository. Keep HTS, branching width, pruning cadence, verifier calls, and total budget fixed. Only replace the confidence-based token ranking and low-confidence remasking policy with a confidence-to-DPRM transition plus DPRM Soft-BoN shortlist selection. Preserve the original `confidence` mode.
-
-The assistant should return:
-
-- the exact HTS sampler file(s) changed;
-- the config or shell argument that switches between `confidence` and `dprm_soft_bon`;
-- one baseline command and one DPRM command with identical search hyperparameters.
+The release includes Dream, LLaDA, and LLaDA-2.0-mini HTS overlays. The paper
+command is `overlay/LLaDA2mini/LLaDA2mini_Prism/scripts/run_gsm8k.sh`. Set
+`PRISM_ROOT` to the corresponding upstream checkout; Dream also requires
+`DREAM_MODEL_PATH`. `GPU_IDS`, `MODEL_PATH`, and `BASE_OUTPUT_PATH` are optional
+overrides. Run the variants in the registry and report accuracy together with
+mean NFE and verifier calls.

@@ -89,6 +89,7 @@ class DMPOTrainer(GRPOTrainer):
                 assert args.loss_progressive_dprm_lambda >= 0.0, "loss_progressive_dprm_lambda must be non-negative"
                 assert args.loss_progressive_dprm_ready_count >= 1, "loss_progressive_dprm_ready_count must be >= 1"
                 assert args.loss_progressive_dprm_mode in ["analytic", "sampled"], "Invalid DPRM mode"
+                assert args.loss_progressive_dprm_warmup_policy in ["confidence", "random"], "Invalid DPRM warmup policy"
         if args.loss_antithetic and (args.num_replicates % 2 == 1 or self.args.compute_ref_log_prob_elbo_size % 2 == 1):
             logger.warning("num_replicates and compute_ref_log_prob_elbo_size should be even")
         if args.loss_mask_sampler == "progressive" and args.loss_antithetic:
@@ -132,6 +133,7 @@ class DMPOTrainer(GRPOTrainer):
                 dprm_lambda=args.loss_progressive_dprm_lambda,
                 warmup_steps=args.loss_progressive_dprm_warmup_steps,
                 switch_steps=args.loss_progressive_dprm_switch_steps,
+                warmup_policy=args.loss_progressive_dprm_warmup_policy,
                 ready_count=args.loss_progressive_dprm_ready_count,
                 mode=args.loss_progressive_dprm_mode,
                 candidate_multiplier=args.loss_progressive_dprm_candidate_multiplier,

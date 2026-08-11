@@ -1,0 +1,101 @@
+host,task,method,variant,metric,direction,value,ci95_low,ci95_high,n,protocol
+Omni-Diffusion,T2I,Random,random,CLIP-L/14,higher,0.26232,,,96,shared_prompt_seed
+Omni-Diffusion,T2I,Confidence,confidence,CLIP-L/14,higher,0.26791,,,96,shared_prompt_seed
+Omni-Diffusion,T2I,Uniform-3,uniform_3,CLIP-L/14,higher,0.27044,,,96,matched_rollouts
+Omni-Diffusion,T2I,DPRM-BoN-2,dprm_bon_2,CLIP-L/14,higher,0.28302,,,96,matched_rollouts
+Omni-Diffusion,T2I,Uniform-5,uniform_5,CLIP-L/14,higher,0.27089,,,96,matched_rollouts
+Omni-Diffusion,T2I,DPRM-BoN-4,dprm_bon_4,CLIP-L/14,higher,0.28708,,,96,matched_rollouts
+Omni-Diffusion,T2I,Random,random,CLIP-B/32,higher,0.31123,,,96,shared_prompt_seed
+Omni-Diffusion,T2I,Confidence,confidence,CLIP-B/32,higher,0.31662,,,96,shared_prompt_seed
+Omni-Diffusion,T2I,Uniform-3,uniform_3,CLIP-B/32,higher,0.31867,,,96,matched_rollouts
+Omni-Diffusion,T2I,DPRM-BoN-2,dprm_bon_2,CLIP-B/32,higher,0.32197,,,96,matched_rollouts
+Omni-Diffusion,T2I,Uniform-5,uniform_5,CLIP-B/32,higher,0.31873,,,96,matched_rollouts
+Omni-Diffusion,T2I,DPRM-BoN-4,dprm_bon_4,CLIP-B/32,higher,0.32294,,,96,matched_rollouts
+LLaDA-V,AI2D,Random,random,accuracy,higher,0.628,,,500,matched_pipeline
+LLaDA-V,AI2D,Confidence,confidence,accuracy,higher,0.658,,,500,matched_pipeline
+LLaDA-V,AI2D,DPRM-confidence,dprm_confidence,accuracy,higher,0.692,,,500,matched_pipeline
+LLaDA-V,AI2D,DPRM-random,dprm_random,accuracy,higher,0.654,,,500,matched_pipeline
+LLaDA-V,RealWorldQA,Confidence,confidence,accuracy,higher,0.473477,,,509,heldout_after_dev
+LLaDA-V,RealWorldQA,DPRM-confidence,dprm_confidence,accuracy,higher,0.489194,,,509,heldout_after_dev
+LLaDA-V,RealWorldQA,DPRM-confidence,dprm_confidence,paired_delta,higher,0.015717,-0.005894,0.037328,509,heldout_after_dev
+LLaDA-V,RealWorldQA numeric,Confidence,confidence,accuracy,higher,0.320513,,,78,heldout_after_dev
+LLaDA-V,RealWorldQA numeric,DPRM-confidence,dprm_confidence,accuracy,higher,0.410256,,,78,heldout_after_dev
+LLaDA-V,RealWorldQA numeric,DPRM-confidence,dprm_confidence,paired_delta,higher,0.089744,0.038462,0.153846,78,heldout_after_dev
+LLaDA-V,ChartQA,Confidence,confidence,accuracy,higher,0.696,,,500,frozen_transfer
+LLaDA-V,ChartQA,DPRM-confidence,dprm_confidence,accuracy,higher,0.710,,,500,frozen_transfer
+LLaDA-V,ChartQA numeric,Confidence,confidence,accuracy,higher,0.717241,,,145,frozen_transfer
+LLaDA-V,ChartQA numeric,DPRM-confidence,dprm_confidence,accuracy,higher,0.751724,,,145,frozen_transfer
+LLaDA-V,ChartQA numeric,DPRM-confidence,dprm_confidence,paired_delta,higher,0.034483,0.006897,0.068966,145,frozen_transfer
+PUMA,GSM8K,PUMA confidence,confidence,unmask_2_accuracy,higher,29.95,,,1319,shared_checkpoint
+PUMA,GSM8K,DPRM-PUMA,dprm_confidence,unmask_2_accuracy,higher,34.12,,,1319,shared_checkpoint
+PUMA,GSM8K,PUMA confidence,confidence,unmask_3_accuracy,higher,28.73,,,1319,shared_checkpoint
+PUMA,GSM8K,DPRM-PUMA,dprm_confidence,unmask_3_accuracy,higher,34.42,,,1319,shared_checkpoint
+PUMA,GSM8K,PUMA confidence,confidence,mean_accuracy,higher,29.34,,,1319,shared_checkpoint
+PUMA,GSM8K,DPRM-PUMA,dprm_confidence,mean_accuracy,higher,34.27,,,1319,shared_checkpoint
+DMPO,GSM8K,DMPO,random,mean_pass_at_k,higher,88.1,,,,matched_pipeline
+DMPO,GSM8K,Progressive DMPO,confidence,mean_pass_at_k,higher,88.7,,,,matched_pipeline
+DMPO,GSM8K,DMPO-DPRM,dprm_confidence,mean_pass_at_k,higher,88.6,,,,matched_pipeline
+DMPO,GSM8K Hard,Progressive DMPO,confidence,mean_pass_at_k,higher,74.4,,,,matched_pipeline
+DMPO,GSM8K Hard,DMPO-DPRM,dprm_confidence,mean_pass_at_k,higher,75.3,,,,matched_pipeline
+DMPO,MATH,DMPO,random,mean_pass_at_k,higher,47.1,,,,matched_pipeline
+DMPO,MATH,Progressive DMPO,confidence,mean_pass_at_k,higher,50.4,,,,matched_pipeline
+DMPO,MATH,DMPO-DPRM,dprm_confidence,mean_pass_at_k,higher,52.5,,,,matched_pipeline
+DMPO,MATH Hard,Progressive DMPO,confidence,mean_pass_at_k,higher,44.3,,,,matched_pipeline
+DMPO,MATH Hard,DMPO-DPRM,dprm_confidence,mean_pass_at_k,higher,47.9,,,,matched_pipeline
+DMPO,Countdown,DMPO,random,mean_pass_at_k,higher,7.8,,,,matched_pipeline
+DMPO,Countdown,Progressive DMPO,confidence,mean_pass_at_k,higher,53.4,,,,matched_pipeline
+DMPO,Countdown,DMPO-DPRM,dprm_confidence,mean_pass_at_k,higher,55.0,,,,matched_pipeline
+DMPO,Countdown Hard,Progressive DMPO,confidence,mean_pass_at_k,higher,29.6,,,,matched_pipeline
+DMPO,Countdown Hard,DMPO-DPRM,dprm_confidence,mean_pass_at_k,higher,33.4,,,,matched_pipeline
+Prism,GSM8K,Prism,confidence,voted_accuracy,higher,82.41,,,1319,matched_pipeline
+Prism,GSM8K,DPRM-Prism,dprm_confidence,voted_accuracy,higher,83.85,,,1319,matched_pipeline
+Prism,GSM8K,Prism,confidence,rank_1_accuracy,higher,82.11,,,1319,matched_pipeline
+Prism,GSM8K,DPRM-Prism,dprm_confidence,rank_1_accuracy,higher,83.70,,,1319,matched_pipeline
+Prism,GSM8K,Prism,confidence,any_4_accuracy,higher,84.61,,,1319,matched_pipeline
+Prism,GSM8K,DPRM-Prism,dprm_confidence,any_4_accuracy,higher,86.58,,,1319,matched_pipeline
+Prism,GSM8K,Prism,confidence,mean_nfe,lower,609,,,1319,matched_pipeline
+Prism,GSM8K,DPRM-Prism,dprm_confidence,mean_nfe,lower,1071,,,1319,matched_pipeline
+DPLM-2 Bit,CAMEO,Progressive-DPLM-2 Bit,confidence,RMSD,lower,35.4667,,,163,matched_pipeline
+DPLM-2 Bit,CAMEO,DPRM-DPLM weighted,dprm_confidence,RMSD,lower,35.4667,,,163,matched_pipeline
+DPLM-2 Bit,CAMEO,DPRM-DPLM Tcheby,dprm_random,RMSD,lower,35.4667,,,163,matched_pipeline
+DPLM-2 Bit,CAMEO,Progressive-DPLM-2 Bit,confidence,TM,higher,0.3066,,,163,matched_pipeline
+DPLM-2 Bit,CAMEO,DPRM-DPLM weighted,dprm_confidence,TM,higher,0.3066,,,163,matched_pipeline
+DPLM-2 Bit,CAMEO,DPRM-DPLM Tcheby,dprm_random,TM,higher,0.3066,,,163,matched_pipeline
+DPLM-2 Bit,CoGen-200,Progressive-DPLM-2 Bit,confidence,balanced_utility,higher,0.7355,,,10,development_gate
+DPLM-2 Bit,CoGen-200,DPRM-DPLM weighted,dprm_confidence,balanced_utility,higher,0.7097,,,10,development_gate
+DPLM-2 Bit,CoGen-200,DPRM-DPLM Tcheby,dprm_random,balanced_utility,higher,0.7377,,,10,development_gate
+DCM,Dentate Gyrus,DCM-random,random,token_recovery_percent,higher,66.76,66.08,67.41,293,matched_pipeline
+DCM,Dentate Gyrus,Progressive-DCM,confidence,token_recovery_percent,higher,76.07,75.08,77.03,293,matched_pipeline
+DCM,Dentate Gyrus,DPRM-DCM weighted,dprm_confidence,token_recovery_percent,higher,75.88,74.87,76.87,293,matched_pipeline
+DCM,Dentate Gyrus,DPRM-DCM Tcheby,dprm_random,token_recovery_percent,higher,75.88,74.85,76.84,293,matched_pipeline
+DCM,Dentate Gyrus,DCM-random,random,MAE,lower,0.758,0.739,0.778,293,matched_pipeline
+DCM,Dentate Gyrus,Progressive-DCM,confidence,MAE,lower,0.628,0.596,0.661,293,matched_pipeline
+DCM,Dentate Gyrus,DPRM-DCM weighted,dprm_confidence,MAE,lower,0.657,0.623,0.692,293,matched_pipeline
+DCM,Dentate Gyrus,DPRM-DCM Tcheby,dprm_random,MAE,lower,0.655,0.623,0.690,293,matched_pipeline
+DCM,Dentate Gyrus,DCM-random,random,zero_accuracy_percent,higher,82.83,82.59,83.07,293,matched_pipeline
+DCM,Dentate Gyrus,Progressive-DCM,confidence,zero_accuracy_percent,higher,99.75,99.73,99.77,293,matched_pipeline
+DCM,Dentate Gyrus,DPRM-DCM weighted,dprm_confidence,zero_accuracy_percent,higher,99.87,99.86,99.87,293,matched_pipeline
+DCM,Dentate Gyrus,DPRM-DCM Tcheby,dprm_random,zero_accuracy_percent,higher,99.86,99.85,99.87,293,matched_pipeline
+GenMol V2,De novo,GenMol V2,native,validity,higher,0.978,0.968,0.987,1000,matched_pipeline
+GenMol V2,De novo,Progressive-GenMol V2,confidence,validity,higher,0.997,0.993,1.000,1000,matched_pipeline
+GenMol V2,De novo,DPRM-random,dprm_random,validity,higher,0.999,0.997,1.000,1000,matched_pipeline
+GenMol V2,De novo,DPRM-weighted,dprm_confidence,validity,higher,0.999,0.997,1.000,1000,matched_pipeline
+GenMol V2,De novo,DPRM-Tcheby,dprm_tcheby,validity,higher,1.000,1.000,1.000,1000,matched_pipeline
+GenMol V2,De novo,GenMol V2,native,QED_SA_quality,higher,0.800,0.775,0.825,1000,matched_pipeline
+GenMol V2,De novo,Progressive-GenMol V2,confidence,QED_SA_quality,higher,0.555,0.524,0.585,1000,matched_pipeline
+GenMol V2,De novo,DPRM-random,dprm_random,QED_SA_quality,higher,0.831,0.807,0.854,1000,matched_pipeline
+GenMol V2,De novo,DPRM-weighted,dprm_confidence,QED_SA_quality,higher,0.762,0.735,0.788,1000,matched_pipeline
+GenMol V2,De novo,DPRM-Tcheby,dprm_tcheby,QED_SA_quality,higher,0.760,0.733,0.786,1000,matched_pipeline
+GenMol V2,De novo,GenMol V2,native,BGM,higher,0.886,,,1000,matched_pipeline
+GenMol V2,De novo,Progressive-GenMol V2,confidence,BGM,higher,0.773,,,1000,matched_pipeline
+GenMol V2,De novo,DPRM-random,dprm_random,BGM,higher,0.794,,,1000,matched_pipeline
+GenMol V2,De novo,DPRM-weighted,dprm_confidence,BGM,higher,0.776,,,1000,matched_pipeline
+GenMol V2,De novo,DPRM-Tcheby,dprm_tcheby,BGM,higher,0.776,,,1000,matched_pipeline
+SDPO,GOSAI DNA,SDPO,native,total,higher,1.141,1.003,1.276,640,matched_pipeline
+SDPO,GOSAI DNA,Progressive-SDPO,confidence,total,higher,0.384,0.318,0.454,640,matched_pipeline
+SDPO,GOSAI DNA,DPRM-SDPO,dprm_confidence,total,higher,1.423,1.282,1.571,640,matched_pipeline
+SDPO,GOSAI DNA,DPRM-random-SDPO,dprm_random,total,higher,2.119,1.973,2.262,640,matched_pipeline
+SDPO,GOSAI DNA,SDPO,native,ATAC,higher,0.348,0.311,0.383,640,matched_pipeline
+SDPO,GOSAI DNA,Progressive-SDPO,confidence,ATAC,higher,0.168,0.141,0.195,640,matched_pipeline
+SDPO,GOSAI DNA,DPRM-SDPO,dprm_confidence,ATAC,higher,0.401,0.363,0.441,640,matched_pipeline
+SDPO,GOSAI DNA,DPRM-random-SDPO,dprm_random,ATAC,higher,0.754,0.720,0.788,640,matched_pipeline

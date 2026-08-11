@@ -1,26 +1,25 @@
-#!/bin/bash
-set -e
-set -x
+#!/usr/bin/env bash
+set -euo pipefail
 
-
-PROJECT_ROOT="<PATH_TO_YOUR_ROOT>"
+PROJECT_ROOT="${PRISM_ROOT:?set PRISM_ROOT to the LLaDA_Prism checkout}"
 cd "$PROJECT_ROOT"
 
-MODEL_PATH="GSAI-ML/LLaDA-8B-Instruct"
+MODEL_PATH="${MODEL_PATH:-GSAI-ML/LLaDA-8B-Instruct}"
 
-BASE_OUTPUT_PATH="${PROJECT_ROOT}/outputs/results_gsm8k"
+BASE_OUTPUT_PATH="${BASE_OUTPUT_PATH:-${PROJECT_ROOT}/outputs/results_gsm8k}"
+GPU_IDS="${GPU_IDS:-0,1,2,3,4,5,6,7}"
 
 
 LENGTH=256
 STEPS=32   
 BLOCK=32
 TASK="gsm8k"
-NAME="win_0.1-0.6"
 ORDER_POLICY="${ORDER_POLICY:-confidence}"
+NAME="${NAME:-win_0.1-0.6_${ORDER_POLICY}}"
 
 mkdir -p "${BASE_OUTPUT_PATH}/${NAME}"
 
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch evaluation_script.py \
+CUDA_VISIBLE_DEVICES="${GPU_IDS}" accelerate launch evaluation_script.py \
     --model LLaDA \
     --tasks ${TASK} \
     --batch_size 1 \

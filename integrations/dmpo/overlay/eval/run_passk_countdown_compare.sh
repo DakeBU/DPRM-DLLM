@@ -4,14 +4,15 @@ set -euo pipefail
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
-ENV_ACTIVATE="${ENV_ACTIVATE:-<PYTHON_ENV>/bin/activate}"
-source "$ENV_ACTIVATE"
+if [[ -n "${ENV_ACTIVATE:-}" ]]; then
+  source "$ENV_ACTIVATE"
+fi
 
 BASE_MODEL_PATH="${BASE_MODEL_PATH:-GSAI-ML/LLaDA-8B-Instruct}"
-RANDOM_RUN_DIR="${RANDOM_RUN_DIR:-<DMPO_HOST_REPO>/outputs/countdown/random/<RUN_NAME>}"
-PROGRESSIVE_RUN_DIR="${PROGRESSIVE_RUN_DIR:-<DMPO_HOST_REPO>/outputs/countdown/progressive/<RUN_NAME>}"
+: "${RANDOM_RUN_DIR:?Set RANDOM_RUN_DIR to the random-order DMPO run directory}"
+: "${PROGRESSIVE_RUN_DIR:?Set PROGRESSIVE_RUN_DIR to the progressive or DPRM run directory}"
 EXTRA_RUN_DIR="${EXTRA_RUN_DIR:-}"
-OUTPUT_DIR="${OUTPUT_DIR:-<DMPO_HOST_REPO>/eval_outputs/passk_countdown_step5000}"
+OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/outputs/passk_countdown_compare}"
 DATASET_JSONL="${DATASET_JSONL:-}"
 GPU_IDS="${GPU_IDS:-3,4}"
 VANILLA_GPU_ID="${VANILLA_GPU_ID:-}"

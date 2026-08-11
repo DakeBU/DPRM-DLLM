@@ -254,6 +254,61 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
         correct = (provisional == target_tokens) & design_mask
         return correct.float().sum(dim=1) / design_mask.sum(dim=1).clamp_min(1)
 
+    def _estimate_joint_order_reward(
+        self,
+        *,
+        predicted_struct: torch.Tensor,
+        current_struct: torch.Tensor,
+        target_struct: torch.Tensor,
+        struct_mask: torch.Tensor,
+        predicted_aa: torch.Tensor,
+        current_aa: torch.Tensor,
+        target_aa: torch.Tensor,
+        aa_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        aa_recovery = self._estimate_order_reward(
+            predicted_tokens=predicted_aa,
+            current_tokens=current_aa,
+            target_tokens=target_aa,
+            design_mask=aa_mask,
+            mask_id=self.aa_mask_id,
+        )
+        if self.cfg.order.reward == "aar":
+            return aa_recovery
+
+        struct_recovery = self._estimate_order_reward(
+            predicted_tokens=predicted_struct,
+            current_tokens=current_struct,
+            target_tokens=target_struct,
+            design_mask=struct_mask,
+            mask_id=self.struct_mask_id,
+        )
+        benefits = torch.stack([aa_recovery, struct_recovery], dim=-1)
+        weights = benefits.new_tensor(
+            [
+                float(self.cfg.order.reward_aa_weight),
+                float(self.cfg.order.reward_structure_weight),
+            ]
+        )
+        if torch.any(weights < 0) or float(weights.sum()) <= 0:
+            raise ValueError("DPLM reward weights must be nonnegative and sum positive")
+        weights = weights / weights.sum()
+        weighted_mean = (benefits * weights).sum(dim=-1)
+        if self.cfg.order.reward == "aar_structure_weighted_sum":
+            return weighted_mean
+        if self.cfg.order.reward != "aar_structure_tchebycheff":
+            raise ValueError(f"Unsupported DPRM-DPLM utility: {self.cfg.order.reward}")
+
+        temperature = float(self.cfg.order.reward_tchebycheff_temperature)
+        augmentation = float(self.cfg.order.reward_tchebycheff_augmentation)
+        if temperature <= 0 or augmentation < 0:
+            raise ValueError("Tchebycheff temperature must be positive and augmentation nonnegative")
+        weighted_shortfall = weights * (1.0 - benefits)
+        smooth_worst = temperature * torch.logsumexp(
+            weighted_shortfall / temperature, dim=-1
+        )
+        return (1.0 - smooth_worst + augmentation * weighted_mean).clamp(0.0, 1.0)
+
     def _progressive_reveal_step(
         self,
         *,
@@ -319,9 +374,10 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
             )
             reveal_mask |= extra_mask
 
-        controller.update_statistics(
-            reveal_mask, phase_ids, conf_bins, struct_bins, rewards
-        )
+        if self.training:
+            controller.update_statistics(
+                reveal_mask, phase_ids, conf_bins, struct_bins, rewards
+            )
         current_tokens = torch.where(reveal_mask, target_tokens, current_tokens)
         current_mask = current_mask & ~reveal_mask
         return current_tokens, current_mask
@@ -377,12 +433,15 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
             pred_struct, pred_aa = predicted_tokens.chunk(2, dim=1)
             conf_struct, conf_aa = confidence.chunk(2, dim=1)
 
-            aa_rewards = self._estimate_order_reward(
-                predicted_tokens=pred_aa,
-                current_tokens=current_aa,
-                target_tokens=aatype_target,
-                design_mask=aa_maskable,
-                mask_id=self.aa_mask_id,
+            order_rewards = self._estimate_joint_order_reward(
+                predicted_struct=pred_struct,
+                current_struct=current_struct,
+                target_struct=struct_target,
+                struct_mask=struct_maskable,
+                predicted_aa=pred_aa,
+                current_aa=current_aa,
+                target_aa=aatype_target,
+                aa_mask=aa_maskable,
             )
 
             current_struct, struct_current_mask = self._progressive_reveal_step(
@@ -393,7 +452,7 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
                 design_mask=struct_maskable,
                 desired_mask_counts=struct_desired_masks,
                 confidence=conf_struct,
-                rewards=aa_rewards,
+                rewards=order_rewards,
                 batch=batch,
                 global_step=global_step,
                 phase_step=phase_step,
@@ -406,7 +465,7 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
                 design_mask=aa_maskable,
                 desired_mask_counts=aa_desired_masks,
                 confidence=conf_aa,
-                rewards=aa_rewards,
+                rewards=order_rewards,
                 batch=batch,
                 global_step=global_step,
                 phase_step=phase_step,
@@ -420,14 +479,17 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
         predicted_tokens, confidence = self._predict_order_tokens_and_confidence(
             model_outputs
         )
-        _, pred_aa = predicted_tokens.chunk(2, dim=1)
+        pred_struct, pred_aa = predicted_tokens.chunk(2, dim=1)
         conf_struct, conf_aa = confidence.chunk(2, dim=1)
-        aa_rewards = self._estimate_order_reward(
-            predicted_tokens=pred_aa,
-            current_tokens=current_aa,
-            target_tokens=aatype_target,
-            design_mask=aa_maskable,
-            mask_id=self.aa_mask_id,
+        order_rewards = self._estimate_joint_order_reward(
+            predicted_struct=pred_struct,
+            current_struct=current_struct,
+            target_struct=struct_target,
+            struct_mask=struct_maskable,
+            predicted_aa=pred_aa,
+            current_aa=current_aa,
+            target_aa=aatype_target,
+            aa_mask=aa_maskable,
         )
 
         current_struct, struct_current_mask = self._progressive_reveal_step(
@@ -438,7 +500,7 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
             design_mask=struct_maskable,
             desired_mask_counts=struct_desired_masks,
             confidence=conf_struct,
-            rewards=aa_rewards,
+            rewards=order_rewards,
             batch=batch,
             global_step=global_step,
             phase_step=self.cfg.order.num_phases,
@@ -451,7 +513,7 @@ class MultimodalDiffusionProteinLanguageModel(nn.Module):
             design_mask=aa_maskable,
             desired_mask_counts=aa_desired_masks,
             confidence=conf_aa,
-            rewards=aa_rewards,
+            rewards=order_rewards,
             batch=batch,
             global_step=global_step,
             phase_step=self.cfg.order.num_phases,

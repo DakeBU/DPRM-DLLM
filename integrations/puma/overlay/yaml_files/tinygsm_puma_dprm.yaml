@@ -49,6 +49,7 @@ training:
     value_scale: 1.0
     warmup_steps: 2000
     switch_steps: 60000
+    warmup_policy: confidence
     ready_count: 128
     sampled_shortlist: false
     candidate_multiplier: 4
@@ -84,4 +85,4 @@ wandb:
   wandb: true
   project: "mdm-pretraining"
   name: "puma-dprm"
-  entity: "your-entity-here"
+  entity: null

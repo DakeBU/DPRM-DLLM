@@ -1,0 +1,22 @@
+# @package _global_
+
+defaults:
+  - /experiment/dplm2: dprm_dplm_650m
+  - _self_
+
+name: "dprm_joint_tcheby_dplm_650m"
+
+trainer:
+  max_steps: 5000
+  val_check_interval: 5000
+
+model:
+  order:
+    reward: aar_structure_tchebycheff
+    reward_aa_weight: 0.5
+    reward_structure_weight: 0.5
+    reward_tchebycheff_temperature: 0.05
+    reward_tchebycheff_augmentation: 0.05
+    warmup_steps: 500
+    switch_steps: 2000
+    ready_count: 128

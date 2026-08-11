@@ -35,10 +35,11 @@ def load_result(path: Path) -> dict:
         return json.load(handle)
 
 
-def collect(output_root: Path) -> pd.DataFrame:
+def collect(output_root: Path, run_suffix: str) -> pd.DataFrame:
     rows = []
     missing = []
     for label, run_name in METHODS:
+        run_name = f"{run_name}{run_suffix}"
         result_path = output_root / run_name / "eval_bootstrap.json"
         if not result_path.exists():
             missing.append(str(result_path))
@@ -106,11 +107,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root", type=Path, default=Path("data_and_model/dprm_sdpo_outputs"))
     parser.add_argument("--summary-dir", type=Path, default=Path("eval_outputs/sdpo_dna_ordering"))
+    parser.add_argument("--run-suffix", default="", help="Suffix appended to each canonical SDPO-DNA run name.")
     parser.add_argument("--dpi", type=int, default=220)
     args = parser.parse_args()
 
     args.summary_dir.mkdir(parents=True, exist_ok=True)
-    df = collect(args.output_root)
+    df = collect(args.output_root, args.run_suffix)
     df.to_csv(args.summary_dir / "sdpo_dna_ordering_summary.csv", index=False)
     write_latex(df, args.summary_dir / "sdpo_dna_ordering_table.tex")
     plot(df, args.summary_dir / "sdpo_dna_ordering_metrics.png", args.dpi)
