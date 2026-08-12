@@ -38,6 +38,14 @@ FORBIDDEN = (
     "/path" + "/to/",
     "your-entity-" + "here",
 )
+REQUIRED_REPRO_FILES = (
+    "integrations/dcm/scripts/run_preference_sweep.sh",
+    "integrations/dcm/scripts/run_terminal_calibration.sh",
+    "integrations/genmol/scripts/run_preference_sweep.sh",
+    "integrations/genmol/overlay/src/genmol/utils/utils_data.py",
+    "reproducibility/scientific_preference_sweeps.json",
+    "scripts/sync_scientific_results.py",
+)
 
 
 def fail(message: str) -> None:
@@ -45,6 +53,10 @@ def fail(message: str) -> None:
 
 
 def main() -> None:
+    for relative_path in REQUIRED_REPRO_FILES:
+        if not (ROOT / relative_path).is_file():
+            fail(f"missing reproduction file: {relative_path}")
+
     payload = json.loads(REGISTRY.read_text(encoding="utf-8"))
     experiments = payload.get("experiments", [])
     if len(experiments) != 9:

@@ -11,12 +11,19 @@ from .graph import Graph, AbsorbingGraph
 from .noise import NoiseSchedule
 
 try:
-    from dprm import DPRMConfig, HostDPRMBatch, OnlineDPRMController, scalarize_benefits
+    from dprm import (
+        DPRMConfig,
+        HostDPRMBatch,
+        OnlineDPRMController,
+        scalarize_benefits,
+        sparse_reconstruction_benefits,
+    )
 except Exception:
     DPRMConfig = None
     HostDPRMBatch = None
     OnlineDPRMController = None
     scalarize_benefits = None
+    sparse_reconstruction_benefits = None
 
 Tensor = torch.Tensor
 
@@ -54,6 +61,9 @@ class SEDDTrainer:
         )
         self.dprm_tchebycheff_temperature = float(dcfg.get("tchebycheff_temperature", 0.05))
         self.dprm_tchebycheff_augmentation = float(dcfg.get("tchebycheff_augmentation", 0.05))
+        self.dprm_aux_mode = str(dcfg.get("aux_mode", "none"))
+        if self.dprm_aux_mode not in {"none", "gene", "predicted_zero"}:
+            raise ValueError(f"Unknown DPRM auxiliary mode: {self.dprm_aux_mode}")
         self.gene_aux_bin_ids = (
             gene_aux_bin_ids.long().to(device or torch.device("cpu"))
             if gene_aux_bin_ids is not None
@@ -76,9 +86,13 @@ class SEDDTrainer:
                     num_phases=int(dcfg.get("num_phases", 8)),
                     confidence_bins=int(dcfg.get("confidence_bins", 16)),
                     aux_bins=(
-                        int(self.gene_aux_bin_ids.max().item()) + 1
-                        if self.gene_aux_bin_ids is not None and self.gene_aux_bin_ids.numel()
-                        else 1
+                        2
+                        if self.dprm_aux_mode == "predicted_zero"
+                        else (
+                            int(self.gene_aux_bin_ids.max().item()) + 1
+                            if self.gene_aux_bin_ids is not None and self.gene_aux_bin_ids.numel()
+                            else 1
+                        )
                     ),
                     reward_temperature=float(dcfg.get("reward_temperature", 1.0)),
                     guidance_scale=float(dcfg.get("guidance_scale", 1.0)),
@@ -203,10 +217,14 @@ class SEDDTrainer:
         k = torch.ceil(masked.float() * max(self.loss_token_fraction, 0.0)).long()
         return torch.where(masked > 0, k.clamp_min(1), torch.zeros_like(masked))
 
-    def _gene_aux_grid(self, batch_size: int) -> Optional[Tensor]:
-        if self.gene_aux_bin_ids is None:
-            return None
-        return self.gene_aux_bin_ids.unsqueeze(0).expand(batch_size, -1)
+    def _aux_grid(self, pred_score: Optional[Tensor], batch_size: int) -> Optional[Tensor]:
+        if self.dprm_aux_mode == "predicted_zero":
+            if pred_score is None:
+                raise ValueError("predicted_zero auxiliary buckets require denoiser scores")
+            return (pred_score[..., :-1].argmax(dim=-1) != 0).long()
+        if self.gene_aux_bin_ids is not None:
+            return self.gene_aux_bin_ids.unsqueeze(0).expand(batch_size, -1)
+        return None
 
     def _select_random_positions(self, is_masked: Tensor, num_select: Tensor) -> Tensor:
         selected = torch.zeros_like(is_masked, dtype=torch.bool)
@@ -276,7 +294,7 @@ class SEDDTrainer:
                     confidence=confidence.detach(),
                     candidate_mask=candidate_mask,
                     phase_ids=phase_ids,
-                    aux_bin_ids=self._gene_aux_grid(batch_size),
+                    aux_bin_ids=self._aux_grid(probe_score.detach(), batch_size),
                     global_step=int(self.step),
                 )
                 summary = self.dprm_controller.summarize(host)
@@ -318,7 +336,7 @@ class SEDDTrainer:
             confidence=confidence,
             candidate_mask=revealed_mask,
             phase_ids=phase_ids,
-            aux_bin_ids=self._gene_aux_grid(x_clean.shape[0]),
+            aux_bin_ids=self._aux_grid(pred_score, x_clean.shape[0]),
             global_step=int(self.step),
         )
         self.dprm_controller.observe(host, revealed_mask, reward.detach())
@@ -339,22 +357,13 @@ class SEDDTrainer:
             return (gathered * selected_mask).sum(dim=1) / denom
 
         predicted = logits.argmax(dim=-1)
-        recovery = ((predicted == x_clean) & selected_mask).sum(dim=1).float() / denom
         max_bin_distance = max(int(logits.shape[-1]) - 1, 1)
-        normalized_mae = (
-            ((predicted.float() - x_clean.float()).abs() * selected_mask).sum(dim=1)
-            / (denom * float(max_bin_distance))
-        ).clamp(0.0, 1.0)
-        mae_benefit = 1.0 - normalized_mae
-        selected_zeros = selected_mask & (x_clean == 0)
-        zero_denom = selected_zeros.sum(dim=1)
-        zero_accuracy = ((predicted == 0) & selected_zeros).sum(dim=1).float()
-        zero_accuracy = torch.where(
-            zero_denom > 0,
-            zero_accuracy / zero_denom.clamp_min(1).float(),
-            recovery,
+        objectives = sparse_reconstruction_benefits(
+            predicted,
+            x_clean,
+            selected_mask,
+            max_bin_distance=float(max_bin_distance),
         )
-        objectives = torch.stack((recovery, mae_benefit, zero_accuracy), dim=1)
         weights = torch.as_tensor(
             self.dprm_objective_weights,
             dtype=objectives.dtype,
@@ -401,7 +410,7 @@ class SEDDTrainer:
                 confidence=confidence.detach(),
                 candidate_mask=is_masked,
                 phase_ids=phase_ids,
-                aux_bin_ids=self._gene_aux_grid(x_noised.shape[0]),
+                aux_bin_ids=self._aux_grid(pred_score, x_noised.shape[0]),
                 global_step=int(self.step),
             )
             summary = self.dprm_controller.summarize(host)
@@ -431,7 +440,7 @@ class SEDDTrainer:
             confidence=confidence,
             candidate_mask=train_mask,
             phase_ids=phase_ids,
-            aux_bin_ids=self._gene_aux_grid(x_clean.shape[0]),
+            aux_bin_ids=self._aux_grid(pred_score, x_clean.shape[0]),
             global_step=int(self.step),
         )
         self.dprm_controller.observe(host, train_mask, reward.detach())
@@ -611,9 +620,15 @@ class SEDDTrainer:
             checkpoint["loss_token_fraction"] = self.loss_token_fraction
             checkpoint["dprm_reward_config"] = {
                 "mode": self.dprm_reward_mode,
+                "objective_names": [
+                    "nonzero_recovery",
+                    "nonzero_mae_benefit",
+                    "zero_accuracy",
+                ],
                 "objective_weights": list(self.dprm_objective_weights),
                 "tchebycheff_temperature": self.dprm_tchebycheff_temperature,
                 "tchebycheff_augmentation": self.dprm_tchebycheff_augmentation,
+                "aux_mode": self.dprm_aux_mode,
             }
             if self.gene_aux_bin_ids is not None:
                 checkpoint["dprm_gene_aux_bin_ids"] = self.gene_aux_bin_ids.detach().cpu()

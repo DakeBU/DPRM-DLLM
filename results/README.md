@@ -20,6 +20,8 @@ The protocol tags have the following meanings:
 Compact mechanism artifacts in `artifacts/` contain no model weights, raw
 datasets, generated images, or private filesystem paths. Full regeneration uses
 the commands in `reproducibility/experiments.json` and the upstream host assets.
+`scripts/sync_scientific_results.py` rebuilds the DCM and GenMol rows from the
+same native-value artifact used by the paper radar and supplementary table.
 
 No row should be interpreted as a uniform-dominance claim across metrics.
 DPLM-2 Bit, DCM, and GenMol explicitly expose terminal-invariance or

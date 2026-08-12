@@ -1,6 +1,10 @@
 from .contracts import DPRMSelection, HostDPRMBatch
 from .controller import DPRMConfig, OnlineDPRMController
-from .multiobjective import scalarize_benefits
+from .multiobjective import (
+    molecular_token_class_ids,
+    scalarize_benefits,
+    sparse_reconstruction_benefits,
+)
 from .adapters import BucketizedDPRMController, OnlineDPRMSoftBON, confidence_phase_from_step
 from .tables import (
     DPRMScoreComponents,
@@ -26,7 +30,9 @@ __all__ = [
     "DPRMSelection",
     "HostDPRMBatch",
     "OnlineDPRMController",
+    "molecular_token_class_ids",
     "scalarize_benefits",
+    "sparse_reconstruction_benefits",
     "BucketizedDPRMController",
     "OnlineDPRMSoftBON",
     "confidence_phase_from_step",

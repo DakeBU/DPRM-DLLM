@@ -35,13 +35,22 @@ def parse_args():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--data-path", default="datasets/dentate/dentate_5000_bins32.h5ad")
     parser.add_argument("--val-fraction", type=float, default=0.1)
+    parser.add_argument("--split", choices=("train", "val"), default="val")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-steps", type=int, default=32)
     parser.add_argument("--num-samples", type=int, default=4)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--max-cells", type=int, default=0)
+    parser.add_argument("--cell-offset", type=int, default=0)
+    parser.add_argument("--guidance-scale", type=float, default=None)
     parser.add_argument("--bootstrap", type=int, default=5000)
+    parser.add_argument(
+        "--split-seed",
+        type=int,
+        default=42,
+        help="Fixed train/validation partition seed; independent of sampling/bootstrap seed.",
+    )
     parser.add_argument("--device", default="cuda")
     return parser.parse_args()
 
@@ -59,9 +68,17 @@ def read_data(path: str) -> torch.Tensor:
     return torch.as_tensor(x).long()
 
 
-def val_tensor(data: torch.Tensor, val_fraction: float, seed: int, max_cells: int) -> torch.Tensor:
-    _, val_ds = train_val_split(data, val_fraction=val_fraction, seed=seed)
-    indices = list(val_ds.indices)
+def evaluation_tensor(
+    data: torch.Tensor,
+    val_fraction: float,
+    seed: int,
+    max_cells: int,
+    cell_offset: int,
+    split: str = "val",
+) -> torch.Tensor:
+    train_ds, val_ds = train_val_split(data, val_fraction=val_fraction, seed=seed)
+    dataset = train_ds if split == "train" else val_ds
+    indices = list(dataset.indices)[max(int(cell_offset), 0):]
     if max_cells and max_cells > 0:
         indices = indices[:max_cells]
     return data[indices]
@@ -88,7 +105,12 @@ def load_checkpoint(model, checkpoint_path: str, device: torch.device):
     return payload
 
 
-def make_controller(payload: dict, cfg: dict, device: torch.device):
+def make_controller(
+    payload: dict,
+    cfg: dict,
+    device: torch.device,
+    guidance_scale: float | None = None,
+):
     if "dprm_state_dict" not in payload:
         return None
     if OnlineDPRMController is None:
@@ -109,7 +131,38 @@ def make_controller(payload: dict, cfg: dict, device: torch.device):
     )
     controller.load_state_dict(payload["dprm_state_dict"])
     controller.cfg.sampled_soft_bon = False
+    if guidance_scale is not None:
+        controller.cfg.guidance_scale = float(guidance_scale)
     return controller
+
+
+def controller_diagnostics(payload: dict) -> dict:
+    state = payload.get("dprm_state_dict")
+    if not state:
+        return {"available": False}
+    counts = torch.as_tensor(state["counts"], dtype=torch.float64)
+    sums = torch.as_tensor(state["exp_reward_sums"], dtype=torch.float64)
+    cfg = dict(state.get("cfg", {}))
+    ready_count = int(cfg.get("ready_count", 1))
+    beta = float(cfg.get("reward_temperature", 1.0))
+    nonzero = counts > 0
+    ready = counts >= ready_count
+    mean_exp = torch.where(nonzero, sums / counts.clamp_min(1.0), torch.ones_like(sums))
+    values = torch.log(mean_exp.clamp_min(1e-12)) / max(beta, 1e-12)
+    active_values = values[nonzero]
+    return {
+        "available": True,
+        "num_buckets": int(counts.numel()),
+        "nonzero_buckets": int(nonzero.sum()),
+        "ready_buckets": int(ready.sum()),
+        "selected_events": float(counts.sum()),
+        "active_reward_min": float(active_values.min()) if active_values.numel() else 0.0,
+        "active_reward_mean": float(active_values.mean()) if active_values.numel() else 0.0,
+        "active_reward_max": float(active_values.max()) if active_values.numel() else 0.0,
+        "phase_selected_events": [float(value) for value in counts.sum(dim=(1, 2))],
+        "controller_config": cfg,
+        "reward_config": payload.get("dprm_reward_config", {"mode": "legacy_unspecified"}),
+    }
 
 
 def reveal_budget(masked: torch.Tensor, step: int, num_steps: int) -> torch.Tensor:
@@ -142,6 +195,9 @@ def decode(
     temperature: float,
     device: torch.device,
     sample_seed: int,
+    decode_diagnostics: dict | None = None,
+    gene_aux_bin_ids: torch.Tensor | None = None,
+    aux_mode: str = "none",
 ) -> torch.Tensor:
     torch.manual_seed(sample_seed)
     if device.type == "cuda":
@@ -181,6 +237,15 @@ def decode(
                 confidence=confidence,
                 candidate_mask=masked,
                 phase_ids=phase,
+                aux_bin_ids=(
+                    (sampled != 0).long()
+                    if aux_mode == "predicted_zero"
+                    else (
+                        gene_aux_bin_ids.unsqueeze(0).expand(batch_size, -1)
+                        if gene_aux_bin_ids is not None
+                        else None
+                    )
+                ),
                 global_step=10**12,
                 force_full_dprm=True,
             )
@@ -190,7 +255,27 @@ def decode(
                 # training warmup has completed, matching the paper algorithm.
                 reveal = topk_mask(summary.score, masked, k)
             else:
-                reveal = controller.select(host, k).selected_mask
+                selection = controller.select(host, k)
+                reveal = selection.selected_mask
+                summary = selection
+            if decode_diagnostics is not None:
+                confidence_reveal = topk_mask(torch.log(confidence), masked, k)
+                selected_gate = summary.gate[reveal]
+                selected_delta = (summary.score - summary.base_score)[reveal]
+                decode_diagnostics["decision_rows"] += int(batch_size)
+                decode_diagnostics["order_changed_rows"] += int(
+                    (reveal != confidence_reveal).any(dim=1).sum().item()
+                )
+                decode_diagnostics["candidate_events"] += int(masked.sum().item())
+                decode_diagnostics["score_changed_candidates"] += int(
+                    ((summary.score - summary.base_score).abs() > 1e-8)[masked].sum().item()
+                )
+                decode_diagnostics["selected_events"] += int(reveal.sum().item())
+                decode_diagnostics["selected_ready"] += int((selected_gate > 0).sum().item())
+                decode_diagnostics["selected_full_ready"] += int((selected_gate >= 1.0 - 1e-8).sum().item())
+                decode_diagnostics["selected_abs_score_delta_sum"] += float(
+                    selected_delta.abs().sum().item()
+                )
         else:
             raise ValueError(f"Unknown eval policy: {policy}")
 
@@ -209,13 +294,29 @@ def evaluate_series(label: str, cfg_path: str, ckpt_path: str, policy: str, args
     cfg = load_config(cfg_path)
     model, graph = build_model(cfg, val, device)
     payload = load_checkpoint(model, ckpt_path, device)
-    controller = make_controller(payload, cfg, device)
+    controller = make_controller(payload, cfg, device, args.guidance_scale)
+    gene_aux_bin_ids = payload.get("dprm_gene_aux_bin_ids")
+    if gene_aux_bin_ids is not None:
+        gene_aux_bin_ids = torch.as_tensor(gene_aux_bin_ids, device=device).long()
+    aux_mode = str(payload.get("dprm_reward_config", {}).get("aux_mode", "none"))
     model.eval()
+    decode_diagnostics = {
+        "decision_rows": 0,
+        "order_changed_rows": 0,
+        "candidate_events": 0,
+        "score_changed_candidates": 0,
+        "selected_events": 0,
+        "selected_ready": 0,
+        "selected_full_ready": 0,
+        "selected_abs_score_delta_sum": 0.0,
+    }
 
     n = int(val.shape[0])
     sums = {
         "token_recovery": np.zeros(n, dtype=np.float64),
         "mae": np.zeros(n, dtype=np.float64),
+        "nonzero_recovery": np.zeros(n, dtype=np.float64),
+        "nonzero_mae": np.zeros(n, dtype=np.float64),
         "zero_accuracy": np.zeros(n, dtype=np.float64),
     }
     loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
@@ -235,17 +336,42 @@ def evaluate_series(label: str, cfg_path: str, ckpt_path: str, policy: str, args
                 temperature=args.temperature,
                 device=device,
                 sample_seed=args.seed + 1009 * sample_idx + offset,
+                decode_diagnostics=decode_diagnostics,
+                gene_aux_bin_ids=gene_aux_bin_ids,
+                aux_mode=aux_mode,
             )
             equal = (pred == batch)
             local["token_recovery"] += equal.float().mean(dim=1).cpu().numpy()
             local["mae"] += (pred.float() - batch.float()).abs().mean(dim=1).cpu().numpy()
+            nonzero_mask = batch != 0
+            nonzero_denom = nonzero_mask.sum(dim=1).clamp_min(1)
+            local["nonzero_recovery"] += (
+                (equal & nonzero_mask).sum(dim=1).float().div(nonzero_denom).cpu().numpy()
+            )
+            local["nonzero_mae"] += (
+                ((pred.float() - batch.float()).abs() * nonzero_mask)
+                .sum(dim=1).div(nonzero_denom).cpu().numpy()
+            )
             zero_mask = batch == 0
             zero_denom = zero_mask.sum(dim=1).clamp_min(1)
             local["zero_accuracy"] += ((pred == 0) & zero_mask).sum(dim=1).float().div(zero_denom).cpu().numpy()
         for key in sums:
             sums[key][offset:offset + bsz] = local[key] / float(args.num_samples)
         offset += bsz
-    return sums
+    diagnostics = controller_diagnostics(payload)
+    if controller is not None:
+        selected = max(int(decode_diagnostics["selected_events"]), 1)
+        candidates = max(int(decode_diagnostics["candidate_events"]), 1)
+        decisions = max(int(decode_diagnostics["decision_rows"]), 1)
+        diagnostics["decode"] = {
+            **decode_diagnostics,
+            "order_changed_row_rate": decode_diagnostics["order_changed_rows"] / decisions,
+            "score_changed_candidate_rate": decode_diagnostics["score_changed_candidates"] / candidates,
+            "selected_ready_rate": decode_diagnostics["selected_ready"] / selected,
+            "selected_full_ready_rate": decode_diagnostics["selected_full_ready"] / selected,
+            "selected_mean_abs_score_delta": decode_diagnostics["selected_abs_score_delta_sum"] / selected,
+        }
+    return sums, diagnostics
 
 
 def bootstrap_ci(values: np.ndarray, n_boot: int, seed: int, higher_is_better: bool = True):
@@ -286,7 +412,14 @@ def main():
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
     data = read_data(args.data_path)
-    val = val_tensor(data, args.val_fraction, args.seed, args.max_cells)
+    val = evaluation_tensor(
+        data,
+        args.val_fraction,
+        args.split_seed,
+        args.max_cells,
+        args.cell_offset,
+        args.split,
+    )
 
     parsed = []
     for raw in args.series:
@@ -296,41 +429,59 @@ def main():
         parsed.append(tuple(parts))
 
     per_series: Dict[str, Dict[str, np.ndarray]] = {}
+    diagnostics = {}
     for label, cfg_path, ckpt_path, policy in parsed:
-        per_series[label] = evaluate_series(label, cfg_path, ckpt_path, policy, args, val)
+        per_series[label], diagnostics[label] = evaluate_series(
+            label, cfg_path, ckpt_path, policy, args, val
+        )
         csv_path = out / f"{label}_per_cell.csv"
         with csv_path.open("w", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["cell_index", "token_recovery", "mae", "zero_accuracy"])
+            metric_names = [
+                "token_recovery", "mae", "nonzero_recovery", "nonzero_mae", "zero_accuracy"
+            ]
+            writer.writerow(["cell_index"] + metric_names)
             for i in range(len(val)):
-                writer.writerow([i] + [per_series[label][metric][i] for metric in ["token_recovery", "mae", "zero_accuracy"]])
+                writer.writerow([i] + [per_series[label][metric][i] for metric in metric_names])
 
     summary = {
         "data_path": args.data_path,
+        "split": args.split,
+        "split_seed": int(args.split_seed),
         "num_val_cells": int(len(val)),
         "num_steps": int(args.num_steps),
         "num_samples": int(args.num_samples),
+        "cell_offset": int(args.cell_offset),
+        "guidance_scale_override": args.guidance_scale,
         "metrics": {},
         "paired_deltas": {},
+        "controller_diagnostics": diagnostics,
     }
-    higher = {"token_recovery": True, "mae": False, "zero_accuracy": True}
+    higher = {
+        "token_recovery": True,
+        "mae": False,
+        "nonzero_recovery": True,
+        "nonzero_mae": False,
+        "zero_accuracy": True,
+    }
     for label, values in per_series.items():
         summary["metrics"][label] = {
             metric: bootstrap_ci(arr, args.bootstrap, stable_seed(args.seed, label, metric), higher[metric])
             for metric, arr in values.items()
         }
     if len(parsed) >= 2:
-        base_label = parsed[0][0]
-        for label, _, _, _ in parsed[1:]:
-            summary["paired_deltas"][f"{label}_minus_{base_label}"] = {
-                metric: paired_bootstrap_delta(
-                    per_series[base_label][metric],
-                    per_series[label][metric],
-                    args.bootstrap,
-                    stable_seed(args.seed, "delta", label, metric),
-                )
-                for metric in per_series[base_label]
-            }
+        labels = [item[0] for item in parsed]
+        for base_idx, base_label in enumerate(labels[:-1]):
+            for label in labels[base_idx + 1:]:
+                summary["paired_deltas"][f"{label}_minus_{base_label}"] = {
+                    metric: paired_bootstrap_delta(
+                        per_series[base_label][metric],
+                        per_series[label][metric],
+                        args.bootstrap,
+                        stable_seed(args.seed, "delta", label, metric),
+                    )
+                    for metric in per_series[base_label]
+                }
     with (out / "summary.json").open("w") as handle:
         json.dump(summary, handle, indent=2)
     print(json.dumps(summary, indent=2))

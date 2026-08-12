@@ -297,7 +297,7 @@ def parse_args():
     )
     parser.add_argument(
         "--dprm_gene_aux_mode",
-        choices=["none", "zero_variance"],
+        choices=["none", "zero_variance", "predicted_zero"],
         default=training_config.get("dprm_gene_aux_mode", "none"),
     )
     parser.add_argument(
@@ -493,6 +493,9 @@ def main():
             "objective_weights": args.dprm_objective_weights,
             "tchebycheff_temperature": args.dprm_tchebycheff_temperature,
             "tchebycheff_augmentation": args.dprm_tchebycheff_augmentation,
+            "aux_mode": (
+                "gene" if args.dprm_gene_aux_mode == "zero_variance" else args.dprm_gene_aux_mode
+            ),
         },
         gene_aux_bin_ids=gene_aux_bin_ids,
     )

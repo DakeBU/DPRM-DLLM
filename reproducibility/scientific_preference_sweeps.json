@@ -1,0 +1,89 @@
+{
+  "selection_protocol": {
+    "development": "Scalarization families, controller settings, and training budgets are declared before test evaluation.",
+    "test": "Evaluate every declared preference point once; do not select a preference from test metrics.",
+    "claim": "A successful sweep demonstrates preference control or Pareto non-dominance, not universal metric dominance."
+  },
+  "dcm": {
+    "method": "smooth_tchebycheff",
+    "temperature": 0.05,
+    "augmentation": 0.05,
+    "controller_fit": {
+      "model_frozen": true,
+      "calibration_train_cells": 256,
+      "development_train_cells": 96,
+      "branch_steps": [0, 8, 16, 24],
+      "action_proposals": ["confidence", "predicted_nonzero", "predicted_zero", "random"],
+      "decode_phases": 4,
+      "confidence_bins": 16,
+      "auxiliary_bins": 2,
+      "readiness": 64,
+      "guidance_candidates": [0.5, 1.0, 2.0, 4.0]
+    },
+    "formal_decode_seeds": [20260812, 20260815, 20260816],
+    "bucket_state": [
+      "reveal_phase",
+      "confidence_bin",
+      "provisional_zero_status"
+    ],
+    "preference_response_criterion": {
+      "recovery": "recovery focus minus zero focus has positive nonzero-recovery delta",
+      "mae": "MAE focus minus zero focus has positive nonzero-MAE-benefit delta",
+      "zero": "zero focus minus recovery focus has positive zero-accuracy delta"
+    },
+    "objectives": [
+      "nonzero_recovery",
+      "nonzero_mae_benefit",
+      "zero_accuracy"
+    ],
+    "radar_display_ranges": [
+      [0.0175, 0.0205],
+      [0.6405, 0.6435],
+      [0.99725, 0.99755]
+    ],
+    "radar_scale_note": "Zoomed display ranges frozen on development data; native values and intervals are reported separately.",
+    "preferences": {
+      "recovery": [0.9, 0.075, 0.025],
+      "mae": [0.05, 0.9, 0.05],
+      "balanced": [0.45, 0.35, 0.2],
+      "zero": [0.025, 0.075, 0.9]
+    },
+    "intermediate_path_controls": {
+      "recovery": [0.75, 0.2, 0.05],
+      "mae": [0.15, 0.7, 0.15],
+      "zero": [0.15, 0.15, 0.7]
+    }
+  },
+  "genmol": {
+    "development_scalarizations": [
+      "weighted_sum",
+      "smooth_tchebycheff"
+    ],
+    "bucket_state": [
+      "reveal_phase",
+      "confidence_bin",
+      "provisional_safe_token_class"
+    ],
+    "temperature": 0.05,
+    "augmentation": 0.05,
+    "preference_response_criterion": "QED focus minus SA focus has positive QED delta and negative SA-benefit delta; the corresponding one-sided bounds of both 95% bootstrap intervals must exclude zero",
+    "objectives": [
+      "qed",
+      "sa_benefit"
+    ],
+    "preferences": {
+      "qed": [0.95, 0.05],
+      "balanced": [0.55, 0.45],
+      "sa": [0.05, 0.95]
+    },
+    "intermediate_path_controls": {
+      "qed": [0.8, 0.2],
+      "sa": [0.2, 0.8]
+    },
+    "external_metrics": [
+      "validity",
+      "uniqueness",
+      "fingerprint_diversity"
+    ]
+  }
+}

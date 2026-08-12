@@ -30,6 +30,21 @@ The repository implements two estimators of the conditional future utility:
 scalarization, visual-order helpers, and host adapters. `integrations/` contains
 the exact overlay files and commands used for the nine host settings.
 
+For normalized maximization benefits `y_j` and a declared preference vector
+`lambda`, the scientific integrations support the weighted utility
+`sum_j lambda_j y_j` and an augmented smooth-Tchebycheff utility
+
+```text
+1 - mu * logsumexp(lambda_j * (1 - y_j) / mu)
+    + rho * sum_j lambda_j y_j.
+```
+
+The latter is the maximization counterpart of [Smooth Tchebycheff
+Scalarization](https://proceedings.mlr.press/v235/lin24y.html). The paper
+configuration uses `mu=0.05` and `rho=0.05`. Preference vectors are declared in
+[`reproducibility/scientific_preference_sweeps.json`](reproducibility/scientific_preference_sweeps.json)
+before evaluation.
+
 ## Install
 
 ```bash
@@ -112,8 +127,10 @@ environment variables shown by the dry run.
 - DPRM(random)-SDPO gives the highest DNA total metric (`2.119`), ATAC
   success (`0.754`), and k-mer Pearson (`0.842`).
 
-The DPLM, DCM, and GenMol tables retain all objective trade-offs. The release
-does not convert metric-specific gains into uniform-dominance claims.
+The scientific-domain package reports declared preference vectors, native-scale
+objective axes, bootstrap response intervals, and Pareto comparisons. DCM
+separates expressed-gene fidelity from zero preservation; GenMol separates QED
+and synthetic accessibility from set-level validity, uniqueness, and diversity.
 
 ## Repository Layout
 

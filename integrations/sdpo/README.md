@@ -2,8 +2,9 @@
 
 DPRM-SDPO preserves the DNA diffusion backbone, substitution parameterization,
 noise schedule, SDPO objective, oracle suite, data, and optimizer. The action is
-a masked DNA position. The bucket utility is the GOSAI product combining HepG2,
-ATAC, and high-expression k-mer alignment.
+a masked DNA position. The bucket utility is the sample-level HepG2 expression
+score stored in `batch['clss'][:, 0]`. ATAC, high-expression k-mer alignment,
+and reference log-likelihood are evaluation metrics.
 
 ## Order Policies
 

@@ -13,6 +13,9 @@ OUTPUT_DIR="$4"
 MAX_STEPS="${5:-5000}"
 
 ROOT="${GENMOL_ROOT:?set GENMOL_ROOT to the upstream GenMol checkout}"
+# Resolve before changing directories so repository-relative output paths keep
+# the caller's meaning.
+OUTPUT_DIR="$(realpath -m "$OUTPUT_DIR")"
 cd "$ROOT"
 if [[ -n "${ENV_ACTIVATE:-}" ]]; then
   source "$ENV_ACTIVATE"
@@ -37,6 +40,7 @@ mkdir -p "$OUTPUT_DIR" logs "$WANDB_DIR" "$WANDB_CACHE_DIR" "$WANDB_CONFIG_DIR" 
 export RUN_NAME ORDER_POLICY OUTPUT_DIR MAX_STEPS
 export DPRM_REWARD_MODE="${DPRM_REWARD_MODE:-selected_confidence}"
 export DPRM_OBJECTIVE_WEIGHTS="${DPRM_OBJECTIVE_WEIGHTS:-[0.55,0.45]}"
+export DPRM_AUX_MODE="${DPRM_AUX_MODE:-molecular_token_class}"
 export DPRM_TCHEBYCHEFF_TEMPERATURE="${DPRM_TCHEBYCHEFF_TEMPERATURE:-0.05}"
 export DPRM_TCHEBYCHEFF_AUGMENTATION="${DPRM_TCHEBYCHEFF_AUGMENTATION:-0.05}"
 export GENMOL_MANIFEST_PATH="$OUTPUT_DIR/run_manifest.json"
@@ -60,6 +64,7 @@ payload = {
     "max_steps": os.environ.get("MAX_STEPS"),
     "dprm_reward_mode": os.environ.get("DPRM_REWARD_MODE"),
     "dprm_objective_weights": os.environ.get("DPRM_OBJECTIVE_WEIGHTS"),
+    "dprm_aux_mode": os.environ.get("DPRM_AUX_MODE"),
     "dprm_tchebycheff_temperature": os.environ.get("DPRM_TCHEBYCHEFF_TEMPERATURE"),
     "dprm_tchebycheff_augmentation": os.environ.get("DPRM_TCHEBYCHEFF_AUGMENTATION"),
     "wandb_project": os.environ.get("WANDB_PROJECT"),
@@ -77,6 +82,7 @@ payload = {
         f"training.order_policy={os.environ.get('ORDER_POLICY')}",
         f"training.dprm_reward_mode={os.environ.get('DPRM_REWARD_MODE')}",
         f"training.dprm_objective_weights={os.environ.get('DPRM_OBJECTIVE_WEIGHTS')}",
+        f"training.dprm_aux_mode={os.environ.get('DPRM_AUX_MODE')}",
         f"wandb.project={os.environ.get('WANDB_PROJECT')}",
         f"wandb.name={os.environ.get('RUN_NAME')}",
     ],
@@ -96,6 +102,7 @@ python3 scripts/train.py \
   training.order_policy="$ORDER_POLICY" \
   training.dprm_reward_mode="$DPRM_REWARD_MODE" \
   training.dprm_objective_weights="$DPRM_OBJECTIVE_WEIGHTS" \
+  training.dprm_aux_mode="$DPRM_AUX_MODE" \
   training.dprm_tchebycheff_temperature="$DPRM_TCHEBYCHEFF_TEMPERATURE" \
   training.dprm_tchebycheff_augmentation="$DPRM_TCHEBYCHEFF_AUGMENTATION" \
   wandb.project="$WANDB_PROJECT" \

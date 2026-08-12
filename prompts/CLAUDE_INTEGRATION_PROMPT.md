@@ -41,7 +41,7 @@ Before writing code, inspect the repository and name the concrete hook points:
 Please return:
 
 - the patch;
-- the new config flags;
+- the configuration flags;
 - the exact files touched;
 - the shortest baseline command;
 - the shortest command needed to run the DPRM variant.

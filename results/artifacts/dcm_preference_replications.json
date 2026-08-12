@@ -1,0 +1,72 @@
+{
+  "all_seeds_confirm_all_directions": true,
+  "pooling": "none; each decode seed retains its own paired cell bootstrap",
+  "rows": [
+    {
+      "all_positive": true,
+      "decode_seed": "20260812",
+      "responses": {
+        "mae_reduction": {
+          "high": 0.006130134352441534,
+          "low": 0.00536259142713742,
+          "mean": 0.005747320098681661
+        },
+        "recovery": {
+          "high": 0.0016799976321983424,
+          "low": 0.0014103636554733982,
+          "mean": 0.0015483962633383204
+        },
+        "zero_accuracy": {
+          "high": 0.0002054859474047052,
+          "low": 0.00013985883177547326,
+          "mean": 0.00017245759736148977
+        }
+      },
+      "source": "formal/summary.json"
+    },
+    {
+      "all_positive": true,
+      "decode_seed": "20260815",
+      "responses": {
+        "mae_reduction": {
+          "high": 0.005981648685378833,
+          "low": 0.005209655525741317,
+          "mean": 0.005597645308784251
+        },
+        "recovery": {
+          "high": 0.0016701825902063826,
+          "low": 0.0014107313600913924,
+          "mean": 0.0015397637102311102
+        },
+        "zero_accuracy": {
+          "high": 0.00019207730787605958,
+          "low": 0.00012904038659134823,
+          "mean": 0.00016057679474150362
+        }
+      },
+      "source": "formal_replication/summary.json"
+    },
+    {
+      "all_positive": true,
+      "decode_seed": "20260816",
+      "responses": {
+        "mae_reduction": {
+          "high": 0.005951106838195396,
+          "low": 0.005179252737414715,
+          "mean": 0.005571077301233702
+        },
+        "recovery": {
+          "high": 0.0016975126212340408,
+          "low": 0.001424399076296659,
+          "mean": 0.0015625077505983767
+        },
+        "zero_accuracy": {
+          "high": 0.0002078363487541472,
+          "low": 0.0001431070725868993,
+          "mean": 0.0001737384869376954
+        }
+      },
+      "source": "formal_replication_seed20260816/summary.json"
+    }
+  ]
+}

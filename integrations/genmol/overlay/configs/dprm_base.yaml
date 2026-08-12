@@ -20,6 +20,7 @@ training:
   order_num_phases: 8
   dprm_num_phases: 8
   dprm_confidence_bins: 16
+  dprm_aux_mode: molecular_token_class
   dprm_reward_temperature: 1.0
   dprm_reward_mode: selected_confidence
   dprm_objective_weights: [0.55, 0.45]

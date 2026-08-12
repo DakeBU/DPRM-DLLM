@@ -125,6 +125,7 @@ class Sampler:
                 confidence=confidence,
                 candidate_mask=mask,
                 phase_ids=phase,
+                aux_bin_ids=self.model._token_aux_bins(preds),
                 global_step=10**12,
                 force_full_dprm=True,
             )

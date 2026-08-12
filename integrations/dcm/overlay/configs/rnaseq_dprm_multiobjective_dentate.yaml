@@ -34,6 +34,7 @@ training:
   dprm_objective_weights: [0.45, 0.35, 0.20]
   dprm_tchebycheff_temperature: 0.05
   dprm_tchebycheff_augmentation: 0.05
+  dprm_gene_aux_mode: predicted_zero
   wandb_mode: offline
 
 checkpointing:

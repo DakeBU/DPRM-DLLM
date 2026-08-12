@@ -64,33 +64,6 @@ DPLM-2 Bit,CAMEO,DPRM-DPLM Tcheby,dprm_random,TM,higher,0.3066,,,163,matched_pip
 DPLM-2 Bit,CoGen-200,Progressive-DPLM-2 Bit,confidence,balanced_utility,higher,0.7355,,,10,development_gate
 DPLM-2 Bit,CoGen-200,DPRM-DPLM weighted,dprm_confidence,balanced_utility,higher,0.7097,,,10,development_gate
 DPLM-2 Bit,CoGen-200,DPRM-DPLM Tcheby,dprm_random,balanced_utility,higher,0.7377,,,10,development_gate
-DCM,Dentate Gyrus,DCM-random,random,token_recovery_percent,higher,66.76,66.08,67.41,293,matched_pipeline
-DCM,Dentate Gyrus,Progressive-DCM,confidence,token_recovery_percent,higher,76.07,75.08,77.03,293,matched_pipeline
-DCM,Dentate Gyrus,DPRM-DCM weighted,dprm_confidence,token_recovery_percent,higher,75.88,74.87,76.87,293,matched_pipeline
-DCM,Dentate Gyrus,DPRM-DCM Tcheby,dprm_random,token_recovery_percent,higher,75.88,74.85,76.84,293,matched_pipeline
-DCM,Dentate Gyrus,DCM-random,random,MAE,lower,0.758,0.739,0.778,293,matched_pipeline
-DCM,Dentate Gyrus,Progressive-DCM,confidence,MAE,lower,0.628,0.596,0.661,293,matched_pipeline
-DCM,Dentate Gyrus,DPRM-DCM weighted,dprm_confidence,MAE,lower,0.657,0.623,0.692,293,matched_pipeline
-DCM,Dentate Gyrus,DPRM-DCM Tcheby,dprm_random,MAE,lower,0.655,0.623,0.690,293,matched_pipeline
-DCM,Dentate Gyrus,DCM-random,random,zero_accuracy_percent,higher,82.83,82.59,83.07,293,matched_pipeline
-DCM,Dentate Gyrus,Progressive-DCM,confidence,zero_accuracy_percent,higher,99.75,99.73,99.77,293,matched_pipeline
-DCM,Dentate Gyrus,DPRM-DCM weighted,dprm_confidence,zero_accuracy_percent,higher,99.87,99.86,99.87,293,matched_pipeline
-DCM,Dentate Gyrus,DPRM-DCM Tcheby,dprm_random,zero_accuracy_percent,higher,99.86,99.85,99.87,293,matched_pipeline
-GenMol V2,De novo,GenMol V2,native,validity,higher,0.978,0.968,0.987,1000,matched_pipeline
-GenMol V2,De novo,Progressive-GenMol V2,confidence,validity,higher,0.997,0.993,1.000,1000,matched_pipeline
-GenMol V2,De novo,DPRM-random,dprm_random,validity,higher,0.999,0.997,1.000,1000,matched_pipeline
-GenMol V2,De novo,DPRM-weighted,dprm_confidence,validity,higher,0.999,0.997,1.000,1000,matched_pipeline
-GenMol V2,De novo,DPRM-Tcheby,dprm_tcheby,validity,higher,1.000,1.000,1.000,1000,matched_pipeline
-GenMol V2,De novo,GenMol V2,native,QED_SA_quality,higher,0.800,0.775,0.825,1000,matched_pipeline
-GenMol V2,De novo,Progressive-GenMol V2,confidence,QED_SA_quality,higher,0.555,0.524,0.585,1000,matched_pipeline
-GenMol V2,De novo,DPRM-random,dprm_random,QED_SA_quality,higher,0.831,0.807,0.854,1000,matched_pipeline
-GenMol V2,De novo,DPRM-weighted,dprm_confidence,QED_SA_quality,higher,0.762,0.735,0.788,1000,matched_pipeline
-GenMol V2,De novo,DPRM-Tcheby,dprm_tcheby,QED_SA_quality,higher,0.760,0.733,0.786,1000,matched_pipeline
-GenMol V2,De novo,GenMol V2,native,BGM,higher,0.886,,,1000,matched_pipeline
-GenMol V2,De novo,Progressive-GenMol V2,confidence,BGM,higher,0.773,,,1000,matched_pipeline
-GenMol V2,De novo,DPRM-random,dprm_random,BGM,higher,0.794,,,1000,matched_pipeline
-GenMol V2,De novo,DPRM-weighted,dprm_confidence,BGM,higher,0.776,,,1000,matched_pipeline
-GenMol V2,De novo,DPRM-Tcheby,dprm_tcheby,BGM,higher,0.776,,,1000,matched_pipeline
 SDPO,GOSAI DNA,SDPO,native,total,higher,1.141,1.003,1.276,640,matched_pipeline
 SDPO,GOSAI DNA,Progressive-SDPO,confidence,total,higher,0.384,0.318,0.454,640,matched_pipeline
 SDPO,GOSAI DNA,DPRM-SDPO,dprm_confidence,total,higher,1.423,1.282,1.571,640,matched_pipeline
@@ -99,3 +72,38 @@ SDPO,GOSAI DNA,SDPO,native,ATAC,higher,0.348,0.311,0.383,640,matched_pipeline
 SDPO,GOSAI DNA,Progressive-SDPO,confidence,ATAC,higher,0.168,0.141,0.195,640,matched_pipeline
 SDPO,GOSAI DNA,DPRM-SDPO,dprm_confidence,ATAC,higher,0.401,0.363,0.441,640,matched_pipeline
 SDPO,GOSAI DNA,DPRM-random-SDPO,dprm_random,ATAC,higher,0.754,0.720,0.788,640,matched_pipeline
+DCM,Dentate Gyrus,Confidence,confidence,nonzero_recovery,higher,0.018255980709987185,0.017408403372844997,0.019088228462860315,293,fixed_model_preference
+DCM,Dentate Gyrus,Confidence,confidence,nonzero_mae_benefit,higher,0.6410492866403122,0.6373892303133006,0.6446331875824685,293,fixed_model_preference
+DCM,Dentate Gyrus,Confidence,confidence,zero_accuracy,higher,0.9974892955692962,0.9972812573873651,0.9976950726195306,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-recovery,dprm_recovery,nonzero_recovery,higher,0.01977745601994779,0.01896612996762139,0.0205902097031451,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-recovery,dprm_recovery,nonzero_mae_benefit,higher,0.6432201762945694,0.6394515597597964,0.6469573636859405,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-recovery,dprm_recovery,zero_accuracy,higher,0.9973194757317521,0.9970925057325958,0.9975469733667862,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-MAE,dprm_mae,nonzero_recovery,higher,0.01886666967468363,0.018035302101386104,0.01969801417837807,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-MAE,dprm_mae,nonzero_mae_benefit,higher,0.6418353441806609,0.6381628563808326,0.6453742923183247,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-MAE,dprm_mae,zero_accuracy,higher,0.9974513714529142,0.997237297211084,0.9976578449201055,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-balanced,dprm_balanced,nonzero_recovery,higher,0.018839702236429508,0.018040173852753836,0.019700930838528957,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-balanced,dprm_balanced,nonzero_mae_benefit,higher,0.6418182980950318,0.6381503710487828,0.6453795869515503,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-balanced,dprm_balanced,zero_accuracy,higher,0.997454795566842,0.9972301627461617,0.9976599439304741,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-zero,dprm_zero,nonzero_recovery,higher,0.018229059756609465,0.017427114423977454,0.01907780187773841,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-zero,dprm_zero,nonzero_mae_benefit,higher,0.6410142984522778,0.6374259192767172,0.6446607186387722,293,fixed_model_preference
+DCM,Dentate Gyrus,DPRM-zero,dprm_zero,zero_accuracy,higher,0.9974919333291136,0.9972765944491271,0.9976922270152145,293,fixed_model_preference
+GenMol V2,De novo,Confidence,confidence,qed,higher,0.639227551303513,0.6288612062917311,0.6494524464166604,1000,declared_preference_sweep
+GenMol V2,De novo,Confidence,confidence,sa_benefit,higher,0.8425384517424188,0.8351069319624569,0.8496685143891918,1000,declared_preference_sweep
+GenMol V2,De novo,Confidence,confidence,validity,higher,0.997,0.993,1.0,1000,declared_preference_sweep
+GenMol V2,De novo,Confidence,confidence,uniqueness,higher,0.7512537612838516,0.724172517552658,0.7777805695142378,1000,declared_preference_sweep
+GenMol V2,De novo,Confidence,confidence,diversity,higher,0.8607117787022514,0.8555314481258393,0.8639431819319725,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-QED,dprm_qed,qed,higher,0.7254317452961039,0.7161047447706476,0.7353191764144948,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-QED,dprm_qed,sa_benefit,higher,0.9006430963882015,0.8954132787608261,0.9058715163760466,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-QED,dprm_qed,validity,higher,0.999,0.997,1.0,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-QED,dprm_qed,uniqueness,higher,0.5395395395395396,0.507,0.57,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-QED,dprm_qed,diversity,higher,0.7981786214244242,0.7869468867778778,0.7985131740570068,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-balanced,dprm_balanced,qed,higher,0.7350459145020083,0.7254568865145078,0.74459405500234,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-balanced,dprm_balanced,sa_benefit,higher,0.9032187594658682,0.898072359328613,0.9084484052375982,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-balanced,dprm_balanced,validity,higher,0.998,0.995,1.0,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-balanced,dprm_balanced,uniqueness,higher,0.48296593186372744,0.45190139314774125,0.5145145145145145,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-balanced,dprm_balanced,diversity,higher,0.7988223416041227,0.7869164288043976,0.8000740855932236,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-SA,dprm_sa,qed,higher,0.7007911625499951,0.6916895965379968,0.7101047211528713,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-SA,dprm_sa,sa_benefit,higher,0.8747978334130234,0.8689637781010464,0.8806320363494654,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-SA,dprm_sa,validity,higher,0.998,0.995,1.0,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-SA,dprm_sa,uniqueness,higher,0.6222444889779559,0.5919551871695489,0.6523046092184369,1000,declared_preference_sweep
+GenMol V2,De novo,DPRM-SA,dprm_sa,diversity,higher,0.8242005568125668,0.8164834246039391,0.8267869397997856,1000,declared_preference_sweep

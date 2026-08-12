@@ -36,12 +36,14 @@ try:
         DPRMConfig,
         HostDPRMBatch,
         OnlineDPRMController,
+        molecular_token_class_ids,
         scalarize_benefits,
     )
 except Exception:
     DPRMConfig = None
     HostDPRMBatch = None
     OnlineDPRMController = None
+    molecular_token_class_ids = None
     scalarize_benefits = None
 
 class GenMol(L.LightningModule):
@@ -73,6 +75,19 @@ class GenMol(L.LightningModule):
             self.ema = None
         self.order_policy = self.config.training.get('order_policy', 'random_mdlm')
         self.order_num_phases = int(self.config.training.get('order_num_phases', 8))
+        self.dprm_aux_mode = str(self.config.training.get('dprm_aux_mode', 'none'))
+        if self.dprm_aux_mode not in {'none', 'molecular_token_class'}:
+            raise ValueError(f'unknown dprm_aux_mode: {self.dprm_aux_mode}')
+        if self.dprm_aux_mode == 'molecular_token_class':
+            if molecular_token_class_ids is None:
+                raise ImportError('molecular token classes require the DPRM-DLLM package')
+            token_strings = self.tokenizer.convert_ids_to_tokens(
+                list(range(int(self.config.model.vocab_size)))
+            )
+            token_classes = molecular_token_class_ids(token_strings)
+        else:
+            token_classes = torch.zeros(int(self.config.model.vocab_size), dtype=torch.long)
+        self.register_buffer('_dprm_token_class_lookup', token_classes, persistent=False)
         self.dprm_controller = self._build_dprm_controller()
 
     def _build_dprm_controller(self):
@@ -85,6 +100,7 @@ class GenMol(L.LightningModule):
         cfg = DPRMConfig(
             num_phases=int(self.config.training.get('dprm_num_phases', self.order_num_phases)),
             confidence_bins=int(self.config.training.get('dprm_confidence_bins', 16)),
+            aux_bins=8 if self.dprm_aux_mode == 'molecular_token_class' else 1,
             reward_temperature=float(self.config.training.get('dprm_reward_temperature', 1.0)),
             guidance_scale=float(self.config.training.get('dprm_guidance_scale', 1.0)),
             warmup_steps=int(self.config.training.get('dprm_warmup_steps', 500)),
@@ -186,27 +202,34 @@ class GenMol(L.LightningModule):
         sampled = torch.distributions.Categorical(probs=probs).sample()
         sample_conf = probs.gather(-1, sampled.unsqueeze(-1)).squeeze(-1).clamp(1e-6, 1.0)
         confidence = torch.maximum(gt_conf, sample_conf)
+        aux_bin_ids = self._token_aux_bins(sampled)
 
         if policy in {'random_ordered', 'dprm_random'} and (
             policy == 'random_ordered' or self.global_step < int(self.config.training.get('dprm_warmup_steps', 500))
         ):
             score = torch.rand_like(confidence)
-            return score.masked_fill(~candidate_mask, float('-inf')), confidence
+            return score.masked_fill(~candidate_mask, float('-inf')), confidence, aux_bin_ids
 
         if policy in {'confidence', 'progressive'}:
-            return torch.log(confidence).masked_fill(~candidate_mask, float('-inf')), confidence
+            return torch.log(confidence).masked_fill(~candidate_mask, float('-inf')), confidence, aux_bin_ids
 
         if policy in {'dprm', 'dprm_confidence', 'dprm_random'}:
             host = HostDPRMBatch(
                 confidence=confidence,
                 candidate_mask=candidate_mask,
                 phase_ids=phase_ids,
+                aux_bin_ids=aux_bin_ids,
                 global_step=int(self.global_step),
             )
             summary = self.dprm_controller.summarize(host)
-            return summary.score, confidence
+            return summary.score, confidence, aux_bin_ids
 
-        return torch.rand_like(confidence).masked_fill(~candidate_mask, float('-inf')), confidence
+        return torch.rand_like(confidence).masked_fill(~candidate_mask, float('-inf')), confidence, aux_bin_ids
+
+    def _token_aux_bins(self, token_ids):
+        if self.dprm_aux_mode != 'molecular_token_class':
+            return None
+        return self._dprm_token_class_lookup[token_ids]
 
     def _terminal_dprm_reward(self, confidence, revealed, terminal_objectives):
         mode = str(self.config.training.get('dprm_reward_mode', 'selected_confidence'))
@@ -247,7 +270,9 @@ class GenMol(L.LightningModule):
 
         progress = 1.0 - (target_mask_count.float() / candidate_mask.sum(dim=1).clamp_min(1).float())
         phase_ids = torch.clamp((progress * self.order_num_phases).long(), 0, self.order_num_phases - 1)
-        scores, confidence = self._ordering_scores(input_ids, attention_mask, candidate_mask, phase_ids, policy)
+        scores, confidence, aux_bin_ids = self._ordering_scores(
+            input_ids, attention_mask, candidate_mask, phase_ids, policy
+        )
         mask_positions = self._topk_mask(scores, candidate_mask, target_mask_count, largest=False)
         xt[mask_positions] = self.mask_index
 
@@ -260,6 +285,7 @@ class GenMol(L.LightningModule):
                 confidence=confidence,
                 candidate_mask=candidate_mask,
                 phase_ids=phase_ids,
+                aux_bin_ids=aux_bin_ids,
                 global_step=int(self.global_step),
             )
             self.dprm_controller.observe(host, revealed, reward)

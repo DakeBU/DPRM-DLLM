@@ -13,7 +13,7 @@ eligible positions are revealed, retained, remasked, or branched.
 | [`dplm`](dplm) | protein residue | amino-acid/structure recovery |
 | [`dcm`](dcm) | gene-expression token | reconstruction utility |
 | [`genmol`](genmol) | SAFE token | molecular reconstruction objectives |
-| [`sdpo`](sdpo) | DNA token | GOSAI regulatory utility |
+| [`sdpo`](sdpo) | DNA token | HepG2 expression utility |
 | [`omni_diffusion`](omni_diffusion) | visual codebook position | CLIP/aesthetic terminal utility |
 | [`llada_v`](llada_v) | answer-token position | task-normalized VQA correctness |
 

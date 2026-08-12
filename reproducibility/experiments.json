@@ -74,13 +74,13 @@
       "upstream_commit": "a2fa8e53578b99ca90df34391862e3ddf810bee5",
       "root_env": "DCM_ROOT",
       "integration_readme": "integrations/dcm/README.md",
-      "entrypoint": "integrations/dcm/overlay/scripts/train_rnaseq.py",
+      "entrypoint": "integrations/dcm/scripts/run_terminal_calibration.sh",
       "result_file": "results/paper_results.csv",
       "variants": [
-        {"id": "random", "policy": "random ordered masking", "status": "reported", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dcm_dentate.yaml"},
-        {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_progressive_dentate.yaml"},
-        {"id": "dprm_confidence", "policy": "weighted multi-objective DPRM", "status": "reported", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dprm_multiobjective_dentate.yaml --dprm_reward_mode reconstruction_weighted_sum --order_policy dprm_confidence"},
-        {"id": "dprm_random", "policy": "Tchebycheff multi-objective DPRM", "status": "reported", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dprm_multiobjective_dentate.yaml --dprm_reward_mode reconstruction_tchebycheff --order_policy dprm_random"}
+        {"id": "random", "policy": "random ordered masking", "status": "implemented_control", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dcm_dentate.yaml"},
+        {"id": "confidence", "policy": "confidence progressive on the shared frozen model", "status": "reported", "command": "RUN_REPLICATION=0 bash integrations/dcm/scripts/run_terminal_calibration.sh"},
+        {"id": "dprm_confidence", "policy": "terminal-rollout smooth-Tchebycheff preference DPRM on the shared frozen model", "status": "reported", "command": "bash integrations/dcm/scripts/run_terminal_calibration.sh"},
+        {"id": "dprm_random", "policy": "random-warmup training-time smooth-Tchebycheff control", "status": "implemented_control", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dprm_multiobjective_dentate.yaml --order_policy dprm_random --dprm_reward_mode reconstruction_tchebycheff --dprm_objective_weights 0.45 0.35 0.20 --dprm_gene_aux_mode predicted_zero"}
       ]
     },
     {
@@ -90,13 +90,13 @@
       "upstream_commit": "add09fc83b7255bd09c797e527c0f4b51f5fb7c1",
       "root_env": "GENMOL_ROOT",
       "integration_readme": "integrations/genmol/README.md",
-      "entrypoint": "integrations/genmol/overlay/scripts/run_ordering_train.sh",
+      "entrypoint": "integrations/genmol/scripts/run_preference_sweep.sh",
       "result_file": "results/paper_results.csv",
       "variants": [
         {"id": "random", "policy": "native GenMol order", "status": "reported", "command": "bash scripts/run_ordering_train.sh 0 genmol-native random_mdlm outputs/genmol-native 5000"},
         {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "bash scripts/run_ordering_train.sh 0 genmol-confidence confidence outputs/genmol-confidence 5000"},
-        {"id": "dprm_confidence", "policy": "weighted multi-objective DPRM", "status": "reported", "command": "DPRM_REWARD_MODE=reconstruction_weighted_sum bash scripts/run_ordering_train.sh 0 genmol-dprm dprm_confidence outputs/genmol-dprm 5000"},
-        {"id": "dprm_random", "policy": "random-warmup DPRM", "status": "reported", "command": "bash scripts/run_ordering_train.sh 0 genmol-dprm-random dprm_random outputs/genmol-dprm-random 5000"}
+        {"id": "dprm_confidence", "policy": "confidence-warmup balanced smooth-Tchebycheff control", "status": "implemented_control", "command": "DPRM_REWARD_MODE=molecular_tchebycheff DPRM_OBJECTIVE_WEIGHTS='[0.55,0.45]' DPRM_AUX_MODE=molecular_token_class bash scripts/run_ordering_train.sh 0 genmol-dprm-confidence dprm_confidence outputs/genmol-dprm-confidence 5000"},
+        {"id": "dprm_random", "policy": "random-warmup QED/balanced/SA smooth-Tchebycheff preference path", "status": "reported", "command": "SCALARIZATION=smooth_tchebycheff GPU_LIST=0,1,2 bash integrations/genmol/scripts/run_preference_sweep.sh"}
       ]
     },
     {

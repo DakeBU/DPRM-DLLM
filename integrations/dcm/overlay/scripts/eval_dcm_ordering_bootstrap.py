@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--data-path", default="datasets/dentate/dentate_5000_bins32.h5ad")
     parser.add_argument("--val-fraction", type=float, default=0.1)
+    parser.add_argument("--split", choices=("train", "val"), default="val")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-steps", type=int, default=32)
@@ -44,6 +45,12 @@ def parse_args():
     parser.add_argument("--cell-offset", type=int, default=0)
     parser.add_argument("--guidance-scale", type=float, default=None)
     parser.add_argument("--bootstrap", type=int, default=5000)
+    parser.add_argument(
+        "--split-seed",
+        type=int,
+        default=42,
+        help="Fixed train/validation partition seed; independent of sampling/bootstrap seed.",
+    )
     parser.add_argument("--device", default="cuda")
     return parser.parse_args()
 
@@ -61,15 +68,17 @@ def read_data(path: str) -> torch.Tensor:
     return torch.as_tensor(x).long()
 
 
-def val_tensor(
+def evaluation_tensor(
     data: torch.Tensor,
     val_fraction: float,
     seed: int,
     max_cells: int,
     cell_offset: int,
+    split: str = "val",
 ) -> torch.Tensor:
-    _, val_ds = train_val_split(data, val_fraction=val_fraction, seed=seed)
-    indices = list(val_ds.indices)[max(int(cell_offset), 0):]
+    train_ds, val_ds = train_val_split(data, val_fraction=val_fraction, seed=seed)
+    dataset = train_ds if split == "train" else val_ds
+    indices = list(dataset.indices)[max(int(cell_offset), 0):]
     if max_cells and max_cells > 0:
         indices = indices[:max_cells]
     return data[indices]
@@ -188,6 +197,7 @@ def decode(
     sample_seed: int,
     decode_diagnostics: dict | None = None,
     gene_aux_bin_ids: torch.Tensor | None = None,
+    aux_mode: str = "none",
 ) -> torch.Tensor:
     torch.manual_seed(sample_seed)
     if device.type == "cuda":
@@ -228,9 +238,13 @@ def decode(
                 candidate_mask=masked,
                 phase_ids=phase,
                 aux_bin_ids=(
-                    gene_aux_bin_ids.unsqueeze(0).expand(batch_size, -1)
-                    if gene_aux_bin_ids is not None
-                    else None
+                    (sampled != 0).long()
+                    if aux_mode == "predicted_zero"
+                    else (
+                        gene_aux_bin_ids.unsqueeze(0).expand(batch_size, -1)
+                        if gene_aux_bin_ids is not None
+                        else None
+                    )
                 ),
                 global_step=10**12,
                 force_full_dprm=True,
@@ -284,6 +298,7 @@ def evaluate_series(label: str, cfg_path: str, ckpt_path: str, policy: str, args
     gene_aux_bin_ids = payload.get("dprm_gene_aux_bin_ids")
     if gene_aux_bin_ids is not None:
         gene_aux_bin_ids = torch.as_tensor(gene_aux_bin_ids, device=device).long()
+    aux_mode = str(payload.get("dprm_reward_config", {}).get("aux_mode", "none"))
     model.eval()
     decode_diagnostics = {
         "decision_rows": 0,
@@ -300,6 +315,8 @@ def evaluate_series(label: str, cfg_path: str, ckpt_path: str, policy: str, args
     sums = {
         "token_recovery": np.zeros(n, dtype=np.float64),
         "mae": np.zeros(n, dtype=np.float64),
+        "nonzero_recovery": np.zeros(n, dtype=np.float64),
+        "nonzero_mae": np.zeros(n, dtype=np.float64),
         "zero_accuracy": np.zeros(n, dtype=np.float64),
     }
     loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size, shuffle=False)
@@ -321,10 +338,20 @@ def evaluate_series(label: str, cfg_path: str, ckpt_path: str, policy: str, args
                 sample_seed=args.seed + 1009 * sample_idx + offset,
                 decode_diagnostics=decode_diagnostics,
                 gene_aux_bin_ids=gene_aux_bin_ids,
+                aux_mode=aux_mode,
             )
             equal = (pred == batch)
             local["token_recovery"] += equal.float().mean(dim=1).cpu().numpy()
             local["mae"] += (pred.float() - batch.float()).abs().mean(dim=1).cpu().numpy()
+            nonzero_mask = batch != 0
+            nonzero_denom = nonzero_mask.sum(dim=1).clamp_min(1)
+            local["nonzero_recovery"] += (
+                (equal & nonzero_mask).sum(dim=1).float().div(nonzero_denom).cpu().numpy()
+            )
+            local["nonzero_mae"] += (
+                ((pred.float() - batch.float()).abs() * nonzero_mask)
+                .sum(dim=1).div(nonzero_denom).cpu().numpy()
+            )
             zero_mask = batch == 0
             zero_denom = zero_mask.sum(dim=1).clamp_min(1)
             local["zero_accuracy"] += ((pred == 0) & zero_mask).sum(dim=1).float().div(zero_denom).cpu().numpy()
@@ -385,7 +412,14 @@ def main():
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
     data = read_data(args.data_path)
-    val = val_tensor(data, args.val_fraction, args.seed, args.max_cells, args.cell_offset)
+    val = evaluation_tensor(
+        data,
+        args.val_fraction,
+        args.split_seed,
+        args.max_cells,
+        args.cell_offset,
+        args.split,
+    )
 
     parsed = []
     for raw in args.series:
@@ -403,12 +437,17 @@ def main():
         csv_path = out / f"{label}_per_cell.csv"
         with csv_path.open("w", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["cell_index", "token_recovery", "mae", "zero_accuracy"])
+            metric_names = [
+                "token_recovery", "mae", "nonzero_recovery", "nonzero_mae", "zero_accuracy"
+            ]
+            writer.writerow(["cell_index"] + metric_names)
             for i in range(len(val)):
-                writer.writerow([i] + [per_series[label][metric][i] for metric in ["token_recovery", "mae", "zero_accuracy"]])
+                writer.writerow([i] + [per_series[label][metric][i] for metric in metric_names])
 
     summary = {
         "data_path": args.data_path,
+        "split": args.split,
+        "split_seed": int(args.split_seed),
         "num_val_cells": int(len(val)),
         "num_steps": int(args.num_steps),
         "num_samples": int(args.num_samples),
@@ -418,7 +457,13 @@ def main():
         "paired_deltas": {},
         "controller_diagnostics": diagnostics,
     }
-    higher = {"token_recovery": True, "mae": False, "zero_accuracy": True}
+    higher = {
+        "token_recovery": True,
+        "mae": False,
+        "nonzero_recovery": True,
+        "nonzero_mae": False,
+        "zero_accuracy": True,
+    }
     for label, values in per_series.items():
         summary["metrics"][label] = {
             metric: bootstrap_ci(arr, args.bootstrap, stable_seed(args.seed, label, metric), higher[metric])

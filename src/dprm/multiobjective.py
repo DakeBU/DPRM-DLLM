@@ -1,11 +1,81 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 import torch
 
 
 Scalarization = Literal["weighted_sum", "smooth_tchebycheff"]
+
+
+def molecular_token_class_ids(tokens: Sequence[str]) -> torch.Tensor:
+    """Map SAFE tokenizer entries to eight coarse chemistry/syntax classes."""
+
+    classes = []
+    special = {"[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"}
+    syntax = {"#", "%", "(", ")", "+", "-", "/", "=", "@", "[", "\\", "]"}
+    for raw_token in tokens:
+        token = str(raw_token).replace("##", "")
+        if token in special or token == ".":
+            token_class = 0
+        elif token in syntax or any(character.isdigit() for character in token):
+            token_class = 1
+        elif "Cl" in token or "Br" in token or token in {"F", "I"}:
+            token_class = 6
+        elif "N" in token or "n" in token:
+            token_class = 3
+        elif "O" in token or "o" in token:
+            token_class = 4
+        elif any(element in token for element in ("S", "s", "P", "p")):
+            token_class = 5
+        elif "C" in token or "c" in token:
+            token_class = 2
+        else:
+            token_class = 7
+        classes.append(token_class)
+    return torch.tensor(classes, dtype=torch.long)
+
+
+def sparse_reconstruction_benefits(
+    predicted: torch.Tensor,
+    target: torch.Tensor,
+    selected_mask: torch.Tensor,
+    *,
+    max_bin_distance: float,
+) -> torch.Tensor:
+    """Return nonzero recovery, nonzero MAE benefit, and zero accuracy."""
+
+    if predicted.shape != target.shape or predicted.shape != selected_mask.shape:
+        raise ValueError("predicted, target, and selected_mask must have matching shapes")
+    if max_bin_distance <= 0:
+        raise ValueError("max_bin_distance must be positive")
+    selected_mask = selected_mask.bool()
+    selected_nonzero = selected_mask & (target != 0)
+    nonzero_count = selected_nonzero.sum(dim=-1)
+    nonzero_recovery = ((predicted == target) & selected_nonzero).sum(dim=-1).float()
+    nonzero_recovery = torch.where(
+        nonzero_count > 0,
+        nonzero_recovery / nonzero_count.clamp_min(1).float(),
+        torch.zeros_like(nonzero_recovery),
+    )
+    nonzero_mae = (
+        ((predicted.float() - target.float()).abs() * selected_nonzero).sum(dim=-1)
+        / (nonzero_count.clamp_min(1).float() * float(max_bin_distance))
+    ).clamp(0.0, 1.0)
+    nonzero_mae_benefit = torch.where(
+        nonzero_count > 0,
+        1.0 - nonzero_mae,
+        torch.zeros_like(nonzero_mae),
+    )
+    selected_zero = selected_mask & (target == 0)
+    zero_count = selected_zero.sum(dim=-1)
+    zero_accuracy = ((predicted == 0) & selected_zero).sum(dim=-1).float()
+    zero_accuracy = torch.where(
+        zero_count > 0,
+        zero_accuracy / zero_count.clamp_min(1).float(),
+        torch.zeros_like(zero_accuracy),
+    )
+    return torch.stack((nonzero_recovery, nonzero_mae_benefit, zero_accuracy), dim=-1)
 
 
 def _normalized_weights(
@@ -33,8 +103,16 @@ def scalarize_benefits(
 ) -> torch.Tensor:
     """Convert normalized maximization benefits into one terminal utility.
 
-    Smooth Tchebycheff emphasizes the largest weighted shortfall from the ideal
-    point. The augmentation term breaks near-ties using the weighted mean.
+    ``weighted_sum`` returns ``sum_j lambda_j * r_j``. For
+    ``smooth_tchebycheff`` we apply STCH to the minimization losses
+    ``f_j = z_j - r_j`` and negate the result so that larger remains better::
+
+        1 - mu * logsumexp(lambda_j * (z_j - r_j) / mu)
+            + augmentation * sum_j lambda_j * r_j
+
+    The additive one does not affect ordering when the ideal is the all-ones
+    vector. ``augmentation`` is optional and only breaks near-ties; setting it
+    to zero recovers the direct maximization counterpart of STCH.
     """
 
     if benefits.ndim < 1:
@@ -59,6 +137,8 @@ def scalarize_benefits(
         ideal = torch.as_tensor(ideal, dtype=benefits.dtype, device=benefits.device)
     if ideal.ndim != 1 or ideal.numel() != benefits.shape[-1]:
         raise ValueError("ideal must match the objective dimension")
+    if not torch.isfinite(benefits).all() or not torch.isfinite(ideal).all():
+        raise ValueError("benefits and ideal must be finite")
 
     weighted_shortfall = weights * (ideal - benefits)
     smooth_worst = temperature * torch.logsumexp(
