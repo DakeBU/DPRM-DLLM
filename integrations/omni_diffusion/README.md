@@ -64,6 +64,27 @@ independent post-selection evaluator. The compact statistics are in
 5. Run random and confidence policies with the registry commands to reconstruct
    the four-order table and visual audit.
 
+## Intermediate-Canvas Audit
+
+For a selected prompt, rerun the confidence fallback and its selected DPRM
+branch with `--save-history-frames --history-frame-stride 32`. The generator
+saves decoded canvases and the forced/default visual-grid coordinates. Rebuild
+the shared-state comparison with:
+
+```bash
+python scripts/build_intermediate_canvas.py \
+  --confidence-dir outputs/intermediate/confidence \
+  --dprm-dir outputs/intermediate/dprm \
+  --formal-records outputs/selection/matched_four_order_records_scored.json \
+  --prompt-id "$PROMPT_ID" \
+  --output outputs/intermediate/canvas_comparison.png
+```
+
+The two runs must use the same prompt, seed, checkpoint, tokenizer, and sampler.
+The DPRM run changes one step-96 action with `--force-order-step 96` and the
+quantile selected by the formal DPRM-BoN record, then resumes confidence
+decoding.
+
 `generate_four_orders.py` rejects a DPRM label after warmup unless a real table
 or action-value model is supplied. Diagnostic confidence fallback requires an
 explicit flag and is excluded from formal results.

@@ -437,6 +437,16 @@ def make_counterfactual_order_override(args: argparse.Namespace, stats: dict):
         default_visual = default[(default >= 0) & (default < confidence.numel())]
         default_visual = default_visual[visual[default_visual]]
         default_choice = int(default_visual[0].item()) if default_visual.numel() else None
+        default_sequence_position = (
+            int(masked_positions[default_choice].item())
+            if default_choice is not None
+            else None
+        )
+        default_visual_index = (
+            default_sequence_position - block_start - 1
+            if default_sequence_position is not None
+            else None
+        )
         aux = image_aux_bins(
             context["mask_index"], context["block_mask"], int(args.force_aux_bins)
         ).to(confidence.device)
@@ -469,6 +479,8 @@ def make_counterfactual_order_override(args: argparse.Namespace, stats: dict):
                 "provisional_token_id": int(context["x0"][chosen].item()),
                 "default_candidate_indices": default.detach().cpu().tolist(),
                 "default_candidate_index": default_choice,
+                "default_sequence_position": default_sequence_position,
+                "default_visual_index": default_visual_index,
                 "default_confidence": (
                     float(conf_prob[default_choice].item()) if default_choice is not None else None
                 ),
