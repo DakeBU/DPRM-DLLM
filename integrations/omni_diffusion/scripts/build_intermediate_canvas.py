@@ -15,7 +15,7 @@ from matplotlib.patches import Circle, Rectangle
 from PIL import Image
 
 
-STEPS = (64, 96, 128, 192, 259)
+STEPS = (64, 96, 160, 259)
 
 
 def load_record(path: Path, key: str, prompt_id: str) -> dict:
@@ -80,7 +80,7 @@ def main() -> None:
     fig, axes = plt.subplots(
         2,
         len(STEPS),
-        figsize=(13.8, 5.7),
+        figsize=(12.8, 5.25),
         gridspec_kw={
             "left": 0.115,
             "right": 0.99,
@@ -93,8 +93,7 @@ def main() -> None:
     titles = (
         "Same trajectory\nstep 64",
         "One action differs\nstep 96",
-        "Effects spread\nstep 128",
-        "Global layout forms\nstep 192",
+        "Layout separates\nstep 160",
         "Completed image\nstep 259",
     )
     for column, (step, title) in enumerate(zip(STEPS, titles)):
@@ -119,8 +118,8 @@ def main() -> None:
     )
 
     axes[0, 0].set_ylabel(
-        "Confidence\n"
-        f"action conf. {dprm['default_action_confidence']:.3f}\n"
+        "Confidence order\n"
+        f"model confidence {dprm['default_action_confidence']:.3f}\n"
         f"CLIP-L/B {confidence['clip_cosine']:.3f}/"
         f"{confidence['clip_b32_cosine']:.3f}",
         fontsize=10.2,
@@ -131,8 +130,8 @@ def main() -> None:
         labelpad=16,
     )
     axes[1, 0].set_ylabel(
-        "DPRM-BoN\n"
-        f"action conf. {dprm['selected_action_confidence']:.3f}\n"
+        "DPRM-BoN order\n"
+        f"model confidence {dprm['selected_action_confidence']:.3f}\n"
         f"CLIP-L/B {dprm['clip_cosine']:.3f}/{dprm['clip_b32_cosine']:.3f}",
         fontsize=10.2,
         fontweight="semibold",

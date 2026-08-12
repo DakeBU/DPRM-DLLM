@@ -85,6 +85,11 @@ The DPRM run changes one step-96 action with `--force-order-step 96` and the
 quantile selected by the formal DPRM-BoN record, then resumes confidence
 decoding.
 
+The paper's countable-entity example uses prompt id `20270085` and selected
+quantile `0.15`. Confidence reveals visual index `156` at model confidence
+`0.03165`; DPRM reveals index `229` at `0.02075`. The terminal CLIP-L/14 and
+CLIP-B/32 scores change from `0.2771/0.3295` to `0.3315/0.3473`.
+
 `generate_four_orders.py` rejects a DPRM label after warmup unless a real table
 or action-value model is supplied. Diagnostic confidence fallback requires an
 explicit flag and is excluded from formal results.

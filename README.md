@@ -1,9 +1,32 @@
 # DPRM: Token Ordering as a Control Axis for Diffusion Language Models
 
-Official implementation of **DPRM**, a plug-in ordering controller for masked
-discrete diffusion models. DPRM keeps the host denoiser, token sampler,
-training labels, and task objective fixed. It changes which eligible token
-positions are committed next.
+Official implementation of [**DPRM: Token Ordering as a Control Axis for
+Diffusion Language Models**](https://arxiv.org/abs/2604.24357), a plug-in
+ordering controller for masked discrete diffusion models. DPRM keeps the host
+denoiser, token sampler, training labels, and task objective fixed. It changes
+which eligible token positions are committed next.
+
+![DPRM overview](DPRM1.png)
+
+## Results At A Glance
+
+All entries compare DPRM with the matched confidence-order baseline while
+holding the host model and evaluation protocol fixed.
+
+| Setting | Confidence | DPRM | Relative improvement |
+|---|---:|---:|---:|
+| PUMA, GSM8K mean accuracy | 29.34 | 34.27 | **+16.8%** |
+| DMPO, MATH-Hard mean pass@K | 44.3 | 47.9 | **+8.1%** |
+| DMPO, Countdown-Hard mean pass@K | 29.6 | 33.4 | **+12.8%** |
+| LLaDA-V, AI2D accuracy | 0.658 | 0.692 | **+5.2%** |
+| Omni-Diffusion, CLIP-L/14 | 0.26791 | 0.28708 | **+7.2%** |
+| Omni-Diffusion, held-out CLIP-B/32 | 0.31662 | 0.32294 | **+2.0%** |
+
+On strict RealWorldQA, the prompt-defined numeric/count class improves by
+`8.97` percentage points and transfers to ChartQA numeric questions with a
+`3.45` point gain. Scientific integrations expose declared preference vectors
+for recovery--sparsity, molecular quality--diversity, and DNA
+expression--accessibility Pareto control.
 
 ## Method
 
@@ -82,17 +105,17 @@ the selected position mask and ordering diagnostics.
 
 ## Experiments
 
-| Host | Domain | Ordered object | Integration |
-|---|---|---|---|
-| Omni-Diffusion | text-to-image | visual codebook position | [`integrations/omni_diffusion`](integrations/omni_diffusion) |
-| LLaDA-V | image-conditioned VQA | answer-token position | [`integrations/llada_v`](integrations/llada_v) |
-| PUMA | language pretraining | response-token position | [`integrations/puma`](integrations/puma) |
-| DMPO | reasoning post-training | response-token position | [`integrations/dmpo`](integrations/dmpo) |
-| Prism | test-time scaling | reveal/remask position | [`integrations/prism`](integrations/prism) |
-| DPLM-2 Bit | protein diffusion | residue position | [`integrations/dplm`](integrations/dplm) |
-| DCM | single-cell diffusion | gene-expression bin position | [`integrations/dcm`](integrations/dcm) |
-| GenMol V2 | molecular diffusion | SAFE-token position | [`integrations/genmol`](integrations/genmol) |
-| SDPO | DNA reward optimization | DNA-token position | [`integrations/sdpo`](integrations/sdpo) |
+| Host | Domain | Ordered object | DPRM integration | Upstream |
+|---|---|---|---|---|
+| Omni-Diffusion | text-to-image | visual codebook position | [`integrations/omni_diffusion`](integrations/omni_diffusion) | [VITA-MLLM/Omni-Diffusion](https://github.com/VITA-MLLM/Omni-Diffusion) |
+| LLaDA-V | image-conditioned VQA | answer-token position | [`integrations/llada_v`](integrations/llada_v) | [ML-GSAI/LLaDA-V](https://github.com/ML-GSAI/LLaDA-V) |
+| PUMA | language pretraining | response-token position | [`integrations/puma`](integrations/puma) | [JaeyeonKim01/PUMA](https://github.com/JaeyeonKim01/PUMA) |
+| DMPO | reasoning post-training | response-token position | [`integrations/dmpo`](integrations/dmpo) | [yuchen-zhu-zyc/DMPO](https://github.com/yuchen-zhu-zyc/DMPO) |
+| Prism | test-time scaling | reveal/remask position | [`integrations/prism`](integrations/prism) | [viiika/Prism](https://github.com/viiika/Prism) |
+| DPLM-2 Bit | protein diffusion | residue position | [`integrations/dplm`](integrations/dplm) | [bytedance/dplm](https://github.com/bytedance/dplm) |
+| DCM | single-cell diffusion | gene-expression bin position | [`integrations/dcm`](integrations/dcm) | [sanjukta7/aivc-dcm](https://github.com/sanjukta7/aivc-dcm) |
+| GenMol V2 | molecular diffusion | SAFE-token position | [`integrations/genmol`](integrations/genmol) | [NVIDIA-Digital-Bio/genmol](https://github.com/NVIDIA-Digital-Bio/genmol) |
+| SDPO | DNA reward optimization | DNA-token position | [`integrations/sdpo`](integrations/sdpo) | [hanjq17/discrete-diffusion-sdpo](https://github.com/hanjq17/discrete-diffusion-sdpo) |
 
 The machine-readable experiment registry is
 [`reproducibility/experiments.json`](reproducibility/experiments.json). It lists
@@ -112,20 +135,7 @@ python scripts/reproduce.py --host llada_v --variant dprm_confidence --dry-run
 Use `--execute` only after setting the host-specific root and checkpoint
 environment variables shown by the dry run.
 
-## Result Highlights
-
-- PUMA GSM8K mean accuracy at the shared `1.53M` EMA checkpoint is `29.34` for
-  confidence and `34.27` for DPRM.
-- DMPO-DPRM improves MATH Hard mean pass@K from `44.3` to `47.9` and Countdown
-  Hard from `29.6` to `33.4`.
-- Omni DPRM-BoN-2/4 reach CLIP-L/14 `0.28302/0.28708`, compared with `0.26791`
-  for confidence, and beat uniform action selection at the same rollout budget.
-- LLaDA-V reaches `0.692` on AI2D. On strict RealWorldQA, DPRM changes `0.4735`
-  to `0.4892`; the prespecified numeric/count class improves by `8.97` points.
-  The frozen controller transfers to ChartQA numeric questions with a `3.45`
-  point gain.
-- DPRM(random)-SDPO gives the highest DNA total metric (`2.119`), ATAC
-  success (`0.754`), and k-mer Pearson (`0.842`).
+## Result Files
 
 The scientific-domain package reports declared preference vectors, native-scale
 objective axes, bootstrap response intervals, and Pareto comparisons. DCM
@@ -145,8 +155,16 @@ scripts/              release verification and command launcher
 
 ## Citation
 
-See [`CITATION.cff`](CITATION.cff). The paper title is *DPRM: Token Ordering as
-a Control Axis for Diffusion Language Models*.
+```bibtex
+@article{bu2026dprm,
+  title   = {DPRM: Token Ordering as a Control Axis for Diffusion Language Models},
+  author  = {Bu, Dake and Huang, Wei and Han, Andi and Wu, Si and Wong, Hau-San and Zhang, Qingfu and Suzuki, Taiji and Nitanda, Atsushi},
+  journal = {arXiv preprint arXiv:2604.24357},
+  year    = {2026}
+}
+```
+
+Machine-readable citation metadata is in [`CITATION.cff`](CITATION.cff).
 
 ## License
 
