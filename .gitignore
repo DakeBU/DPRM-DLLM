@@ -29,3 +29,6 @@ data/
 data-bin/
 datasets/
 
+# Source overlays may mirror an upstream package directory named `data`.
+!integrations/omni_diffusion/matched/overlay/omni_diffusion/data/
+!integrations/omni_diffusion/matched/overlay/omni_diffusion/data/*.py

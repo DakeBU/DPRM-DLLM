@@ -24,6 +24,13 @@ from .visual_order import (
     make_visual_order_observer,
     summarize_hook_stats,
 )
+from .omni_order import (
+    OmniBucketTableDPRM,
+    OmniOrderConfig,
+    adjusted_order_scores,
+    entropy_penalty_order_scores,
+    load_omni_order_controller,
+)
 
 __all__ = [
     "DPRMConfig",
@@ -50,4 +57,9 @@ __all__ = [
     "make_visual_dprm_score_hook",
     "make_visual_order_observer",
     "summarize_hook_stats",
+    "OmniBucketTableDPRM",
+    "OmniOrderConfig",
+    "adjusted_order_scores",
+    "entropy_penalty_order_scores",
+    "load_omni_order_controller",
 ]

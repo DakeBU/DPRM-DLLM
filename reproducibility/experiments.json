@@ -121,16 +121,16 @@
       "upstream": "https://github.com/VITA-MLLM/Omni-Diffusion",
       "upstream_commit": "c4f4625f84197a72d556ea00f10e5b2775524252",
       "root_env": "OMNI_ROOT",
-      "required_env": ["OMNI_MODEL_PATH", "OMNI_IMAGE_TOKENIZER_PATH", "AESTHETIC_WEIGHTS"],
-      "prerequisite": "DPRM-BoN selection consumes terminally scored shared-state branches produced at step 96 as documented by the integration README.",
+      "required_env": ["OMNI_MODEL_PATH", "OMNI_IMAGE_TOKENIZER_PATH", "OMNI_DATA_JSON", "OMNI_RUN_ROOT"],
+      "prerequisite": "Apply the matched overlay to upstream commit c4f4625, freeze a controller on development prompts, and provide disjoint trajectory and evaluation prompt ranges.",
       "integration_readme": "integrations/omni_diffusion/README.md",
-      "entrypoint": "integrations/omni_diffusion/scripts/generate_four_orders.py",
+      "entrypoint": "integrations/omni_diffusion/matched/run_pipeline.sh",
       "result_file": "results/artifacts/multimodal_summary.json",
       "variants": [
-        {"id": "random", "policy": "random visual-token order", "status": "reported", "command": "python scripts/generate_four_orders.py --model-path \"$OMNI_MODEL_PATH\" --image-tokenizer-path \"$OMNI_IMAGE_TOKENIZER_PATH\" --order-policy random --output-dir outputs/random"},
-        {"id": "confidence", "policy": "confidence visual-token order", "status": "reported", "command": "python scripts/generate_four_orders.py --model-path \"$OMNI_MODEL_PATH\" --image-tokenizer-path \"$OMNI_IMAGE_TOKENIZER_PATH\" --order-policy progressive_confidence --output-dir outputs/confidence"},
-        {"id": "dprm_bon2", "policy": "DPRM-BoN-2 action search", "status": "reported", "command": "python scripts/select_dprm_bon.py --records outputs/action_branches.json --output-dir outputs/dprm_bon --shortlist N2=0.3,0.7"},
-        {"id": "dprm_bon4", "policy": "DPRM-BoN-4 action search", "status": "reported", "command": "python scripts/select_dprm_bon.py --records outputs/action_branches.json --output-dir outputs/dprm_bon --shortlist N4=0.15,0.3,0.7,0.85"}
+        {"id": "random", "policy": "trained random visual-token order", "status": "formal_pending", "command": "bash integrations/omni_diffusion/matched/run_pipeline.sh"},
+        {"id": "confidence", "policy": "trained Omni default confidence order", "status": "formal_pending", "command": "bash integrations/omni_diffusion/matched/run_pipeline.sh"},
+        {"id": "dprm_confidence", "policy": "trained one-path DPRM with confidence proposal", "status": "formal_pending", "command": "bash integrations/omni_diffusion/matched/run_pipeline.sh"},
+        {"id": "dprm_random", "policy": "DPRM random-proposal inference control", "status": "implemented_control", "command": "python integrations/omni_diffusion/scripts/generate_four_orders.py --model-path \"$OMNI_MODEL_PATH\" --image-tokenizer-path \"$OMNI_IMAGE_TOKENIZER_PATH\" --order-policy dprm_random_warmup --dprm-table \"$OMNI_CONTROLLER\" --output-dir \"$OMNI_RUN_ROOT/dprm_random_control\""}
       ]
     },
     {

@@ -1,31 +1,7 @@
 {
   "omni_diffusion": {
-    "n": 96,
-    "confidence": {"clip_l14": 0.26791, "clip_b32": 0.31662, "rollouts": 1},
-    "uniform_3": {"clip_l14": 0.27044, "clip_b32": 0.31867, "rollouts": 3},
-    "dprm_bon_2": {"clip_l14": 0.28302, "clip_b32": 0.32197, "rollouts": 3},
-    "uniform_5": {"clip_l14": 0.27089, "clip_b32": 0.31873, "rollouts": 5},
-    "dprm_bon_4": {"clip_l14": 0.28708, "clip_b32": 0.32294, "rollouts": 5},
-    "paired_clip_l14_delta_vs_confidence": {
-      "dprm_bon_2": {"mean": 0.01511, "ci95": [0.01173, 0.01888]},
-      "dprm_bon_4": {"mean": 0.01917, "ci95": [0.01563, 0.02296]}
-    },
-    "paired_clip_l14_delta_vs_compute_matched_uniform": {
-      "dprm_bon_2": {"mean": 0.01258, "ci95": [0.01107, 0.01411]},
-      "dprm_bon_4": {"mean": 0.01618, "ci95": [0.01461, 0.01785]}
-    },
-    "paired_clip_b32_delta_vs_confidence": {
-      "dprm_bon_2": {"mean": 0.00535, "ci95": [0.00196, 0.00901]},
-      "dprm_bon_4": {"mean": 0.00631, "ci95": [0.00248, 0.01033]}
-    },
-    "paired_clip_b32_delta_vs_compute_matched_uniform": {
-      "dprm_bon_2": {"mean": 0.00331, "ci95": [0.00110, 0.00568]},
-      "dprm_bon_4": {"mean": 0.00421, "ci95": [0.00197, 0.00651]}
-    },
-    "action_diagnostics": {
-      "dprm_bon_2": {"reject_confidence": 66, "mean_selected_confidence_gap": -0.0358},
-      "dprm_bon_4": {"reject_confidence": 82, "mean_selected_confidence_gap": -0.0298}
-    }
+    "status": "formal matched evaluation pending",
+    "protocol": "three trained branches, one path per prompt, no test-time reward calls"
   },
   "llada_v": {
     "ai2d": {"n": 500, "random": 0.628, "confidence": 0.658, "dprm_confidence": 0.692, "dprm_random": 0.654},

@@ -1,0 +1,13 @@
+host,task,method,variant,metric,direction,value,ci95_low,ci95_high,n,protocol
+Omni-Diffusion,T2I,Random,random,CLIP-L/14,higher,0.26232,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Confidence,confidence,CLIP-L/14,higher,0.26791,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Uniform-3,uniform_3,CLIP-L/14,higher,0.27044,,,96,archived_diagnostic
+Omni-Diffusion,T2I,DPRM-BoN-2,dprm_bon_2,CLIP-L/14,higher,0.28302,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Uniform-5,uniform_5,CLIP-L/14,higher,0.27089,,,96,archived_diagnostic
+Omni-Diffusion,T2I,DPRM-BoN-4,dprm_bon_4,CLIP-L/14,higher,0.28708,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Random,random,CLIP-B/32,higher,0.31123,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Confidence,confidence,CLIP-B/32,higher,0.31662,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Uniform-3,uniform_3,CLIP-B/32,higher,0.31867,,,96,archived_diagnostic
+Omni-Diffusion,T2I,DPRM-BoN-2,dprm_bon_2,CLIP-B/32,higher,0.32197,,,96,archived_diagnostic
+Omni-Diffusion,T2I,Uniform-5,uniform_5,CLIP-B/32,higher,0.31873,,,96,archived_diagnostic
+Omni-Diffusion,T2I,DPRM-BoN-4,dprm_bon_4,CLIP-B/32,higher,0.32294,,,96,archived_diagnostic

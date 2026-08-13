@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the formal Omni DPRM-BoN score and mechanism diagnostic figure."""
+"""Build the archived Omni DPRM-BoN mechanism diagnostic figure."""
 
 from __future__ import annotations
 

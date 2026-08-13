@@ -6,70 +6,64 @@ values and commits visual positions over `260` steps. DPRM changes the committed
 position; the denoiser, VQ tokenizer/decoder, prompt, seed, and continuation
 decoder stay fixed.
 
-## Four Paper Orders
+## Matched Orders
 
-- `random`: uniformly sampled visual positions;
-- `confidence`: highest-confidence visual positions;
-- `DPRM-BoN-2`: at step `96`, evaluate two fixed confidence-quantile actions
-  (`0.3`, `0.7`) plus the confidence fallback;
-- `DPRM-BoN-4`: evaluate four actions (`0.15`, `0.3`, `0.7`, `0.85`) plus the
-  confidence fallback.
+- `random_matched`: uniformly sampled visual positions;
+- `confidence_matched`: Omni's negative-token-entropy position order;
+- `dprm_matched`: confidence proposal plus a frozen process-value table;
+- `dprm_random_matched`: random-proposal DPRM control available in the registry.
 
-Each action branch starts from the same partial visual canvas and completes with
-confidence decoding. Hard terminal-utility selection implements the high-tilt
-DPRM-BoN limit. The utility is CLIP-L/14 image-text cosine plus `0.01` times the
-LAION aesthetic-predictor score. Uniform-3 and Uniform-5 sample from the same
-branch records and are compute-matched controls.
+The reported comparison trains random, confidence, and DPRM from one checkpoint.
+Each branch receives teacher-forced canvases induced by its deployed order and
+executes one current-model action with the same selector before the unchanged
+denoising loss. CLIP-L/14 terminal utility builds the DPRM table on development
+prompts; it is not a training loss. At evaluation every method generates one
+image per prompt without a reward call or completed-image selection.
 
 ## Paper Protocol
 
-The held-out audit uses `96` prompts, one fixed seed per prompt, `256` generated
-visual tokens, and the official `260`-step path. DPRM-BoN-2/4 require `3/5`
-complete rollouts per prompt. CLIP-L/14 selects actions; CLIP-B/32 is an
-independent post-selection evaluator. The compact statistics are in
-[`../../results/artifacts/multimodal_summary.json`](../../results/artifacts/multimodal_summary.json).
+The held-out audit uses `96` prompt-text-deduplicated prompts, one fixed seed per
+prompt, `256` generated visual tokens, and the official `260`-step path.
+CLIP-L/14 is the paired primary metric and CLIP-B/32 is a directional check.
+The promotion gate also verifies order divergence, complete prompt pairing,
+zero test-time reward calls, and exact training/deployment contracts.
 
 ## Reproduction
 
-1. Copy `overlay/host/generation_utils.py` and `scripts/` into the Omni-Diffusion
-   checkout. Set `OMNI_ROOT`, `OMNI_MODEL_PATH`, and
-   `OMNI_IMAGE_TOKENIZER_PATH`. Set the output directory explicitly, for example
-   `export OMNI_ACTION_ROOT="$OMNI_ROOT/outputs/omni_action_branches"`.
-2. Run `scripts/run_action_branches.sh`. It selects 96 deduplicated JourneyDB
-   prompts after offset 2000, assigns seed `20268000 + prompt_index`, and generates
-   the confidence baseline plus quantiles `0.15`, `0.3`, `0.7`, and `0.85` from
-   the same step-96 canvas. The prompt offset, count, seeds, quantiles, and GPUs
-   have environment-variable overrides in the script.
-3. Set `AESTHETIC_WEIGHTS` to the LAION aesthetic-predictor weights used by the
-   evaluator and score the complete branches:
+1. Check out Omni-Diffusion at commit `c4f4625f84197a72d556ea00f10e5b2775524252`.
+2. Copy `matched/overlay/` into that checkout, preserving relative paths.
+3. Install this package in the same environment and set the required paths:
 
    ```bash
-   python scripts/score_action_branches.py \
-     --root "$OMNI_ACTION_ROOT" \
-     --output "$OMNI_ACTION_ROOT/action_branches.json" \
-     --aesthetic-weights "$AESTHETIC_WEIGHTS"
+   export OMNI_ROOT="$HOME/checkouts/Omni-Diffusion"
+   export OMNI_MODEL_PATH="$HOME/models/omni-shared-checkpoint"
+   export OMNI_IMAGE_TOKENIZER_PATH="$HOME/models/magvitv2"
+   export OMNI_DATA_JSON="$HOME/data/tokenized_journeydb.jsonl"
+   export OMNI_CONTROLLER="$HOME/artifacts/frozen_controller.json"
+   export OMNI_RUN_ROOT="$HOME/outputs/omni-matched"
    ```
 
-4. Run both DPRM shortlists and the compute-matched analysis:
+4. Run the matched pipeline. Development, trajectory, and evaluation prompt
+   ranges must be disjoint; defaults and hashes are written to the run manifest.
 
    ```bash
-   python scripts/select_dprm_bon.py \
-     --records "$OMNI_ACTION_ROOT/action_branches.json" \
-     --output-dir "$OMNI_ACTION_ROOT/selection"
-   python scripts/analyze_compute_matched.py \
-     --records "$OMNI_ACTION_ROOT/action_branches.json" \
-     --output-dir "$OMNI_ACTION_ROOT/compute_matched"
+   bash integrations/omni_diffusion/matched/run_pipeline.sh
    ```
 
-5. Run random and confidence policies with the registry commands to reconstruct
-   the four-order table and visual audit.
+The pipeline writes branch manifests, source and code hashes, checkpoint audits,
+paired bootstrap statistics, the promotion decision, fixed-index images, and a
+blinded visual-rating package. A failed promotion gate remains a reported
+boundary result and is not rewritten as a positive row.
 
-## Intermediate-Canvas Audit
+## Completed-Path Diagnostic
 
-For a selected prompt, rerun the confidence fallback and its selected DPRM
-branch with `--save-history-frames --history-frame-stride 32`. The generator
-saves decoded canvases and the forced/default visual-grid coordinates. Rebuild
-the shared-state comparison with:
+The files under `scripts/` outside `matched/` reproduce a completed-path action
+search used to inspect one-step visual consequences. It evaluates multiple
+terminal continuations and is therefore not the paper endpoint. Its values are
+stored in `results/artifacts/omni_completed_path_diagnostic.csv`, not in the
+canonical paper table.
+
+For that diagnostic only, rebuild a shared-state canvas with:
 
 ```bash
 python scripts/build_intermediate_canvas.py \
@@ -82,13 +76,8 @@ python scripts/build_intermediate_canvas.py \
 
 The two runs must use the same prompt, seed, checkpoint, tokenizer, and sampler.
 The DPRM run changes one step-96 action with `--force-order-step 96` and the
-quantile selected by the formal DPRM-BoN record, then resumes confidence
+quantile selected by the diagnostic DPRM-BoN record, then resumes confidence
 decoding.
-
-The paper's countable-entity example uses prompt id `20270085` and selected
-quantile `0.15`. Confidence reveals visual index `156` at model confidence
-`0.03165`; DPRM reveals index `229` at `0.02075`. The terminal CLIP-L/14 and
-CLIP-B/32 scores change from `0.2771/0.3295` to `0.3315/0.3473`.
 
 `generate_four_orders.py` rejects a DPRM label after warmup unless a real table
 or action-value model is supplied. Diagnostic confidence fallback requires an

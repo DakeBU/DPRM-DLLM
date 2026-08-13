@@ -45,6 +45,12 @@ REQUIRED_REPRO_FILES = (
     "integrations/genmol/overlay/src/genmol/utils/utils_data.py",
     "reproducibility/scientific_preference_sweeps.json",
     "scripts/sync_scientific_results.py",
+    "integrations/omni_diffusion/matched/run_pipeline.sh",
+    "integrations/omni_diffusion/matched/scripts/audit_omni_training_contract.py",
+    "integrations/omni_diffusion/matched/scripts/check_omni_matched_promotion.py",
+    "integrations/omni_diffusion/matched/scripts/package_omni_formal_visual_audit.py",
+    "integrations/omni_diffusion/matched/overlay/tools/trainer_v4_51_3.py",
+    "src/dprm/omni_order.py",
 )
 
 
@@ -90,6 +96,7 @@ def main() -> None:
                 "reported",
                 "reported_ai2d",
                 "reported_development_gate",
+                "formal_pending",
                 "implemented_control",
             }:
                 fail(f"{experiment['id']}/{variant['id']} has invalid status")
@@ -97,8 +104,13 @@ def main() -> None:
     with RESULTS.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     result_hosts = {row["host"] for row in rows}
-    if not EXPECTED_HOSTS.issubset(result_hosts):
-        fail(f"results missing hosts: {sorted(EXPECTED_HOSTS - result_hosts)}")
+    reported_hosts = {
+        experiment["host"]
+        for experiment in experiments
+        if any(variant["status"].startswith("reported") for variant in experiment["variants"])
+    }
+    if not reported_hosts.issubset(result_hosts):
+        fail(f"results missing reported hosts: {sorted(reported_hosts - result_hosts)}")
     for row_number, row in enumerate(rows, start=2):
         try:
             float(row["value"])
@@ -131,7 +143,11 @@ def main() -> None:
     if violations:
         fail("release text contains private/history residue:\n  " + "\n  ".join(violations))
 
-    print(f"release audit passed: 9 hosts, 36 variants, {len(rows)} result rows")
+    print(
+        "release audit passed: "
+        f"9 hosts, 36 variants, {len(reported_hosts)} hosts with formal results, "
+        f"{len(rows)} result rows"
+    )
 
 
 if __name__ == "__main__":

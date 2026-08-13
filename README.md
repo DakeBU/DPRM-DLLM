@@ -19,8 +19,6 @@ holding the host model and evaluation protocol fixed.
 | DMPO, MATH-Hard mean pass@K | 44.3 | 47.9 | **+8.1%** |
 | DMPO, Countdown-Hard mean pass@K | 29.6 | 33.4 | **+12.8%** |
 | LLaDA-V, AI2D accuracy | 0.658 | 0.692 | **+5.2%** |
-| Omni-Diffusion, CLIP-L/14 | 0.26791 | 0.28708 | **+7.2%** |
-| Omni-Diffusion, held-out CLIP-B/32 | 0.31662 | 0.32294 | **+2.0%** |
 
 On strict RealWorldQA, the prompt-defined numeric/count class improves by
 `8.97` percentage points and transfers to ChartQA numeric questions with a
@@ -44,10 +42,11 @@ The repository implements two estimators of the conditional future utility:
   `confidence_bin`, and an optional low-dimensional auxiliary bin. Counts and
   exponentiated terminal rewards provide a log-moment value for each cell.
   Readiness gates reduce unsupported cells to the host confidence order.
-- **Action-conditioned DPRM-BoN** evaluates a fixed shortlist of actions from
-  the same partial state, completes each branch with the same host decoder, and
-  selects by terminal utility. This is used for Omni-Diffusion where a complete
-  visual rollout supplies a direct action-value comparison.
+- **Matched visual DPRM** uses confidence and spatial cells learned from
+  development rollouts. Random, confidence, and DPRM branches train from the
+  same checkpoint on states induced by their deployed order. Each test prompt
+  produces one image; no reward model or completed-image selection is used at
+  inference.
 
 `src/dprm/` contains the host-independent controller, multi-objective reward
 scalarization, visual-order helpers, and host adapters. `integrations/` contains
