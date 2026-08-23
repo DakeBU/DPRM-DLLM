@@ -45,6 +45,8 @@ The executable integrations, exact commands, and uncertainty reducers are in
 [DakeBU/DPRM-DLLM](https://github.com/DakeBU/DPRM-DLLM). The paper is available
 at [arXiv:2604.24357](https://arxiv.org/abs/2604.24357), and the scrollable
 visual galleries are on the [project page](https://dakebu.github.io/DPRM-DLLM/).
+The published artifact bundle is hosted at
+[DarkerBu/DPRM-DLLM](https://huggingface.co/DarkerBu/DPRM-DLLM).
 
 The bundle retains one deployable DPRM checkpoint or controller per host when
 the host has trainable state. Baseline outputs are represented by raw matched

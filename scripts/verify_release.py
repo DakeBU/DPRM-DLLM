@@ -306,6 +306,10 @@ def main() -> None:
                 relative_path = path.relative_to(ROOT)
                 if token == "t" + "pami_" and relative_path in LEGACY_SCHEMA_PATHS:
                     continue
+                if token == "ICML " + "2026" and relative_path == Path("README.md"):
+                    remaining = text.replace("ICML 2026 FoGen (<strong>Oral</strong>)", "")
+                    if token not in remaining:
+                        continue
                 if token in text:
                     violations.append(f"{relative_path}: {token}")
     if violations:

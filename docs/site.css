@@ -73,8 +73,10 @@ h1, h2 { font-family: "Source Serif 4", Georgia, serif; letter-spacing: 0; }
 h3 { margin: 0; font: 700 30px/1.12 "Source Serif 4", Georgia, serif; letter-spacing: 0; }
 h1 { margin: 0; font-size: clamp(68px, 9vw, 124px); line-height: 0.9; }
 .offer { max-width: 560px; margin: 20px 0 0; font: 600 25px/1.18 "Source Serif 4", Georgia, serif; }
-.authors { max-width: 610px; margin: 18px 0 0; font-size: 13px; font-weight: 700; line-height: 1.55; }
-.affiliations { max-width: 610px; margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.authors { max-width: 640px; margin: 18px 0 0; font-size: 13px; font-weight: 700; line-height: 1.65; }
+.authors sup, .affiliations sup, .corresponding sup { font-size: 0.72em; line-height: 0; vertical-align: super; }
+.affiliations { max-width: 640px; margin: 8px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; color: var(--muted); font-size: 9.5px; line-height: 1.45; }
+.corresponding { margin: 5px 0 0; color: var(--muted); font-size: 9.5px; }
 .lead { max-width: 530px; margin: 20px 0 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 28px; }
 .button {
@@ -210,6 +212,7 @@ footer span:first-child { color: white; font: 700 18px/1 "Source Serif 4", Georg
   .hero { min-height: auto; grid-template-columns: 1fr; padding-top: 68px; gap: 32px; }
   .hero-copy { padding-bottom: 0; }
   .offer { font-size: 21px; }
+  .affiliations { grid-template-columns: 1fr; }
   .overview-figure { margin-bottom: 96px; }
   .metric-band { grid-template-columns: repeat(2, 1fr); }
   .metric-band div { min-height: 66px; }

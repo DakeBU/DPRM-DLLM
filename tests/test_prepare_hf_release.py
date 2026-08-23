@@ -26,6 +26,7 @@ def test_model_card_lists_artifact_links() -> None:
     card = render_model_card(manifest)
     assert "| puma | [state](puma/state.pt) |" in card
     assert "DakeBU/DPRM-DLLM" in card
+    assert "DarkerBu/DPRM-DLLM" in card
 
 
 def test_incomplete_bundle_is_rejected(tmp_path: Path, monkeypatch) -> None:

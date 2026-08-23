@@ -56,9 +56,9 @@ the PAT in `origin`, a command argument, or a checked-in file.
 source .venv/bin/activate
 python -m huggingface_hub.commands.huggingface_cli login
 python -m huggingface_hub.commands.huggingface_cli repo create \
-  DakeBU/DPRM-DLLM --repo-type model --exist-ok
+  DarkerBu/DPRM-DLLM --repo-type model --exist-ok
 python -m huggingface_hub.commands.huggingface_cli upload-large-folder \
-  DakeBU/DPRM-DLLM "$DPRM_ARTIFACT_ROOT" \
+  DarkerBu/DPRM-DLLM "$DPRM_ARTIFACT_ROOT" \
   --repo-type model --num-workers 4
 ```
 
