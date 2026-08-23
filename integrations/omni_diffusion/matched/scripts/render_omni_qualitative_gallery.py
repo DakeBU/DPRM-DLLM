@@ -190,8 +190,8 @@ def main() -> None:
                     "\\begin{figure}[H]",
                     "\\centering",
                     f"\\includegraphics[width=\\linewidth]{{figs/{path.name}}}",
-                    "\\caption{Post-evaluation Omni-Diffusion qualitative gallery "
-                    f"({index}/4). Random, Omni default, a deterministic uniform action, and DPRM use matched prompts and seeds. "
+                    "\\caption{Post-evaluation Omni-Diffusion qualitative gallery. "
+                    "Random, Omni default, a deterministic uniform action, and DPRM use matched prompts and seeds. "
                     "The displayed DPRM result improves both CLIP-L/14 and CLIP-B/32 over Omni default. "
                     "These examples visualize the frozen confirmation split and do not select the controller.}",
                     f"\\label{{fig:omni_qualitative_gallery_{index}}}",

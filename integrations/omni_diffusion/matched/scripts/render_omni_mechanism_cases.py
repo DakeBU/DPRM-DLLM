@@ -193,16 +193,13 @@ def main() -> None:
             va="center",
             labelpad=16,
         )
-    fig.suptitle(
-        (
-            "Lower-confidence actions establish useful global visual structure"
-            if len(cases) > 1
-            else "One lower-confidence action separates the three children and beach toys"
-        ),
-        fontsize=13.0,
-        fontweight="bold",
-        y=0.94,
-    )
+    if len(cases) > 1:
+        fig.suptitle(
+            "Lower-confidence actions establish useful global visual structure",
+            fontsize=13.0,
+            fontweight="bold",
+            y=0.94,
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.output, dpi=240, bbox_inches="tight")
     plt.close(fig)

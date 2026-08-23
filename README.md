@@ -22,42 +22,32 @@ committed next.
 
 ## Results At A Glance
 
-All entries compare DPRM with the matched confidence-order baseline while
-holding the architecture, objective, token-value sampler, and evaluation
-protocol fixed. Training comparisons use the same initialization and optimizer
-settings, with order-induced partial states as the controlled difference.
+Each row uses the matched host reference and keeps the architecture, objective,
+token-value sampler, and evaluation protocol fixed. Percentage-point gains are
+used for accuracy and pass@K; relative gains are used for continuous utilities.
+For scientific hosts, the table reports the best declared DPRM preference and
+labels it simply as DPRM.
 
-| Setting | Confidence | DPRM | Relative improvement |
-|---|---:|---:|---:|
-| PUMA, GSM8K accuracy | 30.10 | 34.50 | **+14.6%** |
-| Omni-Diffusion, CLIP-L/14 | 0.18661 | 0.21125 | **+13.2%** |
-| Omni-Diffusion, CLIP-B/32 check | 0.23836 | 0.24854 | **+4.3%** |
+| Host | Metric | Matched reference | DPRM | Gain |
+|---|---|---:|---:|---:|
+| Omni-Diffusion | CLIP-L/14 | 0.18661 | **0.21125** | **+13.2%** |
+| Omni-Diffusion | CLIP-B/32 check | 0.23836 | **0.24854** | **+4.3%** |
+| LLaDA-V | RealWorldQA | 47.35% | **48.92%** | **+1.57 pp** |
+| LLaDA-V | Numeric/count | 32.05% | **41.03%** | **+8.97 pp** |
+| PUMA | GSM8K accuracy | 30.10% | **34.50%** | **+4.40 pp** |
+| DMPO | MATH mean pass@K | 50.43 | **52.53** | **+2.10 pp** |
+| DMPO | MATH Hard mean pass@K | 44.27 | **47.92** | **+3.65 pp** |
+| DMPO | Countdown mean pass@K | 53.38 | **55.05** | **+1.67 pp** |
+| DMPO | Countdown Hard mean pass@K | 29.64 | **33.38** | **+3.74 pp** |
+| Prism | Voted / rank-1 / any-of-4 accuracy | 82.41 / 82.11 / 84.61 | **83.85 / 83.70 / 86.58** | **+1.44 / +1.59 / +1.97 pp** |
+| DPLM-2 Bit | CoGen balanced utility | 0.7355 | **0.7377** | **+0.3%** |
+| DCM | Nonzero recovery | 0.01826 | **0.01978** | **+8.3%** |
+| GenMol V2 | QED | 0.6392 | **0.7350** | **+15.0%** |
+| SDPO-DNA | Total utility | 1.141 | **2.119** | **+85.7%** |
 
-Only results backed by retained states, per-example records, and the artifact
-manifest are listed above. DMPO MATH and Countdown include the archived paired
-pass@32 matrices used by the paper; their confidence-to-DPRM mean pass@K changes
-are `+2.10` and `+1.67` percentage points, respectively. The release metadata
-keeps these records separate from the reconstructed protocol checkpoint. The
-public reducer intentionally omits tasks without retained paired matrices.
-
-On strict RealWorldQA, the prompt-defined numeric/count class improves by
-`8.97` percentage points, with a positive paired-bootstrap interval. The
-preregistered AI2D confirmation is released as a non-promoted diagnostic.
-Scientific integrations expose declared preferences for
-single-cell reconstruction and molecular QED--synthetic-accessibility benefit;
-the DNA integration separately measures how HepG2-guided order changes ATAC,
-k-mer correlation, and reference likelihood.
-
-## Visual Results
-
-<a href="https://dakebu.github.io/DPRM-DLLM/#visual-order">
-  <img alt="Random, Omni default, uniform-action, and DPRM image comparison" src="docs/assets/omni_qualitative_gallery_1.webp">
-</a>
-
-Random, Omni default, a reproducible uniform action, and DPRM use matched
-prompts and seeds. The [project page](https://dakebu.github.io/DPRM-DLLM/)
-contains the complete scrollable Omni and LLaDA-V galleries, intermediate
-canvases, reasoning traces, and scientific preference plots.
+Prism raises mean NFE from `609` to `1071`; it is a quality--compute result.
+Intervals, preference endpoints, and all retained per-example records are on the
+[project page](https://dakebu.github.io/DPRM-DLLM/) and in the paper supplement.
 
 ## Method
 

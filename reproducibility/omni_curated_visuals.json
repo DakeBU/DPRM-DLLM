@@ -1,0 +1,19 @@
+{
+  "protocol": "post-evaluation display subset from the frozen 512-prompt confirmation split",
+  "selection_rule": "User-inspected recognizable cases retained from the released qualitative audit; display selection does not affect controller choice or aggregate metrics.",
+  "metric_use": "These examples are qualitative displays only.",
+  "uniform_action": {
+    "candidate_order": [
+      "confidence",
+      "step96_q0.70",
+      "step96_q0.85",
+      "step96_q0.90",
+      "step96_q0.95"
+    ],
+    "rule": "SHA256(prompt|seed|salt) interpreted as an integer modulo five",
+    "salt": "uniform_gallery_v1"
+  },
+  "figures": [
+    [299, 371, 106, 230]
+  ]
+}

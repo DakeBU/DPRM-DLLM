@@ -73,6 +73,8 @@ h1, h2 { font-family: "Source Serif 4", Georgia, serif; letter-spacing: 0; }
 h3 { margin: 0; font: 700 30px/1.12 "Source Serif 4", Georgia, serif; letter-spacing: 0; }
 h1 { margin: 0; font-size: clamp(68px, 9vw, 124px); line-height: 0.9; }
 .offer { max-width: 560px; margin: 20px 0 0; font: 600 25px/1.18 "Source Serif 4", Georgia, serif; }
+.authors { max-width: 610px; margin: 18px 0 0; font-size: 13px; font-weight: 700; line-height: 1.55; }
+.affiliations { max-width: 610px; margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .lead { max-width: 530px; margin: 20px 0 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 28px; }
 .button {

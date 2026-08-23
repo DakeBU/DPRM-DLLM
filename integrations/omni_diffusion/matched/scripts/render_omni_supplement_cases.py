@@ -49,6 +49,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--replay-manifest", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--case-ids", nargs="*", default=[])
+    parser.add_argument("--output-prefix", default="omni_mechanism_cases")
+    parser.add_argument("--tex-name", default="omni_supplement_mechanism_figures.tex")
     args = parser.parse_args()
     payload = json.loads(args.replay_manifest.read_text(encoding="utf-8"))
     manifest_root = args.replay_manifest.parent
@@ -58,14 +61,20 @@ def main() -> None:
         return path if path.is_absolute() else manifest_root / path
 
     cases = payload["cases"]
-    if len(cases) % 2:
-        raise ValueError("case count must be even")
+    if args.case_ids:
+        requested = set(args.case_ids)
+        cases = [case for case in cases if case["id"] in requested]
+        missing = requested - {case["id"] for case in cases}
+        if missing:
+            raise ValueError(f"unknown case ids: {sorted(missing)}")
+    if not cases:
+        raise ValueError("no cases selected")
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     latex = []
     for figure_index in range(0, len(cases), 2):
         pair = cases[figure_index : figure_index + 2]
-        fig, axes = plt.subplots(4, 4, figsize=(12.8, 9.1), squeeze=False,
+        fig, axes = plt.subplots(2 * len(pair), 4, figsize=(12.8, 4.55 * len(pair)), squeeze=False,
             gridspec_kw={"left": 0.13, "right": 0.99, "top": 0.91, "bottom": 0.035, "wspace": 0.035, "hspace": 0.08})
         titles = ("Same trajectory\nstep 64", "One action differs\nstep 96", "Later denoising\nstep 192", "Completed image")
         for column, title in enumerate(titles):
@@ -100,13 +109,7 @@ def main() -> None:
                 b32 = case["confidence_clip_b32"] if method_index == 0 else case["dprm_clip_b32"]
                 axes[row, 0].set_ylabel(f"{case['id'].replace('_', ' ').title()}\n{label}\nCLIP-L/B {l14:.3f}/{b32:.3f}", fontsize=9.3, fontweight="semibold", rotation=0, ha="right", va="center", labelpad=15)
             explanations.append(case["explanation"])
-        fig.suptitle(
-            "A lower-confidence action preserves global visual structure",
-            fontsize=12.2,
-            fontweight="bold",
-            y=0.965,
-        )
-        output = args.output_dir / f"omni_mechanism_cases_{figure_index // 2 + 1}.png"
+        output = args.output_dir / f"{args.output_prefix}_{figure_index // 2 + 1}.png"
         fig.savefig(output, dpi=240, bbox_inches="tight")
         plt.close(fig)
         latex.append((output.name, pair))
@@ -123,7 +126,7 @@ def main() -> None:
             "\\end{figure}",
             "",
         ])
-    (args.output_dir / "omni_supplement_mechanism_figures.tex").write_text("\n".join(tex), encoding="utf-8")
+    (args.output_dir / args.tex_name).write_text("\n".join(tex), encoding="utf-8")
 
 
 if __name__ == "__main__":

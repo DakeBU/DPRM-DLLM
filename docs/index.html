@@ -32,6 +32,8 @@
         <p class="eyebrow">Process reward models for masked diffusion</p>
         <h1>DPRM</h1>
         <p class="offer">A Plug-in Token-Ordering Module for Diffusion Language Models</p>
+        <p class="authors">Dake Bu · Wei Huang · Andi Han · Si Wu · Hau-San Wong · Qingfu Zhang · Taiji Suzuki · Atsushi Nitanda</p>
+        <p class="affiliations">City University of Hong Kong · RIKEN AIP · The Institute of Statistical Mathematics · University of Sydney · South China University of Technology · CFAR and IHPC, A*STAR · The University of Tokyo · Nanyang Technological University</p>
         <p class="lead">Keep the denoiser and token sampler. Change which position is committed next using terminal utility.</p>
         <div class="hero-actions">
           <a class="button primary" href="https://arxiv.org/abs/2604.24357"><i data-lucide="file-text"></i>Paper</a>
@@ -58,33 +60,18 @@
       </div>
 
       <div class="case-tabs" role="tablist" aria-label="Omni mechanism cases">
-        <button class="case-tab active" role="tab" aria-selected="true" data-case="beach">Beach &amp; kittens</button>
-        <button class="case-tab" role="tab" aria-selected="false" data-case="crowd">Crowd &amp; owls</button>
-        <button class="case-tab" role="tab" aria-selected="false" data-case="chairs">Chairs &amp; lecture</button>
-        <button class="case-tab" role="tab" aria-selected="false" data-case="robots">Robots &amp; armadillo</button>
-        <button class="case-tab" role="tab" aria-selected="false" data-case="avocado">Avocado &amp; gym</button>
+        <button class="case-tab active" role="tab" aria-selected="true" data-case="beach">Three children on a beach</button>
+        <button class="case-tab" role="tab" aria-selected="false" data-case="owls">Owl Family</button>
       </div>
 
       <div class="visual-workspace" tabindex="0" aria-label="Scrollable Omni-Diffusion intermediate-state comparison">
         <figure class="case-panel active" data-panel="beach">
-          <img src="assets/omni-beach-kittens.png" alt="Confidence and DPRM trajectories for beach children and a boy playing a flute for kittens.">
-          <figcaption><strong>DPRM commits an unfilled region that preserves object separation.</strong> The later canvas resolves three children and their toys, and retains the boy, flute, and kittens as separate entities.</figcaption>
+          <img src="assets/omni_beach_mechanism.webp" alt="Confidence and DPRM trajectories for three children playing on a beach.">
+          <figcaption><strong>DPRM commits an unfilled beach region that preserves object separation.</strong> The later canvas resolves three children and their toys while improving CLIP-L/14 from 0.277 to 0.331 and CLIP-B/32 from 0.329 to 0.347.</figcaption>
         </figure>
-        <figure class="case-panel" data-panel="crowd" hidden>
-          <img src="assets/omni-crowd-owls.png" alt="Confidence and DPRM trajectories for a crowd under fireworks and an owl family.">
-          <figcaption><strong>DPRM opens a missing spatial region instead of reinforcing an already confident object.</strong> Separate people remain beneath the fireworks and the owl family retains three bodies.</figcaption>
-        </figure>
-        <figure class="case-panel" data-panel="chairs" hidden>
-          <img src="assets/omni-chairs-donkey.png" alt="Confidence and DPRM trajectories for three chairs and a donkey lecture.">
-          <figcaption><strong>DPRM establishes a second support and a foreground-background boundary.</strong> Three chair silhouettes remain distinct; the lecturer separates from the audience.</figcaption>
-        </figure>
-        <figure class="case-panel" data-panel="robots" hidden>
-          <img src="assets/omni-robots-armadillo.png" alt="Confidence and DPRM trajectories for robot soccer and an armadillo playing bagpipes.">
-          <figcaption><strong>DPRM anchors the relation-bearing region.</strong> It preserves the pass between two robots and binds the bagpipe to the armadillo rather than merging attributes.</figcaption>
-        </figure>
-        <figure class="case-panel" data-panel="avocado" hidden>
-          <img src="assets/omni-avocado-rat.png" alt="Confidence and DPRM trajectories for an avocado armchair and a rat working out.">
-          <figcaption><strong>DPRM preserves the structural boundary needed by the prompt.</strong> The chair keeps its seat and avocado contour; the gym scene keeps the foreground equipment.</figcaption>
+        <figure class="case-panel" data-panel="owls" hidden>
+          <img src="assets/omni_owl_family_mechanism.webp" alt="Confidence and DPRM trajectories for an owl family in a forest.">
+          <figcaption><strong>DPRM commits a peripheral body region and separates the owl family.</strong> CLIP-L/14 rises from 0.205 to 0.280 and CLIP-B/32 rises from 0.263 to 0.321.</figcaption>
         </figure>
       </div>
 
@@ -99,17 +86,8 @@
         <h3>Four-policy image gallery</h3>
         <p>Random, Omni default, a deterministic uniform action, and DPRM use matched prompts and seeds. Every displayed DPRM result improves both CLIP encoders over Omni default; the gallery is separate from controller selection.</p>
       </div>
-      <div class="gallery-tabs" role="tablist" aria-label="Omni qualitative gallery pages">
-        <button class="omni-gallery-tab active" role="tab" aria-selected="true" data-omni-gallery="1">Gallery 1</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="2">Gallery 2</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="3">Gallery 3</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="4">Gallery 4</button>
-      </div>
       <div class="gallery-workspace omni-gallery-workspace" tabindex="0" aria-label="Scrollable four-policy Omni-Diffusion gallery">
-        <figure class="omni-gallery-panel active" data-omni-panel="1"><img src="assets/omni_qualitative_gallery_1.webp" alt="Four-policy Omni comparisons for a treasure chest, hamster dragon, badger, and pig."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="2" hidden><img src="assets/omni_qualitative_gallery_2.webp" alt="Four-policy Omni comparisons for a framed car painting, voxel capybara, volcano, and astronaut dolphin."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="3" hidden><img src="assets/omni_qualitative_gallery_3.webp" alt="Four-policy Omni comparisons for a Corvette, gecko conductor, vase, and tiger corral."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="4" hidden><img src="assets/omni_qualitative_gallery_4.webp" alt="Four-policy Omni comparisons for a balloon, gym rat, antique car, and tuxedo tiger."></figure>
+        <figure class="omni-gallery-panel active"><img src="assets/omni_curated_four_policy.webp" alt="Four-policy Omni comparisons for a pig, volcano, yellow Corvette, and hot-air balloon."></figure>
       </div>
     </section>
 
