@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "description": "Checksums for the model/controller states and raw records underlying the reported nine-host results. Paths are relative to the DPRM Hugging Face release.",
+  "hosts": {
+    "puma": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "dprm_2m",
+          "path": "puma/dprm_confidence/ema_step_2000000.pt",
+          "bytes": 2006629542,
+          "sha256": "5b0b5ce65cbd3b2691b9ef056434e12b785504323fd522921bcbbf3f81f2f127"
+        },
+        {
+          "id": "unmask3_question_traces",
+          "path": "puma/traces/unmask3_all_1319.tar.zst",
+          "bytes": 6612343,
+          "sha256": "25b3db34b06da0d4fb363f9132d8696948ebcd4f480d9d64b6db9bd658a373b4"
+        }
+      ]
+    },
+    "dmpo": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "bytes": 55661,
+          "id": "math_confidence_records",
+          "path": "dmpo/records/math_confidence_step5000.tar.gz",
+          "sha256": "ac6d2b3cfe99b107c4cb87bee0c20d6953b77356091fdd685851a090843995d5"
+        },
+        {
+          "bytes": 55964,
+          "id": "math_dprm_records",
+          "path": "dmpo/records/math_dprm_step5000.tar.gz",
+          "sha256": "cfaf30326845bcd2705bff49b3aba38afe4bdd1fa130ea81f23ecf20e3a02260"
+        },
+        {
+          "bytes": 264543569,
+          "id": "countdown_dprm_checkpoint",
+          "path": "dmpo/countdown/dprm_checkpoint_step5000.tar.gz",
+          "sha256": "076232b230e39c38d367909ac2ec129691cbd682b2f2bb89ff0cf09db3fbceae"
+        },
+        {
+          "bytes": 282945,
+          "id": "countdown_confidence_records",
+          "path": "dmpo/records/countdown_confidence_step5000.tar.gz",
+          "sha256": "ecd0d80ebbd7fc5e37f16a6c04af0a22ec42f30a9a9950053bc63446a63dc9dc"
+        },
+        {
+          "bytes": 289321,
+          "id": "countdown_dprm_records",
+          "path": "dmpo/records/countdown_dprm_step5000.tar.gz",
+          "sha256": "6504f8f0f5740e8431beb0e6d4cef5402d5666ccd0fe9f93a2f1f8512bb44dd4"
+        },
+        {
+          "id": "matched_step5000_summary",
+          "path": "dmpo/matched_step5000_summary.json",
+          "bytes": 2054,
+          "sha256": "8f5c4b68e805de1db8f104fa38ec063aafb27445caff5136599a4b50a48e1681"
+        },
+        {
+          "id": "record_source_map",
+          "path": "dmpo/record_sources.json",
+          "bytes": 846,
+          "sha256": "c49e7be6ec3fd5cefd72b7827b8d45b33c1cb6d8b19e3a9f0d0c7d418a094dd2"
+        },
+        {
+          "id": "matched_step5000_rows",
+          "path": "dmpo/matched_step5000_rows.csv",
+          "bytes": 1311,
+          "sha256": "6826666244806862e79b0c2247ebc908164e1aa51db3b919020d6d8d13eaa6bd"
+        }
+      ]
+    },
+    "prism": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "confidence_records",
+          "path": "prism/gsm8k/confidence_res.jsonl",
+          "bytes": 15243614,
+          "sha256": "738ac13e76f12197c690e66e7dedfe7fe4bf1b30da24ada28d400f0b31db473f"
+        },
+        {
+          "id": "dprm_records",
+          "path": "prism/gsm8k/dprm_res.jsonl",
+          "bytes": 15188209,
+          "sha256": "53f9124ffd9f72fb159e6195067643fda4a2bec0ba3a3dda7c21d16d523e79f0"
+        }
+      ]
+    },
+    "dplm": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "tchebycheff",
+          "path": "dplm/dprm_tchebycheff/last.ckpt",
+          "bytes": 8312242264,
+          "sha256": "a520a17786db99dc7687e6d9ede4be571754e0086263756cf4f172fdbe7c0f60"
+        },
+        {
+          "id": "cogen200_records",
+          "path": "dplm/records/cogen200_gate.tar.zst",
+          "bytes": 2766,
+          "sha256": "f6ebe64bb3c5eeb0ab92b5638f9823f4f48f04c3c95dabbe9a38f6b9e56f9416"
+        }
+      ]
+    },
+    "dcm": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "recovery_controller",
+          "path": "dcm/controllers/recovery.pt",
+          "bytes": 22389512,
+          "sha256": "5751415b3afb4ddc634c737ab76684d016574a791ad95c55b25c44abe01b31e4"
+        },
+        {
+          "id": "formal_cell_records",
+          "path": "dcm/records/formal_cells_and_replications.tar.zst",
+          "bytes": 113772,
+          "sha256": "76854823c1bb21015fa6d093a9751e05c8a10e4ef1f09c10188f43ad502b96db"
+        }
+      ]
+    },
+    "genmol": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "balanced",
+          "path": "genmol/preferences/balanced_5000.ckpt",
+          "bytes": 1397036565,
+          "sha256": "38b3679182b562f7a615c86e5a4edbb9dd64ee88a773ba53d32c190802026d82"
+        },
+        {
+          "id": "denovo_records",
+          "path": "genmol/records/denovo_1000.tar.zst",
+          "bytes": 76167,
+          "sha256": "abff5ec75b8326d2723480ca0a5f905d60943028a439511f22f98569ec96692e"
+        }
+      ]
+    },
+    "sdpo": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "dprm_random",
+          "path": "sdpo/dprm_random/model.pt",
+          "bytes": 26690770,
+          "sha256": "6955c595a0baf59d9e5cff9ea9e4231297deae09d415731069b5ba5eae82167f"
+        },
+        {
+          "id": "formal_records",
+          "path": "sdpo/records/formal_640_raw_records.tar.zst",
+          "bytes": 1479553,
+          "sha256": "f401fa589ac54e169c964d301cd0f3ad150ac176af6b4ca2e16b812d570c5209"
+        }
+      ]
+    },
+    "omni_diffusion": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "selected_dprm_checkpoint_index",
+          "path": "omni_diffusion/checkpoint-1000/model.safetensors.index.json",
+          "bytes": 127992,
+          "sha256": "a04311ad0020b0fcd0f25de48abb2e992e8374ab995282c0be4cec28ea04e0cd"
+        },
+        {
+          "id": "selected_dprm_checkpoint_config",
+          "path": "omni_diffusion/checkpoint-1000/config.json",
+          "bytes": 1092,
+          "sha256": "82357996deea11b3e044b9cbc7da40de1c05104ccf158dc4e417ab414bbc151e"
+        },
+        {
+          "id": "development_records",
+          "path": "omni_diffusion/records/development128/records/two_encoder.json",
+          "bytes": 4936249,
+          "sha256": "ca12f4e9ac7f73654b29441b35bf7a1695274ce256b9ab4eea1797efacf4a5bc"
+        },
+        {
+          "id": "confirmation_records",
+          "path": "omni_diffusion/records/confirmation512/records/two_encoder.json",
+          "bytes": 30641221,
+          "sha256": "5c05ed7ca60ebcf56d19a979fae088408cfd0789e34bbb81877ef704fc39aa34"
+        },
+        {
+          "id": "formal_result",
+          "path": "omni_diffusion/online_action_value_release.json",
+          "bytes": 2222,
+          "sha256": "77e2d9455fd73cddde10a03c1667cf0c88a3f79e2db062e47e89abfe6560937d"
+        },
+        {
+          "id": "development_split",
+          "path": "omni_diffusion/reproducibility/omni_partiprompts_development128.jsonl",
+          "bytes": 32144,
+          "sha256": "9c8739a809032e9f1eadac98f30f27b5b543311f29e7496e2343d3031498ecdf"
+        },
+        {
+          "id": "confirmation_split",
+          "path": "omni_diffusion/reproducibility/omni_partiprompts_confirmation512.jsonl",
+          "bytes": 125817,
+          "sha256": "7fcf49c73136ecec7a25fb1b29b29bee3864c4d0d1926164dc979c947b80d9c2"
+        },
+        {
+          "id": "mechanism_manifest",
+          "path": "omni_diffusion/mechanism_cases/manifest.json",
+          "bytes": 2233,
+          "sha256": "35887186d0e2602c086748dd95b56633a1d1a9d93c907fd21e09b6d23374130a"
+        },
+        {
+          "id": "mechanism_figure",
+          "path": "omni_diffusion/mechanism_cases/paper_figure.png",
+          "bytes": 3704802,
+          "sha256": "4e0316c616b9a461b8fc49177670b4a8f0cda2d5253d2f600aecb715f95bd405"
+        },
+        {
+          "id": "checkpoint_model_00001_of_00004",
+          "path": "omni_diffusion/checkpoint-1000/model-00001-of-00004.safetensors",
+          "bytes": 4992396112,
+          "sha256": "8b35dfdb5e496fd487d09b57b993bfd42726f8883d8b248c72a9c3e4aa623089"
+        },
+        {
+          "id": "checkpoint_model_00002_of_00004",
+          "path": "omni_diffusion/checkpoint-1000/model-00002-of-00004.safetensors",
+          "bytes": 4991481280,
+          "sha256": "87ad192520ebda1eb404f566dea689c95d2e3aa52ea7d1bef508419f2a829e18"
+        },
+        {
+          "id": "checkpoint_model_00003_of_00004",
+          "path": "omni_diffusion/checkpoint-1000/model-00003-of-00004.safetensors",
+          "bytes": 4828352366,
+          "sha256": "1bae2df179028797fd2c1e7826e5ccc79c1b9cd6bc440bf6c13928f8ae282e97"
+        },
+        {
+          "id": "checkpoint_model_00004_of_00004",
+          "path": "omni_diffusion/checkpoint-1000/model-00004-of-00004.safetensors",
+          "bytes": 1263460480,
+          "sha256": "c1110575f31d68d39ddd890f3935971a2c76d8add5e112b2aad9098d34090d43"
+        },
+        {
+          "id": "supplement_mechanism_manifest",
+          "path": "omni_diffusion/supplementary_mechanism_cases/case_manifest.json",
+          "bytes": 2131,
+          "sha256": "033a66b2be441aea587757133dbe4abd709164e833f8694d6f75f96fb775fea8"
+        },
+        {
+          "id": "supplement_replay_manifest",
+          "path": "omni_diffusion/supplementary_mechanism_cases/replay_manifest.json",
+          "bytes": 7601,
+          "sha256": "a5e9068dc5a5065aec46847fa3341a9081d0e452f1c49bbd5b6a106f887a170f"
+        },
+        {
+          "id": "supplement_replay_archive",
+          "path": "omni_diffusion/supplementary_mechanism_cases.tar.gz",
+          "bytes": 31975390,
+          "sha256": "0824192a0a6c4023eeb88e7010bc921fba768e86b62cc91554c720415ad174a8"
+        },
+        {
+          "id": "supplement_omni_mechanism_cases_1",
+          "path": "omni_diffusion/supplementary_mechanism_cases/figures/omni_mechanism_cases_1.png",
+          "bytes": 4153780,
+          "sha256": "cdf0036b2e1d0c53bf898ae3b17c1510d1f0381a645ec397d3d80bdcb1957790"
+        },
+        {
+          "id": "supplement_omni_mechanism_cases_2",
+          "path": "omni_diffusion/supplementary_mechanism_cases/figures/omni_mechanism_cases_2.png",
+          "bytes": 2999432,
+          "sha256": "0167683e6e0266f5c212a29379c89676599d6f0773a9955246451d57db1d1d54"
+        },
+        {
+          "id": "supplement_omni_mechanism_cases_3",
+          "path": "omni_diffusion/supplementary_mechanism_cases/figures/omni_mechanism_cases_3.png",
+          "bytes": 4820867,
+          "sha256": "fd805491b5794534d798b357686104c2959dc7525792dbfdb659bd8bce061afe"
+        },
+        {
+          "id": "supplement_omni_mechanism_cases_4",
+          "path": "omni_diffusion/supplementary_mechanism_cases/figures/omni_mechanism_cases_4.png",
+          "bytes": 3882530,
+          "sha256": "662084f6ebb6e190aa4b2f795af47bdec37ab449baf29a87b0a2890f2c8ed595"
+        }
+      ]
+    },
+    "llada_v": {
+      "status": "complete",
+      "artifacts": [
+        {
+          "id": "rwqa_controller",
+          "path": "llada_v/controllers/p1_b8_pos4.json",
+          "bytes": 13423,
+          "sha256": "4f1ea2a445be08fee3f672a736c45be307906591c8fb11a3cf408c087e5ebfee"
+        },
+        {
+          "id": "rwqa_records",
+          "path": "llada_v/records/realworldqa_split_records.tar.zst",
+          "bytes": 784916,
+          "sha256": "04453dda395cf3c7defc4d8885cbc167db7a6e5eb620a55036b42d34488878c8"
+        },
+        {
+          "id": "ai2d_preregistered_diagnostic",
+          "path": "llada_v/diagnostics/ai2d_preregistered_confirmation.tar.gz",
+          "bytes": 521973,
+          "sha256": "b43cb48e591d1c45249955baa803cdf8bf4cb715b811f60943dd01cf902baf07"
+        }
+      ]
+    }
+  }
+}

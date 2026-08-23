@@ -32,8 +32,11 @@ from fast_samplers.fast_dllm.modeling_llada import LLaDAModelLM as AutoModelFast
 from fast_samplers.wino.generate import generate_wino
 from fast_samplers.wino.modeling_llada import LLaDAModelLM as AutoModelWino
 from dprm_guidance import load_dprm_estimator, resolve_dprm_estimator_path
+from transformers_compat import install_llada_tp_plan_guard
 from math500 import MATH500_SYSTEM_PROMPT
 from parser_helper import is_equiv, last_boxed_only_string, remove_boxed
+
+install_llada_tp_plan_guard()
 
 
 def parse_args():

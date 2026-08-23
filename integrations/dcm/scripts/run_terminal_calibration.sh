@@ -6,6 +6,8 @@ DPRM_ROOT=${DPRM_ROOT:?set DPRM_ROOT to the DPRM-DLLM checkout}
 ENV_ACTIVATE=${ENV_ACTIVATE:-}
 GPU=${GPU:-0}
 RUN_REPLICATION=${RUN_REPLICATION:-1}
+DEVELOPMENT_SEED=${DEVELOPMENT_SEED:-20260812}
+FORMAL_SEED=${FORMAL_SEED:-20260814}
 REPLICATION_SEEDS=${REPLICATION_SEEDS:-20260815,20260816}
 OUTPUT_ROOT=${OUTPUT_ROOT:-${DCM_ROOT}/experiments/dprm_terminal_calibration}
 EVAL_ROOT=${EVAL_ROOT:-${DCM_ROOT}/eval_outputs/dprm_terminal_calibration}
@@ -36,7 +38,7 @@ for guidance in 0.5 1.0 2.0 4.0; do
   if [[ -f "${target}/.complete" ]]; then continue; fi
   command=(python3 scripts/eval_dcm_ordering_bootstrap.py
     --output-dir "${target}" --split train --cell-offset 256 --max-cells 96
-    --bootstrap 1000 --seed 20260812 --num-steps 32 --num-samples 2
+    --bootstrap 1000 --seed "${DEVELOPMENT_SEED}" --num-steps 32 --num-samples 2
     --guidance-scale "${guidance}")
   for item in "${series[@]}"; do command+=(--series "${item}"); done
   CUDA_VISIBLE_DEVICES="${GPU}" "${command[@]}"
@@ -49,7 +51,7 @@ guidance=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sele
 formal="${EVAL_ROOT}/formal"
 if [[ ! -f "${formal}/.complete" ]]; then
   command=(python3 scripts/eval_dcm_ordering_bootstrap.py
-    --output-dir "${formal}" --split val --bootstrap 5000 --seed 20260812
+    --output-dir "${formal}" --split val --bootstrap 5000 --seed "${FORMAL_SEED}"
     --num-steps 32 --num-samples 4 --guidance-scale "${guidance}")
   for item in "${series[@]}"; do command+=(--series "${item}"); done
   CUDA_VISIBLE_DEVICES="${GPU}" "${command[@]}"

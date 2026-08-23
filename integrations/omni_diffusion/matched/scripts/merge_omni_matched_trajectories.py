@@ -31,11 +31,18 @@ def merge(
     output: Path,
     *,
     expected_policy: str,
-) -> tuple[int, set[str], set[tuple[int, int]], dict[tuple[int, int], str]]:
+) -> tuple[
+    int,
+    set[str],
+    set[tuple[int, int]],
+    dict[tuple[int, int], str],
+    dict[tuple[int, int], frozenset[int]],
+]:
     count = 0
     hashes: set[str] = set()
     state_keys: set[tuple[int, int]] = set()
     target_hashes: dict[tuple[int, int], str] = {}
+    revealed_by_key: dict[tuple[int, int], frozenset[int]] = {}
     with output.open("w", encoding="utf-8") as target:
         for path in paths:
             with path.open(encoding="utf-8") as source:
@@ -50,11 +57,17 @@ def merge(
                     if "dprm_revealed_visual_indices" not in row:
                         raise RuntimeError(f"trajectory state missing reveal indices in {path}")
                     trajectory_step = int(row["dprm_trajectory_step"])
+                    next_action_step = int(row.get("dprm_next_action_step", -1))
                     revealed_count = len(row["dprm_revealed_visual_indices"])
                     if revealed_count != trajectory_step + 1:
                         raise RuntimeError(
                             f"trajectory state has {revealed_count} revealed positions at "
                             f"post-action step {trajectory_step}; expected {trajectory_step + 1}"
+                        )
+                    if next_action_step != revealed_count:
+                        raise RuntimeError(
+                            f"trajectory next action is {next_action_step} after "
+                            f"{revealed_count} reveals; expected action {revealed_count}"
                         )
                     target.write(json.dumps(row) + "\n")
                     hashes.add(prompt_hash(row))
@@ -63,8 +76,52 @@ def merge(
                         raise RuntimeError(f"duplicate trajectory state {key}")
                     state_keys.add(key)
                     target_hashes[key] = clean_target_hash(row)
+                    revealed_by_key[key] = frozenset(
+                        int(index) for index in row["dprm_revealed_visual_indices"]
+                    )
                     count += 1
-    return count, hashes, state_keys, target_hashes
+    return count, hashes, state_keys, target_hashes, revealed_by_key
+
+
+def canvas_divergence(
+    reference: dict[tuple[int, int], frozenset[int]],
+    method: dict[tuple[int, int], frozenset[int]],
+) -> dict:
+    by_stage: dict[str, dict[str, float | int]] = {}
+    all_substitutions: list[int] = []
+    for step in sorted({step for _, step in reference}):
+        keys = sorted(key for key in reference if key[1] == step)
+        substitutions = [
+            len(reference[key].symmetric_difference(method[key])) // 2
+            for key in keys
+        ]
+        all_substitutions.extend(substitutions)
+        by_stage[str(step)] = {
+            "paired_canvases": len(keys),
+            "different_canvases": sum(value > 0 for value in substitutions),
+            "different_fraction": (
+                sum(value > 0 for value in substitutions) / len(keys) if keys else 0.0
+            ),
+            "mean_substituted_positions": (
+                sum(substitutions) / len(substitutions) if substitutions else 0.0
+            ),
+            "max_substituted_positions": max(substitutions, default=0),
+        }
+    return {
+        "paired_canvases": len(all_substitutions),
+        "different_canvases": sum(value > 0 for value in all_substitutions),
+        "different_fraction": (
+            sum(value > 0 for value in all_substitutions) / len(all_substitutions)
+            if all_substitutions
+            else 0.0
+        ),
+        "mean_substituted_positions": (
+            sum(all_substitutions) / len(all_substitutions)
+            if all_substitutions
+            else 0.0
+        ),
+        "by_post_action_step": by_stage,
+    }
 
 
 def write_config(path: Path, dataset_name: str, json_path: Path) -> None:
@@ -93,17 +150,23 @@ def main() -> None:
     confidence_json = args.output_dir / "confidence_matched.jsonl"
     dprm_json = args.output_dir / "dprm_matched.jsonl"
     random_json = args.output_dir / "random_matched.jsonl"
-    confidence_count, confidence_hashes, confidence_keys, confidence_targets = merge(
+    (
+        confidence_count,
+        confidence_hashes,
+        confidence_keys,
+        confidence_targets,
+        confidence_revealed,
+    ) = merge(
         args.confidence_shards,
         confidence_json,
         expected_policy="progressive_confidence",
     )
-    dprm_count, dprm_hashes, dprm_keys, dprm_targets = merge(
+    dprm_count, dprm_hashes, dprm_keys, dprm_targets, dprm_revealed = merge(
         args.dprm_shards,
         dprm_json,
         expected_policy="dprm_confidence_warmup",
     )
-    random_count, random_hashes, random_keys, random_targets = merge(
+    random_count, random_hashes, random_keys, random_targets, random_revealed = merge(
         args.random_shards,
         random_json,
         expected_policy="random",
@@ -140,6 +203,10 @@ def main() -> None:
         "unique_prompts": len(confidence_hashes),
         "prompt_sha256": sorted(confidence_hashes),
         "paired_state_key_count": len(confidence_keys),
+        "post_action_checkpoints": sorted({step for _, step in confidence_keys}),
+        "training_next_action_steps": sorted(
+            {step + 1 for _, step in confidence_keys}
+        ),
         "paired_state_key_sha256": hashlib.sha256(
             "\n".join(
                 f"{source_index}:{trajectory_step}"
@@ -148,6 +215,14 @@ def main() -> None:
         ).hexdigest(),
         "policy_pairing_verified": True,
         "clean_target_pairing_verified": True,
+        "canvas_divergence": {
+            "dprm_vs_confidence": canvas_divergence(
+                confidence_revealed, dprm_revealed
+            ),
+            "random_vs_confidence": canvas_divergence(
+                confidence_revealed, random_revealed
+            ),
+        },
         "paired_clean_target_sha256": hashlib.sha256(
             "\n".join(
                 f"{source_index}:{trajectory_step}:{confidence_targets[(source_index, trajectory_step)]}"

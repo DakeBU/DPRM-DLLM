@@ -1,30 +1,44 @@
-# DPRM: Token Ordering as a Control Axis for Diffusion Language Models
+# DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models
 
-Official implementation of [**DPRM: Token Ordering as a Control Axis for
+Official implementation of [**DPRM: A Plug-in Token-Ordering Module for
 Diffusion Language Models**](https://arxiv.org/abs/2604.24357), a plug-in
 ordering controller for masked discrete diffusion models. DPRM keeps the host
-denoiser, token sampler, training labels, and task objective fixed. It changes
-which eligible token positions are committed next.
+architecture, token-value rule, training labels, and task objective fixed. It
+changes which eligible token positions are committed next.
 
 ![DPRM overview](DPRM1.png)
+
+**[Project page](https://dakebu.github.io/DPRM-DLLM/)** ·
+**[Paper](https://arxiv.org/abs/2604.24357)** ·
+**[Release artifacts](https://huggingface.co/DakeBU/DPRM-DLLM)**
 
 ## Results At A Glance
 
 All entries compare DPRM with the matched confidence-order baseline while
-holding the host model and evaluation protocol fixed.
+holding the architecture, objective, token-value sampler, and evaluation
+protocol fixed. Training comparisons use the same initialization and optimizer
+settings, with order-induced partial states as the controlled difference.
 
 | Setting | Confidence | DPRM | Relative improvement |
 |---|---:|---:|---:|
-| PUMA, GSM8K mean accuracy | 29.34 | 34.27 | **+16.8%** |
-| DMPO, MATH-Hard mean pass@K | 44.3 | 47.9 | **+8.1%** |
-| DMPO, Countdown-Hard mean pass@K | 29.6 | 33.4 | **+12.8%** |
-| LLaDA-V, AI2D accuracy | 0.658 | 0.692 | **+5.2%** |
+| PUMA, GSM8K accuracy | 30.10 | 34.50 | **+14.6%** |
+| Omni-Diffusion, CLIP-L/14 | 0.18661 | 0.21125 | **+13.2%** |
+| Omni-Diffusion, CLIP-B/32 check | 0.23836 | 0.24854 | **+4.3%** |
+
+Only results backed by retained states, per-example records, and the artifact
+manifest are listed above. DMPO MATH and Countdown include the archived paired
+pass@32 matrices used by the paper; their confidence-to-DPRM mean pass@K changes
+are `+2.10` and `+1.67` percentage points, respectively. The release metadata
+keeps these records separate from the reconstructed protocol checkpoint. The
+public reducer intentionally omits tasks without retained paired matrices.
 
 On strict RealWorldQA, the prompt-defined numeric/count class improves by
-`8.97` percentage points and transfers to ChartQA numeric questions with a
-`3.45` point gain. Scientific integrations expose declared preference vectors
-for recovery--sparsity, molecular quality--diversity, and DNA
-expression--accessibility Pareto control.
+`8.97` percentage points, with a positive paired-bootstrap interval. The
+preregistered AI2D confirmation is released as a non-promoted diagnostic.
+Scientific integrations expose declared preferences for
+single-cell reconstruction and molecular QED--synthetic-accessibility benefit;
+the DNA integration separately measures how HepG2-guided order changes ATAC,
+k-mer correlation, and reference likelihood.
 
 ## Method
 
@@ -42,11 +56,12 @@ The repository implements two estimators of the conditional future utility:
   `confidence_bin`, and an optional low-dimensional auxiliary bin. Counts and
   exponentiated terminal rewards provide a log-moment value for each cell.
   Readiness gates reduce unsupported cells to the host confidence order.
-- **Matched visual DPRM** uses confidence and spatial cells learned from
-  development rollouts. Random, confidence, and DPRM branches train from the
-  same checkpoint on states induced by their deployed order. Each test prompt
-  produces one image; no reward model or completed-image selection is used at
-  inference.
+- **Online visual DPRM** evaluates five predeclared position actions from one
+  shared Omni-Diffusion canvas: the native confidence action and four
+  confidence-rank strata. CLIP-L/14 supplies the terminal action value;
+  CLIP-B/32 is held out as an independent semantic check. The selected path
+  differs from the host path in one position action, while the checkpoint,
+  provisional token values, seed, tokenizer, and continuation rule are fixed.
 
 `src/dprm/` contains the host-independent controller, multi-objective reward
 scalarization, visual-order helpers, and host adapters. `integrations/` contains
@@ -122,6 +137,23 @@ the tested upstream commit, four executable order settings per host, and whether
 paper result, a matched control, or an implemented reproduction mode. Numerical
 paper results are stored in [`results/paper_results.csv`](results/paper_results.csv),
 with protocol notes in [`results/README.md`](results/README.md).
+Each registry entry also declares the natural evaluation unit and the command
+that rebuilds uncertainty from raw per-unit records.
+
+Evaluators retain one record per prompt, question, target, cell, molecule, or
+sequence. When an upstream evaluator does not compute uncertainty,
+`scripts/paired_bootstrap.py` joins two CSV/JSON/JSONL files by shared unit id
+and writes the paired mean difference, 95% percentile interval, and
+win/tie/loss counts. Nested JSON fields use dot notation.
+For DMPO success matrices, `scripts/bootstrap_passk.py` recomputes the paired
+interval of the reported mean pass@K statistic.
+
+```bash
+python scripts/paired_bootstrap.py \
+  --baseline confidence.jsonl --method dprm.jsonl \
+  --key example_id --value correct --scale 100 \
+  --output paired_accuracy.json
+```
 
 Run the release audit before launching a host experiment:
 
@@ -131,8 +163,33 @@ python scripts/reproduce.py --list
 python scripts/reproduce.py --host llada_v --variant dprm_confidence --dry-run
 ```
 
+The command registry checks implementation coverage. The separate artifact
+manifest records the retained model/controller states and selected raw records
+needed to audit the paper, including byte counts and SHA-256 digests:
+
+```bash
+python scripts/verify_artifact_manifest.py
+python scripts/verify_artifact_manifest.py \
+  --artifact-root "$DPRM_ARTIFACT_ROOT" --require-complete
+python scripts/audit_artifact_semantics.py \
+  --artifact-root "$DPRM_ARTIFACT_ROOT"
+```
+
+See [`reproducibility/release_artifacts.json`](reproducibility/release_artifacts.json).
+An entry remains pending until the corresponding reported state is available;
+the registry does not treat a runnable command as a substitute for that state.
+The semantic audit opens the retained states and checks their phase, bucket,
+gate, shortlist, frozen-model, and scientific-preference settings.
+The complete code and artifact publication sequence is in
+[`docs/RELEASE.md`](docs/RELEASE.md).
+
 Use `--execute` only after setting the host-specific root and checkpoint
-environment variables shown by the dry run.
+environment variables shown by the dry run. Execution is refused unless the
+host checkout matches the 40-character commit recorded in the registry. Every
+run writes `<HOST_ROOT>/dprm_run_manifests/<host>_<variant>.json` with the exact
+command, upstream revision, registry hash, integration-code hash, UTC times,
+and exit status. Use `--manifest-out` to place this record beside a particular
+experiment output.
 
 ## Result Files
 
@@ -156,7 +213,7 @@ scripts/              release verification and command launcher
 
 ```bibtex
 @article{bu2026dprm,
-  title   = {DPRM: Token Ordering as a Control Axis for Diffusion Language Models},
+  title   = {DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models},
   author  = {Bu, Dake and Huang, Wei and Han, Andi and Wu, Si and Wong, Hau-San and Zhang, Qingfu and Suzuki, Taiji and Nitanda, Atsushi},
   journal = {arXiv preprint arXiv:2604.24357},
   year    = {2026}

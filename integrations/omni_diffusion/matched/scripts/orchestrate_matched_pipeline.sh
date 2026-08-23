@@ -22,11 +22,39 @@ MAX_LAUNCH_UTIL="${DPRM_OMNI_MAX_LAUNCH_UTIL:-85}"
 MAX_WORKERS_PER_GPU="${DPRM_OMNI_MAX_WORKERS_PER_GPU:-3}"
 GPU_WORKER_CAPS="${DPRM_OMNI_GPU_WORKER_CAPS:-0:3,1:1,2:1,3:1,4:1,5:1,6:1,7:1}"
 POLL_SECONDS="${DPRM_OMNI_POLL_SECONDS:-60}"
-TRAIN_GPUS="${DPRM_OMNI_TRAIN_GPUS:-0,1,2,3,4,5,6,7}"
-TRAIN_MIN_FREE_MIB="${DPRM_OMNI_TRAIN_MIN_FREE_MIB:-50000}"
-TRAIN_MIN_GPUS="${DPRM_OMNI_TRAIN_MIN_GPUS:-1}"
+TRAIN_GPUS="${DPRM_OMNI_TRAIN_GPUS:-0,1,2,3}"
+TRAIN_MIN_FREE_MIB="${DPRM_OMNI_TRAIN_MIN_FREE_MIB:-30000}"
+TRAIN_MIN_GPUS="${DPRM_OMNI_TRAIN_MIN_GPUS:-4}"
 TRAIN_OUT="${DPRM_OMNI_TRAIN_OUT:-${RUN_ROOT}/matched_training_v2}"
 TRAIN_ORDERS="${DPRM_OMNI_TRAIN_ORDERS:-confidence_matched dprm_matched}"
+BASE_POST_ACTION_CHECKPOINTS="${DPRM_OMNI_POST_ACTION_CHECKPOINTS:-31 63 95 127 159 191 223}"
+
+read -r -a POST_ACTION_CHECKPOINTS <<< "$(
+  BASE_POST_ACTION_CHECKPOINTS="${BASE_POST_ACTION_CHECKPOINTS}" "${PYTHON}" - "${CONTROLLER}" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+config = payload.get("config", payload)
+base = {int(value) for value in os.environ["BASE_POST_ACTION_CHECKPOINTS"].split()}
+reward_steps = {
+    int(value)
+    for value in config.get("reward_action_steps", config.get("active_steps", []))
+}
+checkpoints = base | {step - 1 for step in reward_steps}
+if not checkpoints or min(checkpoints) < 0 or max(checkpoints) >= 255:
+    raise SystemExit("post-action checkpoints must lie in [0, 254]")
+print(" ".join(str(value) for value in sorted(checkpoints)))
+PY
+)"
+TRAINING_NEXT_ACTION_STEPS=()
+for checkpoint in "${POST_ACTION_CHECKPOINTS[@]}"; do
+  TRAINING_NEXT_ACTION_STEPS+=("$((checkpoint + 1))")
+done
+POST_ACTION_JSON="$(IFS=,; echo "${POST_ACTION_CHECKPOINTS[*]}")"
+NEXT_ACTION_JSON="$(IFS=,; echo "${TRAINING_NEXT_ACTION_STEPS[*]}")"
 
 mkdir -p "${RUN_ROOT}"
 exec 8>"${RUN_ROOT}/pipeline_scheduler.lock"
@@ -40,10 +68,11 @@ cat > "${RUN_ROOT}/pipeline_manifest.json" <<JSON
   "model": "${MODEL}",
   "controller": "${CONTROLLER}",
   "trajectory_count": ${TRAIN_COUNT},
-  "trajectory_checkpoints": [32, 64, 96, 128, 160, 192, 224],
+  "post_action_trajectory_checkpoints": [${POST_ACTION_JSON}],
+  "training_next_action_steps": [${NEXT_ACTION_JSON}],
   "train_orders": "${TRAIN_ORDERS}",
-  "hybrid_rollin": ${DPRM_OMNI_HYBRID_ROLLIN:-0},
-  "max_steps": ${DPRM_OMNI_MAX_STEPS:-500},
+  "hybrid_rollin": ${DPRM_OMNI_HYBRID_ROLLIN:-1},
+  "max_steps": ${DPRM_OMNI_MAX_STEPS:-1000},
   "terminal_reward_calls_at_test": 0,
   "complete_image_selection": false
 }
@@ -55,17 +84,32 @@ export PYTHONPATH="${OMNI_ROOT}:${RELEASE_ROOT}/src:${PYTHONPATH:-}"
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
-if [[ "${DPRM_OMNI_SKIP_PRETRAIN_GATE:-0}" == "1" ]]; then
+if [[ "${DPRM_OMNI_DEVELOPMENT_CONTROLLER_VALIDATED:-0}" == "1" ]]; then
   "${PYTHON}" - "${CONTROLLER}" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-if payload.get("format") != "omni_bucket_table_dprm_v1":
-    raise SystemExit("pretrain-gate bypass is limited to a frozen full-trajectory bucket controller")
+if payload.get("format") not in {
+    "omni_bucket_table_dprm_v1",
+    "omni_stage_rank_code_dprm_v1",
+    "omni_stage_rank_spatial_dprm_v1",
+}:
+    raise SystemExit("matched training requires a supported Omni DPRM table")
+development = payload.get("metadata", {}).get("development_selection", {})
+metrics = development.get("selected_metrics", {})
+primary = metrics.get("clip_cosine", {})
+secondary = metrics.get("clip_b32_cosine", {})
+interventions = development.get("selected_interventions", {})
+if float(primary.get("ci95_low", 0.0)) <= 0.0:
+    raise SystemExit("development controller lacks a positive primary paired CI")
+if float(secondary.get("mean_delta", 0.0)) <= 0.0:
+    raise SystemExit("development controller lacks a positive secondary mean delta")
+if float(interventions.get("prompt_fraction_with_override", 0.0)) <= 0.0:
+    raise SystemExit("development controller did not change any order decisions")
 PY
-  date -Is > "${RUN_ROOT}/PRETRAIN_GATE_BYPASSED_FOR_MATCHED_TRAINING_TEST"
+  date -Is > "${RUN_ROOT}/DEVELOPMENT_CONTROLLER_VALIDATED"
 else
   while [[ ! -s "${GATE}/GATE_COMPLETE" ]]; do sleep "${POLL_SECONDS}"; done
   if ! "${PYTHON}" "${SCRIPT_DIR}/check_omni_gate.py" \
@@ -82,6 +126,33 @@ fi
 jq -r '.messages[0].content | split("\n") | .[1:] | join("\n")' "${DATA}" \
   | awk 'NF && !seen[$0]++' | sed -n '1801,2396p' \
   > "${TRAJ_ROOT}/forbidden_prompts.txt"
+if [[ -n "${DPRM_OMNI_EXTRA_FORBIDDEN_PROMPT_FILES:-}" ]]; then
+  IFS=: read -r -a EXTRA_FORBIDDEN_FILES <<< "${DPRM_OMNI_EXTRA_FORBIDDEN_PROMPT_FILES}"
+  "${PYTHON}" - "${EXTRA_FORBIDDEN_FILES[@]}" >> "${TRAJ_ROOT}/forbidden_prompts.txt" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+for name in sys.argv[1:]:
+    path = Path(name)
+    if not path.is_file():
+        raise SystemExit(f"missing forbidden-prompt file: {path}")
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if path.suffix == ".jsonl":
+            row = json.loads(line)
+            prompt = row.get("prompt", row.get("text"))
+            if prompt is None and row.get("messages"):
+                prompt = row["messages"][0].get("content")
+            if prompt:
+                print(str(prompt).strip())
+        else:
+            print(line)
+PY
+fi
+sort -u -o "${TRAJ_ROOT}/forbidden_prompts.txt" "${TRAJ_ROOT}/forbidden_prompts.txt"
 "${PYTHON}" "${SCRIPT_DIR}/filter_omni_training_source.py" \
   --source "${DATA}" --forbidden-prompts "${TRAJ_ROOT}/forbidden_prompts.txt" \
   --output "${TRAJ_ROOT}/training_source.jsonl" --count "${TRAIN_COUNT}" \
@@ -100,7 +171,7 @@ run_shard() {
     --confidence-output "${TRAJ_ROOT}/shards/${stem}_confidence.jsonl" \
     --dprm-output "${TRAJ_ROOT}/shards/${stem}_dprm.jsonl" \
     --manifest-output "${TRAJ_ROOT}/shards/${stem}_manifest.json" \
-    --offset "${offset}" --count "${count}" --checkpoints 32 64 96 128 160 192 224 \
+    --offset "${offset}" --count "${count}" --checkpoints "${POST_ACTION_CHECKPOINTS[@]}" \
     >> "${TRAJ_ROOT}/logs/${stem}.log" 2>&1
   date -Is > "${done}"
 }
@@ -243,7 +314,7 @@ cat > "${RUN_ROOT}/training_execution_manifest.json" <<JSON
   "inference_hook_sha256": "$(sha256sum "${SCRIPT_DIR}/omni_t2i_smoke.py" | awk '{print $1}')",
   "branches": "${TRAIN_ORDERS}",
   "hybrid_current_model_policy_refresh": true,
-  "max_steps": ${DPRM_OMNI_MAX_STEPS:-500},
+  "max_steps": ${DPRM_OMNI_MAX_STEPS:-1000},
   "selected_gpus": "${SELECTED_TRAIN_GPUS}"
 }
 JSON
@@ -255,38 +326,40 @@ DPRM_OMNI_DATA_CONFIG="${TRAJ_ROOT}/merged/random_matched.yaml" \
 DPRM_OMNI_CONFIDENCE_DATA_CONFIG="${TRAJ_ROOT}/merged/confidence_matched.yaml" \
 DPRM_OMNI_DPRM_DATA_CONFIG="${TRAJ_ROOT}/merged/dprm_matched.yaml" \
 DPRM_OMNI_DPRM_SCORER="${CONTROLLER}" \
-DPRM_OMNI_HYBRID_ROLLIN="${DPRM_OMNI_HYBRID_ROLLIN:-0}" \
+DPRM_OMNI_HYBRID_ROLLIN="${DPRM_OMNI_HYBRID_ROLLIN:-1}" \
 DPRM_OMNI_GPUS="${SELECTED_TRAIN_GPUS}" \
 DPRM_OMNI_NPROC="${#train_gpu_ids[@]}" \
-DPRM_OMNI_MAX_STEPS="${DPRM_OMNI_MAX_STEPS:-500}" \
+DPRM_OMNI_MAX_STEPS="${DPRM_OMNI_MAX_STEPS:-1000}" \
 DPRM_OMNI_SAVE_STEPS="${DPRM_OMNI_SAVE_STEPS:-500}" \
 DPRM_OMNI_TRAINABLE_LAST_N_LAYERS="${DPRM_OMNI_TRAINABLE_LAST_N_LAYERS:-2}" \
-bash "${SCRIPT_DIR}/run_omni_formal_four_order_train.sh" \
+bash "${SCRIPT_DIR}/train_matched_branches.sh" \
   >> "${TRAIN_OUT}.log" 2>&1
 date -Is > "${TRAIN_OUT}/TRAINING_COMPLETE"
 
-EVAL_OUT="${DPRM_OMNI_MATCHED_EVAL_OUT:-${RUN_ROOT}/matched_eval_offset2300_v2}"
+EVAL_OUT="${DPRM_OMNI_MATCHED_EVAL_OUT:-${RUN_ROOT}/matched_eval_offset${DPRM_OMNI_EVAL_OFFSET:-2500}_v2}"
+EVAL_MIN_GPUS="${DPRM_OMNI_EVAL_MIN_GPUS:-3}"
 while :; do
-  eval_gpu=""
+  eval_gpu_ids=()
   while IFS=',' read -r gpu free; do
     gpu="${gpu//[[:space:]]/}"
     free="${free//[[:space:]]/}"
-    if [[ "${gpu}" =~ ^[0-9]+$ && "${free}" =~ ^[0-9]+$ ]] \
-      && [[ "${free}" -ge "${MIN_FREE_MIB}" ]]; then
-      eval_gpu="${gpu}"
-      break
-    fi
+    [[ "${gpu}" =~ ^[0-9]+$ && "${free}" =~ ^[0-9]+$ ]] || continue
+    [[ ",${TRAIN_GPUS}," == *",${gpu},"* ]] || continue
+    [[ "${free}" -ge "${MIN_FREE_MIB}" ]] || continue
+    eval_gpu_ids+=("${gpu}")
   done < <(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits)
-  [[ -n "${eval_gpu}" ]] && break
+  (( ${#eval_gpu_ids[@]} >= EVAL_MIN_GPUS )) && break
   sleep "${POLL_SECONDS}"
 done
+eval_gpu_ids=("${eval_gpu_ids[@]:0:EVAL_MIN_GPUS}")
+EVAL_GPUS="$(IFS=,; echo "${eval_gpu_ids[*]}")"
 DPRM_OMNI_TRAIN_OUT="${TRAIN_OUT}" \
 DPRM_OMNI_GATE_CONTROLLER="${CONTROLLER}" \
 DPRM_OMNI_EVAL_OUT="${EVAL_OUT}" \
-DPRM_OMNI_EVAL_GPU="${eval_gpu}" \
-DPRM_OMNI_EVAL_STEP="${DPRM_OMNI_EVAL_STEP:-${DPRM_OMNI_MAX_STEPS:-500}}" \
+DPRM_OMNI_EVAL_GPUS="${EVAL_GPUS}" \
+DPRM_OMNI_EVAL_STEP="${DPRM_OMNI_EVAL_STEP:-${DPRM_OMNI_MAX_STEPS:-1000}}" \
 DPRM_OMNI_INCLUDE_TRAINED_RANDOM="${DPRM_OMNI_INCLUDE_TRAINED_RANDOM:-0}" \
-bash "${SCRIPT_DIR}/run_omni_matched_checkpoint_eval.sh" \
+bash "${SCRIPT_DIR}/evaluate_matched_branches.sh" \
   >> "${EVAL_OUT}.log" 2>&1
 date -Is > "${RUN_ROOT}/PIPELINE_COMPLETE"
 rm -f "${RUN_ROOT}/pipeline_scheduler.pid"

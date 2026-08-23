@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "role": "post-evaluation qualitative audit; excluded from controller selection and aggregate metrics",
+  "checkpoint": "omni_diffusion/checkpoint-1000",
+  "source": "omni_diffusion/records/confirmation512/selection/online_action_value_summary.json",
+  "selection_rule": "DPRM differs from confidence, both CLIP-L/14 and CLIP-B/32 improve, and the prompt exposes a count, relation, or compositional attribute that can be inspected in the completed image",
+  "action_step": 96,
+  "cases": [
+    {
+      "id": "crowd_fireworks",
+      "record_index": 179,
+      "explanation": "The DPRM action opens an unfilled crowd region, preserving separate people beneath the fireworks."
+    },
+    {
+      "id": "owl_family",
+      "record_index": 447,
+      "explanation": "The DPRM action commits a peripheral body region, separating three owls instead of merging the family."
+    },
+    {
+      "id": "three_chairs",
+      "record_index": 498,
+      "explanation": "The DPRM action establishes a second spatial support, allowing three chair silhouettes to remain distinct."
+    },
+    {
+      "id": "donkey_lecture",
+      "record_index": 25,
+      "explanation": "The DPRM action preserves the foreground/background split, making the donkey lecturer and audience easier to distinguish."
+    },
+    {
+      "id": "robot_soccer",
+      "record_index": 378,
+      "explanation": "The DPRM action anchors the interaction region between two robots, preserving the pass rather than a single fused subject."
+    },
+    {
+      "id": "armadillo_bagpipe",
+      "record_index": 226,
+      "explanation": "The DPRM action anchors the instrument side of the body, improving the armadillo--bagpipe attribute binding."
+    },
+    {
+      "id": "avocado_armchair",
+      "record_index": 425,
+      "explanation": "The DPRM action establishes the lower seat boundary, retaining both the avocado contour and armchair structure."
+    },
+    {
+      "id": "rat_gym",
+      "record_index": 26,
+      "explanation": "The DPRM action preserves the foreground equipment region, making the rat's workout pose more legible."
+    }
+  ]
+}

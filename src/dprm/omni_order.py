@@ -219,6 +219,101 @@ class OmniStageRankSpatialDPRM:
 
 
 @dataclass(frozen=True)
+class OmniStageRankCodeDPRM:
+    """Stage/rank table with a coarse provisional visual-code key."""
+
+    active_steps: tuple[int, ...]
+    rank_bins: int
+    code_bins: int
+    reward_values: tuple[tuple[tuple[float, ...], ...], ...]
+    counts: tuple[tuple[tuple[int, ...], ...], ...]
+    beta: float
+    min_count: int = 1
+    image_token_offset: int = 168072
+    image_vocab_size: int = 8192
+    total_steps: int = 260
+
+    def __post_init__(self) -> None:
+        if not self.active_steps:
+            raise ValueError("active_steps must not be empty")
+        expected = (len(self.active_steps), int(self.rank_bins), int(self.code_bins))
+        if _nested_shape(self.reward_values) != expected or _nested_shape(self.counts) != expected:
+            raise ValueError(f"stage/rank/code table must have shape {expected}")
+
+    def save_artifact(self, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
+        config = asdict(self)
+        config["active_steps"] = list(self.active_steps)
+        Path(path).write_text(
+            json.dumps(
+                {
+                    "format": "omni_stage_rank_code_dprm_v1",
+                    "config": config,
+                    "metadata": dict(metadata or {}),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    @classmethod
+    def load_artifact(
+        cls, path: str | Path
+    ) -> tuple["OmniStageRankCodeDPRM", dict[str, Any]]:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        if payload.get("format") != "omni_stage_rank_code_dprm_v1":
+            raise ValueError(f"unsupported Omni stage/rank/code artifact: {path}")
+        config = dict(payload["config"])
+        config["active_steps"] = tuple(int(step) for step in config["active_steps"])
+        config["reward_values"] = _nested_tuple(config["reward_values"], float)
+        config["counts"] = _nested_tuple(config["counts"], int)
+        return cls(**config), dict(payload.get("metadata", {}))
+
+    def score(
+        self,
+        confidence: torch.Tensor,
+        *,
+        step: int,
+        provisional_token_ids: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        adjusted = confidence.clone()
+        reward = torch.zeros_like(confidence, dtype=torch.float32)
+        try:
+            stage = self.active_steps.index(int(step))
+        except ValueError:
+            return adjusted, reward
+        candidates = torch.where(torch.isfinite(confidence))[0]
+        if candidates.numel() < 2:
+            return adjusted, reward
+        provisional_token_ids = provisional_token_ids.to(confidence.device).long()
+        if provisional_token_ids.shape != confidence.shape:
+            raise ValueError("provisional_token_ids must match confidence shape")
+        _, rank_ids = relative_rank(confidence.float(), candidates, self.rank_bins)
+        code_ids = visual_code_bin_ids(
+            provisional_token_ids,
+            code_bins=self.code_bins,
+            image_token_offset=self.image_token_offset,
+            image_vocab_size=self.image_vocab_size,
+        )
+        values = torch.tensor(self.reward_values[stage], device=confidence.device)
+        counts = torch.tensor(self.counts[stage], device=confidence.device)
+        candidate_ranks = rank_ids[candidates]
+        candidate_codes = code_ids[candidates]
+        candidate_counts = counts[candidate_ranks, candidate_codes]
+        candidate_values = values[candidate_ranks, candidate_codes]
+        candidate_values = torch.where(
+            candidate_counts >= int(self.min_count),
+            candidate_values,
+            torch.zeros_like(candidate_values),
+        )
+        reward[candidates] = candidate_values
+        adjusted[candidates] = adjusted[candidates] + float(self.beta) * candidate_values.to(
+            adjusted.dtype
+        )
+        return adjusted, reward
+
+
+@dataclass(frozen=True)
 class OmniBucketTableDPRM:
     """Frozen phase/confidence/spatial DPRM used throughout Omni decoding."""
 
@@ -235,6 +330,9 @@ class OmniBucketTableDPRM:
     confidence_bin_edges: tuple[float, ...] = ()
     policy_warmup_steps: int = 32
     total_steps: int = 260
+    reward_action_steps: tuple[int, ...] = ()
+    max_base_score_gap: float | None = None
+    max_reward_confidence_bin: int | None = None
     eps: float = 1e-6
 
     def __post_init__(self) -> None:
@@ -252,6 +350,16 @@ class OmniBucketTableDPRM:
         ) - 1:
             raise ValueError(
                 "confidence_bin_edges must contain confidence_bins - 1 boundaries"
+            )
+        if any(int(step) < 0 for step in self.reward_action_steps):
+            raise ValueError("reward_action_steps must be non-negative")
+        if self.max_base_score_gap is not None and float(self.max_base_score_gap) < 0:
+            raise ValueError("max_base_score_gap must be non-negative")
+        if self.max_reward_confidence_bin is not None and not (
+            0 <= int(self.max_reward_confidence_bin) < int(self.confidence_bins)
+        ):
+            raise ValueError(
+                "max_reward_confidence_bin must identify a configured confidence bin"
             )
 
     def save_artifact(self, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
@@ -283,6 +391,9 @@ class OmniBucketTableDPRM:
         config["confidence_bin_edges"] = tuple(
             float(value) for value in config.get("confidence_bin_edges", ())
         )
+        config["reward_action_steps"] = tuple(
+            int(value) for value in config.get("reward_action_steps", ())
+        )
         return cls(**config), dict(payload.get("metadata", {}))
 
     def score(
@@ -295,7 +406,14 @@ class OmniBucketTableDPRM:
         adjusted = confidence.clone()
         reward = torch.zeros_like(confidence, dtype=torch.float32)
         candidates = torch.where(torch.isfinite(confidence))[0]
-        if candidates.numel() == 0 or int(step) < int(self.policy_warmup_steps):
+        if (
+            candidates.numel() == 0
+            or int(step) < int(self.policy_warmup_steps)
+            or (
+                self.reward_action_steps
+                and int(step) not in self.reward_action_steps
+            )
+        ):
             return adjusted, reward
         confidence_probability = confidence.float().exp().clamp(
             self.eps, 1.0 - self.eps
@@ -356,6 +474,20 @@ class OmniBucketTableDPRM:
                 ),
             )
         gated_values = values * local_gate * global_gate
+        if self.max_reward_confidence_bin is not None:
+            low_confidence = candidate_confidence <= int(
+                self.max_reward_confidence_bin
+            )
+            gated_values = torch.where(
+                low_confidence, gated_values, torch.zeros_like(gated_values)
+            )
+        if self.max_base_score_gap is not None:
+            candidate_base = confidence[candidates].float()
+            top_base = torch.max(candidate_base)
+            eligible = candidate_base >= top_base - float(self.max_base_score_gap)
+            gated_values = torch.where(
+                eligible, gated_values, torch.zeros_like(gated_values)
+            )
         reward[candidates] = gated_values
         adjusted[candidates] = adjusted[candidates] + float(
             self.guidance_scale
@@ -405,10 +537,33 @@ def spatial_bin_ids(
     ).clamp(0, spatial_bins - 1)
 
 
+def visual_code_bin_ids(
+    token_ids: torch.Tensor,
+    *,
+    code_bins: int,
+    image_token_offset: int = 168072,
+    image_vocab_size: int = 8192,
+) -> torch.Tensor:
+    """Map provisional Omni visual tokens to fixed contiguous codebook bins."""
+    if code_bins < 1:
+        raise ValueError("code_bins must be positive")
+    codes = (token_ids.long() - int(image_token_offset)).clamp(
+        0, int(image_vocab_size) - 1
+    )
+    return torch.div(
+        codes * int(code_bins),
+        int(image_vocab_size),
+        rounding_mode="floor",
+    ).clamp(0, int(code_bins) - 1)
+
+
 def load_omni_order_controller(
     path: str | Path,
 ) -> tuple[
-    OmniRankBucketDPRM | OmniStageRankSpatialDPRM | OmniBucketTableDPRM,
+    OmniRankBucketDPRM
+    | OmniStageRankSpatialDPRM
+    | OmniStageRankCodeDPRM
+    | OmniBucketTableDPRM,
     dict[str, Any],
 ]:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -417,6 +572,8 @@ def load_omni_order_controller(
         return OmniRankBucketDPRM.load_artifact(path)
     if artifact_format == "omni_stage_rank_spatial_dprm_v1":
         return OmniStageRankSpatialDPRM.load_artifact(path)
+    if artifact_format == "omni_stage_rank_code_dprm_v1":
+        return OmniStageRankCodeDPRM.load_artifact(path)
     if artifact_format == "omni_bucket_table_dprm_v1":
         return OmniBucketTableDPRM.load_artifact(path)
     raise ValueError(f"unsupported Omni order-controller format {artifact_format}: {path}")

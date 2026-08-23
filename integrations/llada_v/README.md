@@ -18,24 +18,58 @@ variants.
 
 ## Paper Configuration
 
-AI2D uses `500` documents. RealWorldQA uses documents `0:128` for table fitting,
-`128:256` for controller selection, and `256:765` for the strict held-out
-interval. The selected table uses one phase, `8` confidence bins, four relative
-position bins, prompt-format and candidate-EOT state, guidance `4`, and the
-symmetric zero-count normalization. The table and guidance are frozen before
-evaluation on `500` ChartQA documents.
+RealWorldQA uses documents `0:128` for table fitting, `128:256` for controller
+selection, and `256:765` for confirmation. Its selected controller has one
+phase, eight confidence bins, guidance `4`, prompt-format state, candidate-EOT
+state, and four relative-position bins. The strict numeric/count subset contains
+`78` held-out documents and is defined from prompt text before scoring.
+
+The preregistered AI2D protocol uses `0:128`, `128:256`, and `256:500` for the
+same three roles. It selected one phase, eight confidence bins, guidance `8`,
+candidate-EOT state, and four relative-position bins. The independent interval
+did not improve over confidence, so AI2D is retained as a non-promoted
+diagnostic rather than a paper result.
 
 ## Reproduction
 
-1. Copy `overlay/dprm_generation.py` and `overlay/host/` into the LLaDA-V
-   checkout.
-2. Run random and confidence policies with order tracing.
-3. Build the table with `scripts/build_dprm_table.py`.
-4. Select only on the development interval with `scripts/select_controller.py`.
-5. Evaluate `dprm_confidence_warmup` on the held-out interval and use
-   `audit_chartqa_transfer.py` for frozen transfer.
+The tested upstream commit and all four executable commands are recorded under
+`llada_v` in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).
+Set `LLADA_V_LMMS_ROOT`, `LLADA_V_MODEL_PATH`, and
+`LLADA_V_OUTPUT_ROOT`. The evaluator verifies the pinned commit and applies
+`overlay/` with `apply_overlay.sh` before launch. The complete RealWorldQA
+fit/development/confirmation protocol is:
+
+```bash
+bash integrations/llada_v/run_realworldqa_protocol.sh
+```
+
+The disjoint AI2D diagnostic protocol is:
+
+```bash
+bash integrations/llada_v/run_ai2d_protocol.sh
+```
+
+`run_lmms_eval.sh` is the lower-level frozen-model entrypoint. It writes the
+task, order, table, gate, and document limit to a run
+manifest before invoking lmms-eval.
 
 Set `DPRM_LLADAV_TABLE` to the selected JSON table. A DPRM policy without a
 table raises an error unless explicit diagnostic fallback is enabled. The
 compact task and class-level statistics are in
 [`../../results/artifacts/multimodal_summary.json`](../../results/artifacts/multimodal_summary.json).
+
+Rebuild task accuracies, prompt-format slices, and `5000`-draw paired-bootstrap
+intervals directly from the saved lmms-eval samples with:
+
+```bash
+python integrations/llada_v/scripts/summarize_multimodal_results.py \
+  --rwqa-confidence outputs/rwqa/confidence.jsonl \
+  --rwqa-dprm outputs/rwqa/dprm_confidence.jsonl \
+  --rwqa-doc-min 256 --rwqa-doc-max 765 \
+  --base-summary results/artifacts/multimodal_summary.json \
+  --output outputs/llada_v_multimodal_summary.json
+```
+
+The script pairs by `doc_id`, rejects incomplete declared intervals, and uses
+only prompt text to define choice, numeric, and open-answer subsets.

@@ -20,12 +20,13 @@ from pathlib import Path
 import torch
 from transformers import AutoModel, AutoTokenizer, GenerationConfig
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from dprm.omni_order import (
     OmniRankBucketDPRM,
     OmniBucketTableDPRM,
+    OmniStageRankCodeDPRM,
     OmniStageRankSpatialDPRM,
     candidate_visual_indices,
     load_omni_order_controller,
@@ -36,6 +37,12 @@ from dprm.omni_order import (
 MASK_ID = 151666
 IMAGE_OFFSET = 168072
 IMAGE_VOCAB = 8192
+DEFAULT_POST_ACTION_CHECKPOINTS = (31, 63, 95, 127, 159, 191, 223)
+
+
+def training_next_action_steps(checkpoints: set[int]) -> list[int]:
+    """Map saved post-action canvases to the actions trained from those canvases."""
+    return sorted(step + 1 for step in checkpoints)
 
 
 def sha256_file(path: Path) -> str:
@@ -70,7 +77,11 @@ def rollout_teacher_forced(
     prompt_ids: list[int],
     clean_suffix: list[int],
     policy: str,
-    controller: OmniRankBucketDPRM | OmniStageRankSpatialDPRM | OmniBucketTableDPRM | None,
+    controller: OmniRankBucketDPRM
+    | OmniStageRankSpatialDPRM
+    | OmniStageRankCodeDPRM
+    | OmniBucketTableDPRM
+    | None,
     checkpoints: set[int],
 ) -> tuple[dict[int, list[int]], list[dict]]:
     """Roll out one exact policy and return post-action revealed canvases."""
@@ -107,7 +118,13 @@ def rollout_teacher_forced(
         )
         visual_confidence = confidence.clone()
         visual_confidence[~visual] = -torch.inf
-        if isinstance(controller, (OmniStageRankSpatialDPRM, OmniBucketTableDPRM)):
+        if isinstance(controller, OmniStageRankCodeDPRM):
+            visual_adjusted, _ = controller.score(
+                visual_confidence,
+                step=int(context["step"]),
+                provisional_token_ids=context["x0"],
+            )
+        elif isinstance(controller, (OmniStageRankSpatialDPRM, OmniBucketTableDPRM)):
             visual_indices = candidate_visual_indices(
                 context["mask_index"], context["block_mask"]
             ).to(confidence.device)
@@ -189,6 +206,7 @@ def trajectory_rows(row: dict, policy: str, states: dict[int, list[int]]) -> lis
         item["dprm_revealed_visual_indices"] = revealed
         item["dprm_trajectory_policy"] = policy
         item["dprm_trajectory_step"] = int(step)
+        item["dprm_next_action_step"] = int(step) + 1
         output.append(item)
     return output
 
@@ -216,7 +234,7 @@ def main() -> None:
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--count", type=int, default=256)
     parser.add_argument(
-        "--checkpoints", type=int, nargs="+", default=[32, 64, 96, 128, 160, 192, 224]
+        "--checkpoints", type=int, nargs="+", default=list(DEFAULT_POST_ACTION_CHECKPOINTS)
     )
     parser.add_argument("--forbidden-prompts", type=Path)
     args = parser.parse_args()
@@ -225,11 +243,30 @@ def main() -> None:
     if args.count <= 0 or not checkpoints or min(checkpoints) < 0 or max(checkpoints) >= 255:
         raise SystemExit("count must be positive and checkpoints must lie in [0, 254]")
     controller, controller_metadata = load_omni_order_controller(args.controller)
+    next_action_steps = training_next_action_steps(checkpoints)
+    reward_action_steps = sorted(
+        int(step)
+        for step in getattr(
+            controller,
+            "reward_action_steps",
+            getattr(controller, "active_steps", ()),
+        )
+    )
+    uncovered_reward_steps = sorted(set(reward_action_steps) - set(next_action_steps))
+    if uncovered_reward_steps:
+        raise SystemExit(
+            "post-action checkpoints do not train all deployed DPRM reward actions; "
+            f"missing next-action steps {uncovered_reward_steps}"
+        )
     score_contract = controller_metadata.get("score_contract", {})
     if score_contract.get("base_order_score") != "negative_token_entropy":
         raise SystemExit("matched trajectories require the negative-token-entropy score contract")
-    if score_contract.get("bucket_coordinate") != "exp_negative_token_entropy":
-        raise SystemExit("matched trajectories require the exp-negative-entropy bucket coordinate")
+    if score_contract.get("bucket_coordinate") not in {
+        "exp_negative_token_entropy",
+        "within_state_confidence_rank",
+        "within_state_confidence_rank_and_provisional_code",
+    }:
+        raise SystemExit("matched trajectories require a declared bucket coordinate")
     if score_contract.get("position_selection_rule") != "single_path_top1_adjusted_order_score":
         raise SystemExit("matched trajectories require the single-path top-1 selection contract")
     deployment = controller_metadata.get("deployment_contract", {})
@@ -359,6 +396,10 @@ def main() -> None:
         "offset": args.offset,
         "source_examples": completed,
         "checkpoints": sorted(checkpoints),
+        "post_action_checkpoints": sorted(checkpoints),
+        "training_next_action_steps": next_action_steps,
+        "controller_reward_action_steps": reward_action_steps,
+        "reward_action_coverage_verified": True,
         "rows_per_policy": rows_written,
         "controller": str(args.controller),
         "controller_sha256": sha256_file(args.controller),

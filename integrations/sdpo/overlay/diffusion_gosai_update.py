@@ -146,7 +146,7 @@ class Diffusion(L.LightningModule):
     self.dprm_warmup_steps = int(ordering.get('dprm_warmup_steps', 0))
     self.dprm_switch_steps = int(ordering.get('dprm_switch_steps', max(self.dprm_warmup_steps, 1)))
     self.dprm_ready_count = float(ordering.get('dprm_ready_count', 64))
-    self.dprm_phase_bins = int(ordering.get('dprm_phase_bins', 8))
+    self.dprm_phase_bins = int(ordering.get('dprm_phase_bins', 1))
     self.dprm_conf_bins = int(ordering.get('dprm_conf_bins', 10))
     self.dprm_shortlist_size = int(ordering.get('dprm_shortlist_size', 64))
     self.dprm_ablation = str(ordering.get('dprm_ablation', 'normal'))

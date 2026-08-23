@@ -58,8 +58,10 @@ else
 fi
 
 GRADIENT_ACCUMULATION_STEPS="${GRADIENT_ACCUMULATION_STEPS:-2}"
-NUM_GENERATIONS="${NUM_GENERATIONS:-16}"
+NUM_GENERATIONS="${NUM_GENERATIONS:-8}"
 NUM_ITERATIONS="${NUM_ITERATIONS:-8}"
+MAX_STEPS="${MAX_STEPS:-5000}"
+LEARNING_RATE="${LEARNING_RATE:-1e-6}"
 SAMPLER="${SAMPLER:-"pd_cache_prefix"}"
 USE_FAST_SAMPLER="${USE_FAST_SAMPLER:-"fast_dllm"}"
 SAMPLER_REMASKING="${SAMPLER_REMASKING:-""}"
@@ -116,10 +118,20 @@ if [ -n "${LOSS_PROGRESSIVE_THRESHOLD}" ]; then
     MASKING_ARGS+=(--loss_progressive_threshold "${LOSS_PROGRESSIVE_THRESHOLD}")
 fi
 
-srun accelerate launch \
-    --config_file accelerate.yaml \
-    --num_processes $NUM_PROCESSES \
-    --main_process_port $RANDOM_PORT dmpo_train.py \
+EXTRA_TRAIN_ARGS=()
+if [ -n "${MAX_STEPS}" ]; then
+    EXTRA_TRAIN_ARGS+=(--max_steps "${MAX_STEPS}")
+fi
+
+LAUNCHER=(
+    accelerate launch --config_file accelerate.yaml
+    --num_processes "${NUM_PROCESSES}" --main_process_port "${RANDOM_PORT}"
+)
+if command -v srun >/dev/null 2>&1; then
+    LAUNCHER=(srun "${LAUNCHER[@]}")
+fi
+
+"${LAUNCHER[@]}" dmpo_train_compat.py \
     --config dmpo_train_config.yaml \
     --dataset $DATASET \
     --run_name $RUN_NAME \
@@ -136,6 +148,7 @@ srun accelerate launch \
     --num_iterations "${NUM_ITERATIONS}" \
     --per_device_train_batch_size "${PER_DEVICE_TRAIN_BATCH_SIZE}" \
     --gradient_accumulation_steps "${GRADIENT_ACCUMULATION_STEPS}" \
+    --learning_rate "${LEARNING_RATE}" \
     --sync_ref_model "${SYNC_REF_MODEL}" \
     --ref_model_sync_steps "${REF_MODEL_SYNC_STEPS}" \
     --generation_batch_size "${GENERATION_BATCH_SIZE}" \
@@ -150,6 +163,7 @@ srun accelerate launch \
     --sampler_steps "${SAMPLER_STEPS}" \
     --temperature "${TEMPERATURE}" \
     --pretrained_model_path "${PRETRAINED_MODEL_PATH}" \
+    "${EXTRA_TRAIN_ARGS[@]}" \
     "${MASKING_ARGS[@]}"
 
 # Note: append additional training arguments above, but avoid changing the config file

@@ -7,12 +7,40 @@ import argparse
 import gc
 import importlib.util
 import json
+import os
+import shutil
 import sys
+import time
 import traceback
 from pathlib import Path
 
 import torch
 from transformers import AutoModel, AutoTokenizer, GenerationConfig
+
+
+def reclaim_stale_lock(lock: Path, stale_lock_seconds: float) -> bool:
+    """Remove an abandoned job lock after a grace period."""
+    owner_path = lock / "owner_pid"
+    try:
+        owner_pid = int(owner_path.read_text(encoding="utf-8").strip())
+    except (FileNotFoundError, ValueError):
+        owner_pid = None
+    if owner_pid is not None:
+        try:
+            os.kill(owner_pid, 0)
+            return False
+        except PermissionError:
+            return False
+        except ProcessLookupError:
+            pass
+    try:
+        age = time.time() - lock.stat().st_mtime
+    except FileNotFoundError:
+        return False
+    if age < stale_lock_seconds:
+        return False
+    shutil.rmtree(lock, ignore_errors=True)
+    return not lock.exists()
 
 
 def load_smoke(path: Path):
@@ -30,6 +58,7 @@ def main() -> None:
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--image-tokenizer-path", required=True)
     parser.add_argument("--jobs", type=Path, required=True)
+    parser.add_argument("--stale-lock-seconds", type=float, default=120.0)
     args = parser.parse_args()
 
     smoke = load_smoke(args.smoke_script)
@@ -100,7 +129,9 @@ def main() -> None:
                 try:
                     lock.mkdir()
                 except FileExistsError:
+                    reclaim_stale_lock(lock, args.stale_lock_seconds)
                     continue
+                (lock / "owner_pid").write_text(f"{os.getpid()}\n", encoding="utf-8")
                 made_progress = True
                 argv = [
                     str(args.smoke_script),
@@ -133,13 +164,11 @@ def main() -> None:
                             if attempt == 3:
                                 raise
                 finally:
-                    lock.rmdir()
+                    shutil.rmtree(lock, ignore_errors=True)
             if incomplete == 0:
                 break
             if not made_progress:
                 # Another manifest worker owns every incomplete job.
-                import time
-
                 time.sleep(2)
     finally:
         sys.argv = original_argv

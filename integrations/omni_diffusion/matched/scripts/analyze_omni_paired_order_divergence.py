@@ -47,6 +47,33 @@ def load_order(path: Path) -> list[int]:
     return order
 
 
+def load_direct_interventions(path: Path) -> dict[str, float]:
+    decisions = 0
+    overrides = 0
+    guided_decisions = 0
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            record = json.loads(line)
+            selected = record.get("selected_candidate_indices", [])
+            default = record.get("confidence_default_candidate_index")
+            if len(selected) != 1 or default is None:
+                continue
+            decisions += 1
+            selected_value = record.get("selected_dprm_values", [0.0])
+            default_value = float(record.get("confidence_default_dprm_value", 0.0))
+            if (selected_value and abs(float(selected_value[0])) > 0.0) or abs(default_value) > 0.0:
+                guided_decisions += 1
+            if int(selected[0]) != int(default):
+                overrides += 1
+    return {
+        "direct_decisions": float(decisions),
+        "direct_guided_decisions": float(guided_decisions),
+        "direct_override_count": float(overrides),
+        "direct_override_fraction": float(overrides / max(decisions, 1)),
+        "has_direct_override": float(overrides > 0),
+    }
+
+
 def trace_map(formal_root: Path, policy: str) -> dict[str, Path]:
     result: dict[str, Path] = {}
     for path in sorted((formal_root / policy).glob("prompt_*/*_order_trace.jsonl")):
@@ -105,6 +132,7 @@ def main() -> None:
                 load_order(reference_traces[prompt_id]),
                 load_order(method_traces[prompt_id]),
             )
+            metrics.update(load_direct_interventions(method_traces[prompt_id]))
             row: dict[str, str | float] = {
                 "reference": reference_policy,
                 "method": method_policy,

@@ -110,7 +110,7 @@ def eval_model_from_paths(base_path, ckpt_path, num_sample_batches, num_samples_
         'dprm_warmup_steps': dprm_warmup_steps,
         'dprm_switch_steps': dprm_switch_steps,
         'dprm_ready_count': dprm_ready_count,
-        'dprm_phase_bins': 8,
+        'dprm_phase_bins': 1,
         'dprm_conf_bins': 10,
         'dprm_shortlist_size': dprm_shortlist_size,
     }

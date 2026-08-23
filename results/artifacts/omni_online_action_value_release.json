@@ -1,0 +1,80 @@
+{
+  "format": "omni_online_action_value_release_v1",
+  "prompt_count": 512,
+  "checkpoint": "omni_diffusion/checkpoint-1000",
+  "prompt_file_sha256": "7fcf49c73136ecec7a25fb1b29b29bee3864c4d0d1926164dc979c947b80d9c2",
+  "action_step": 96,
+  "confidence_rank_quantiles": "0.70 0.85 0.90 0.95",
+  "reward_scale": 0.03,
+  "guidance": 8.0,
+  "candidate_paths": 5,
+  "terminal_reward": "clip_cosine",
+  "independent_check": "clip_b32_cosine",
+  "methods": {
+    "random": {
+      "label": "Random",
+      "clip_l14": 0.1793863200582564,
+      "clip_b32": 0.23381417903874535,
+      "paths": 1
+    },
+    "confidence": {
+      "label": "Omni default",
+      "clip_l14": 0.18660674947022926,
+      "clip_b32": 0.23835885734297335,
+      "paths": 1
+    },
+    "uniform": {
+      "label": "Uniform action",
+      "clip_l14": 0.1856631230795756,
+      "clip_b32": 0.23795671901898457,
+      "paths": 5
+    },
+    "reward_only": {
+      "label": "Reward-only BoN",
+      "clip_l14": 0.2114204024837818,
+      "clip_b32": 0.24850911952671595,
+      "paths": 5
+    },
+    "dprm": {
+      "label": "DPRM",
+      "clip_l14": 0.2112487233534921,
+      "clip_b32": 0.24854060370125808,
+      "paths": 5
+    }
+  },
+  "paired_deltas": {
+    "clip_cosine": {
+      "mean_delta": 0.024641973883262835,
+      "ci95_low": 0.02249469248272362,
+      "ci95_high": 0.02676788451572065,
+      "wins": 384,
+      "ties": 128,
+      "losses": 0
+    },
+    "clip_b32_cosine": {
+      "mean_delta": 0.010181746358284727,
+      "ci95_low": 0.008197876295162132,
+      "ci95_high": 0.01220505488672643,
+      "wins": 271,
+      "ties": 128,
+      "losses": 113
+    }
+  },
+  "relative_improvements_percent": {
+    "clip_l14": 13.205296139191445,
+    "clip_b32": 4.271603946999235
+  },
+  "selected_action_counts": {
+    "step96_q0.95": 109,
+    "step96_q0.70": 79,
+    "confidence": 128,
+    "step96_q0.90": 105,
+    "step96_q0.85": 91
+  },
+  "override_fraction": 0.75,
+  "source_hashes": {
+    "summary": "77f34d180a860fab5993fcf95e905240170920ccadc4389e12fd3822a469552a",
+    "scored_records": "5c05ed7ca60ebcf56d19a979fae088408cfd0789e34bbb81877ef704fc39aa34",
+    "run_manifest": "013bfa36eab17c1a18831111199c2065daf67352fef049865ee93acde70e4c10"
+  }
+}

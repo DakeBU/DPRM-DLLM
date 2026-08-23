@@ -41,20 +41,36 @@ zero/nonzero bins, `beta=1`, and readiness `64`. It updates only the controller
 table.
 
 Guidance is selected from `0.5,1,2,4` on the next `96` training cells by mean
-declared utility gain, with activity and positive-endpoint gates. Evaluation
+declared utility gain, with activity and positive-endpoint gates; this selects
+`2.0` for the reported controller. Evaluation
 then decodes each of `293` held-out cells from all masks for `32` steps, with
 four samples per cell and `5000` paired-bootstrap draws. Two additional decode
 seeds check directional replication without participating in selection; their
 cell bootstraps remain separate rather than being pooled.
 The evaluator fixes the data partition with `--split-seed 42`; `--seed`
-controls sampling and bootstrap randomness only. Development sweeps use
+controls sampling and bootstrap randomness only. Development uses seed
+`20260812`, formal evaluation uses `20260814`, and the two replications use
+`20260815` and `20260816`. Development sweeps use
 `--split train --cell-offset 256` and formal evaluation uses `--split val`, so
 the formal cells are opened once after the development gate.
 
 ## Reproduction
 
+The tested upstream commit and all four executable commands are recorded under
+`dcm` in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).
 Copy `overlay/` into the upstream DCM checkout, run
 `scripts/calibrate_dcm_terminal_order.py` on the training split, select guidance
 on a disjoint training subset, and pass the four calibrated controller
 checkpoints to `scripts/eval_dcm_ordering_bootstrap.py`. The evaluator writes
 per-cell paired summaries and controller-activity diagnostics.
+
+The released per-cell records can be checked without loading the DCM model:
+
+```bash
+tar --zstd -xf formal_cells_and_replications.tar.zst
+python integrations/dcm/scripts/summarize_dcm_records.py formal \
+  --seed 20260814 --bootstrap 5000 \
+  --reference-summary formal/summary.json \
+  --output formal/recomputed_summary.json
+```

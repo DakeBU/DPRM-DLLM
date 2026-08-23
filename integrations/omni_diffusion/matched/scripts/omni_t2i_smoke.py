@@ -14,7 +14,7 @@ from transformers import AutoModel, AutoTokenizer, GenerationConfig
 
 from omni_diffusion.data.processor.image_processor import ImageProcessor
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
@@ -26,6 +26,7 @@ from dprm.omni_order import (
     OmniBucketTableDPRM,
     OmniOrderScorer,
     OmniRankBucketDPRM,
+    OmniStageRankCodeDPRM,
     OmniStageRankSpatialDPRM,
     load_omni_order_controller,
     visual_candidate_mask,
@@ -313,7 +314,11 @@ def make_torch_order_score_hook(
     stats: dict,
 ):
     """Use the same tensor feature map and frozen scorer as aligned training."""
-    active_steps = {int(step) for step in args.dprm_action_steps}
+    active_steps = (
+        {int(step) for step in scorer.reward_action_steps}
+        if scorer.reward_action_steps
+        else {int(step) for step in args.dprm_action_steps}
+    )
 
     def hook(confidence: torch.Tensor, **context) -> torch.Tensor:
         step = int(context["step"])
@@ -362,7 +367,10 @@ def make_torch_order_score_hook(
 
 
 def make_rank_bucket_score_hook(
-    controller: OmniRankBucketDPRM | OmniStageRankSpatialDPRM | OmniBucketTableDPRM,
+    controller: OmniRankBucketDPRM
+    | OmniStageRankSpatialDPRM
+    | OmniStageRankCodeDPRM
+    | OmniBucketTableDPRM,
     stats: dict,
     score_snapshots: dict[int, dict[str, torch.Tensor]] | None = None,
 ):
@@ -372,7 +380,13 @@ def make_rank_bucket_score_hook(
         )
         visual_confidence = confidence.clone()
         visual_confidence[~visual] = -torch.inf
-        if isinstance(controller, (OmniStageRankSpatialDPRM, OmniBucketTableDPRM)):
+        if isinstance(controller, OmniStageRankCodeDPRM):
+            visual_adjusted, reward = controller.score(
+                visual_confidence,
+                step=int(context["step"]),
+                provisional_token_ids=context["x0"],
+            )
+        elif isinstance(controller, (OmniStageRankSpatialDPRM, OmniBucketTableDPRM)):
             visual_indices = candidate_visual_indices(
                 context["mask_index"], context["block_mask"]
             ).to(confidence.device)
@@ -414,8 +428,10 @@ def make_order_observer(
     score_snapshots: dict[int, dict[str, torch.Tensor]] | None = None,
 ):
     provisional_phases_seen: set[int] = set()
+    continuation_reseeded = False
 
     def observer(confidence: torch.Tensor, transfer_index: torch.Tensor, **context) -> None:
+        nonlocal continuation_reseeded
         if transfer_index.numel() == 0:
             return
         conf_prob = confidence_to_probability(confidence, args.dprm_confidence_transform)
@@ -437,6 +453,14 @@ def make_order_observer(
         selected = selected[(selected >= 0) & (selected < confidence.numel())]
         if selected.numel() == 0:
             return
+        if (
+            args.continuation_seed is not None
+            and not continuation_reseeded
+            and int(context["step"]) == int(args.continuation_seed_step)
+        ):
+            torch.manual_seed(int(args.continuation_seed))
+            torch.cuda.manual_seed_all(int(args.continuation_seed))
+            continuation_reseeded = True
         masked_positions = torch.where(context["mask_index"][0])[0].to(selected.device)
         block_positions = torch.where(context["block_mask"])[0].to(selected.device)
         sequence_positions = masked_positions[selected]
@@ -534,7 +558,11 @@ def make_order_observer(
     return observer
 
 
-def make_counterfactual_order_override(args: argparse.Namespace, stats: dict):
+def make_counterfactual_order_override(
+    args: argparse.Namespace,
+    stats: dict,
+    image_token_offset: int,
+):
     """Replace specified confidence actions, then resume confidence decoding."""
 
     if args.force_order_steps:
@@ -648,6 +676,23 @@ def make_counterfactual_order_override(args: argparse.Namespace, stats: dict):
             .clamp(0, int(args.force_confidence_bins) - 1)
             .item()
         )
+        shared_state = context["x"][0].detach().clone()
+        shared_state[masked_positions] = context["x0"].detach().long()
+        shared_visual_tokens = shared_state[block_positions[1:257]]
+        valid_shared_visual = (shared_visual_tokens >= image_token_offset) & (
+            shared_visual_tokens < image_token_offset + 8192
+        )
+        if shared_visual_tokens.numel() == 256 and not bool(valid_shared_visual.all()):
+            image_logits = context["logits"][
+                0, block_positions[1:257], image_token_offset : image_token_offset + 8192
+            ]
+            projected_visual = image_logits.argmax(dim=-1) + image_token_offset
+            shared_visual_tokens = torch.where(
+                valid_shared_visual, shared_visual_tokens, projected_visual
+            )
+            valid_shared_visual = (shared_visual_tokens >= image_token_offset) & (
+                shared_visual_tokens < image_token_offset + 8192
+            )
         action_stats = {
                 "applied": True,
                 "step": step,
@@ -688,6 +733,12 @@ def make_counterfactual_order_override(args: argparse.Namespace, stats: dict):
                     else None
                 ),
                 "overridden_candidate_indices": selected,
+                "shared_provisional_visual_token_ids": (
+                    (shared_visual_tokens - image_token_offset).detach().cpu().tolist()
+                    if shared_visual_tokens.numel() == 256
+                    and bool(valid_shared_visual.all())
+                    else None
+                ),
                 **visual_context_features(visual_index, masked_visual_indices),
             }
         stats["actions"].append(action_stats)
@@ -715,6 +766,7 @@ def main() -> None:
         help="Fix four format tokens and order only 256 visual-code positions.",
     )
     parser.add_argument("--alg", default="entropy-penalty")
+    parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--order-policy", default="progressive_confidence")
     parser.add_argument("--dprm-warmup-steps", type=int, default=None)
     parser.add_argument("--dprm-table", default=None)
@@ -807,6 +859,13 @@ def main() -> None:
         help="Permit DPRM-labeled policies to fall back to confidence. Do not use for formal runs.",
     )
     parser.add_argument("--seed", type=int, default=20260522)
+    parser.add_argument(
+        "--continuation-seed",
+        type=int,
+        default=None,
+        help="Reset sampling randomness after the selected action at a fixed step.",
+    )
+    parser.add_argument("--continuation-seed-step", type=int, default=64)
     args = parser.parse_args()
 
     if str(args.order_policy).startswith("dprm"):
@@ -866,6 +925,7 @@ def main() -> None:
         "selected_nonconfidence_count": 0,
     }
     deployed_order_controller = None
+    effective_dprm_action_steps = list(args.dprm_action_steps)
     order_score_snapshots: dict[int, dict[str, torch.Tensor]] = {}
     score_sources = [args.dprm_table, args.dprm_action_value_model, args.dprm_order_scorer]
     if sum(bool(source) for source in score_sources) > 1:
@@ -884,6 +944,10 @@ def main() -> None:
                 args.dprm_order_scorer
             )
             if isinstance(rank_controller, OmniBucketTableDPRM):
+                effective_dprm_action_steps = list(
+                    rank_controller.reward_action_steps
+                    or args.dprm_action_steps
+                )
                 args._trace_confidence_bin_edges = tuple(
                     rank_controller.confidence_bin_edges
                 )
@@ -904,6 +968,27 @@ def main() -> None:
                         if rank_controller.confidence_bin_edges
                         else "equal_width"
                     ),
+                    "reward_action_steps": effective_dprm_action_steps,
+                }
+            elif isinstance(rank_controller, OmniStageRankSpatialDPRM):
+                effective_dprm_action_steps = list(rank_controller.active_steps)
+                deployed_order_controller = {
+                    "type": "stage_rank_spatial_table",
+                    "guidance_scale": rank_controller.beta,
+                    "rank_bins": rank_controller.rank_bins,
+                    "spatial_bins": rank_controller.spatial_bins,
+                    "ready_count": rank_controller.min_count,
+                    "reward_action_steps": effective_dprm_action_steps,
+                }
+            elif isinstance(rank_controller, OmniStageRankCodeDPRM):
+                effective_dprm_action_steps = list(rank_controller.active_steps)
+                deployed_order_controller = {
+                    "type": "stage_rank_code_table",
+                    "guidance_scale": rank_controller.beta,
+                    "rank_bins": rank_controller.rank_bins,
+                    "code_bins": rank_controller.code_bins,
+                    "ready_count": rank_controller.min_count,
+                    "reward_action_steps": effective_dprm_action_steps,
                 }
             dprm_hook = make_rank_bucket_score_hook(
                 rank_controller, action_value_stats, order_score_snapshots
@@ -913,6 +998,9 @@ def main() -> None:
                 args.dprm_order_scorer, map_location="cuda:0"
             )
             torch_scorer.to("cuda:0").eval().requires_grad_(False)
+            effective_dprm_action_steps = list(
+                torch_scorer.reward_action_steps or args.dprm_action_steps
+            )
             dprm_hook = make_torch_order_score_hook(
                 torch_scorer, args, action_value_stats
             )
@@ -923,12 +1011,12 @@ def main() -> None:
         make_order_observer(
             args, trace_records, image_offset, order_score_snapshots
         )
-        if args.trace_order_stats
+        if args.trace_order_stats or args.continuation_seed is not None
         else None
     )
     counterfactual_stats = {"applied": False}
     order_override = (
-        make_counterfactual_order_override(args, counterfactual_stats)
+        make_counterfactual_order_override(args, counterfactual_stats, image_offset)
         if args.force_order_step is not None or args.force_order_steps
         else None
     )
@@ -955,7 +1043,7 @@ def main() -> None:
     with torch.inference_mode():
         outputs, _histories = model.generate(
             input_ids,
-            temperature=0.0,
+            temperature=float(args.temperature),
             top_p=0.9,
             steps=args.steps,
             max_new_tokens=args.max_tokens,
@@ -1029,6 +1117,21 @@ def main() -> None:
             cv2.imwrite(str(frame_path), frame)
             history_frame_paths.append(str(frame_path))
 
+    shared_action_canvas_path = None
+    shared_token_ids = counterfactual_stats.get("shared_provisional_visual_token_ids")
+    if shared_token_ids is not None:
+        shared_ids = torch.tensor(
+            shared_token_ids, dtype=torch.long, device="cuda:0"
+        ).unsqueeze(0)
+        shared = image_processor.image_tokenizer.image_tokenizer.decode_code(shared_ids)
+        shared = torch.clamp((shared + 1.0) / 2.0, min=0.0, max=1.0)
+        shared = (shared * 255.0).permute(0, 2, 3, 1).cpu().numpy().astype(np.uint8)
+        shared = shared[:, :, :, [2, 1, 0]][0]
+        shared_action_canvas_path = out_dir / (
+            f"shared_action_canvas_step_{int(counterfactual_stats['step']):04d}.png"
+        )
+        cv2.imwrite(str(shared_action_canvas_path), shared)
+
     payload = {
         "model_path": args.model_path,
         "image_tokenizer_path": args.image_tokenizer_path,
@@ -1036,14 +1139,17 @@ def main() -> None:
         "steps": args.steps,
         "max_tokens": args.max_tokens,
         "alg": args.alg,
+        "temperature": args.temperature,
         "order_policy": args.order_policy,
         "dprm_warmup_steps": args.dprm_warmup_steps,
         "dprm_table": args.dprm_table,
         "dprm_action_value_model": args.dprm_action_value_model,
         "dprm_order_scorer": args.dprm_order_scorer,
-        "dprm_action_steps": args.dprm_action_steps,
+        "dprm_action_steps": effective_dprm_action_steps,
         "deployed_order_controller": deployed_order_controller,
         "seed": args.seed,
+        "continuation_seed": args.continuation_seed,
+        "continuation_seed_step": args.continuation_seed_step,
         "generation_seconds": generation_seconds,
         "total_seconds": time.time() - started,
         "num_image_tokens": len(image_tokens),
@@ -1051,6 +1157,9 @@ def main() -> None:
         "text_output": tokenizer.decode(text_tokens, skip_special_tokens=True),
         "image_path": str(image_path) if image_path else None,
         "history_frame_paths": history_frame_paths,
+        "shared_action_canvas_path": (
+            str(shared_action_canvas_path) if shared_action_canvas_path else None
+        ),
     }
     if args.dprm_table:
         denom = max(dprm_hook_stats["candidate_count"], 1)

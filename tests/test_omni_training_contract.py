@@ -10,7 +10,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AUDITOR = REPO_ROOT / "integrations" / "omni_diffusion" / "matched" / "scripts" / "audit_omni_training_contract.py"
 OMNI_OVERLAY = REPO_ROOT / "integrations" / "omni_diffusion" / "matched" / "overlay"
-ORDERS = ("random_matched", "confidence_matched", "dprm_matched")
+ORDERS = ("confidence_matched", "dprm_matched")
 
 
 def sha256(path: Path) -> str:
@@ -21,7 +21,10 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path]:
     train_root = tmp_path / "training"
     controller = tmp_path / "controller.json"
     inference_hook = tmp_path / "omni_t2i_smoke.py"
-    controller.write_text('{"format":"omni_bucket_table_dprm_v1"}\n')
+    controller.write_text(
+        '{"format":"omni_bucket_table_dprm_v1",'
+        '"config":{"reward_action_steps":[96]}}\n'
+    )
     inference_hook.write_text("# fixed formal inference hook\n")
     for index, order in enumerate(ORDERS):
         branch = train_root / order
@@ -29,7 +32,18 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path]:
         checkpoint.mkdir(parents=True)
         (checkpoint / "trainer_state.json").write_text('{"global_step": 1000}\n')
         data_json = tmp_path / f"{order}.jsonl"
-        data_json.write_text(json.dumps({"policy": order, "index": index}) + "\n")
+        data_json.write_text(
+            json.dumps(
+                {
+                    "policy": order,
+                    "index": index,
+                    "dprm_trajectory_step": 95,
+                    "dprm_next_action_step": 96,
+                    "dprm_revealed_visual_indices": list(range(96)),
+                }
+            )
+            + "\n"
+        )
         data_config = tmp_path / f"{order}.yaml"
         data_config.write_text(f"dataset: {order}\n")
         manifest = {
@@ -65,6 +79,15 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path]:
             "warmup_ratio": "0.03",
             "trainable_last_n_layers": 2,
             "reveal_budget": 1,
+            "trajectory_stage_contract": {
+                "post_action_checkpoints": [95],
+                "policy_input_visible_counts": [96],
+                "training_next_action_steps": [96],
+                "loss_state_visible_counts": [97],
+                "hybrid_transition_then_loss": True,
+                "controller_reward_action_steps": [96],
+                "reward_action_coverage_verified": True,
+            },
         }
         (branch / "branch_manifest.json").write_text(json.dumps(manifest) + "\n")
     return train_root, controller
@@ -94,14 +117,34 @@ def invoke(tmp_path: Path, train_root: Path, controller: Path):
     )
 
 
-def test_training_contract_accepts_three_matched_branches(tmp_path: Path) -> None:
+def test_training_contract_accepts_two_formal_matched_branches(tmp_path: Path) -> None:
     train_root, controller = make_fixture(tmp_path)
     result = invoke(tmp_path, train_root, controller)
     assert result.returncode == 0, result.stderr
     report = json.loads((tmp_path / "audit.json").read_text())
     assert report["passed"] is True
     assert set(report["policy_data_json_sha256"]) == set(ORDERS)
-    assert len(set(report["policy_data_json_sha256"].values())) == 3
+    assert len(set(report["policy_data_json_sha256"].values())) == 2
+
+
+def test_training_contract_accepts_tpami_trajectory_schema(tmp_path: Path) -> None:
+    train_root, controller = make_fixture(tmp_path)
+    for order in ORDERS:
+        manifest_path = train_root / order / "branch_manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        data_path = Path(manifest["data_json"])
+        row = json.loads(data_path.read_text())
+        for suffix in (
+            "trajectory_step",
+            "next_action_step",
+            "revealed_visual_indices",
+        ):
+            row[f"tpami_{suffix}"] = row.pop(f"dprm_{suffix}")
+        data_path.write_text(json.dumps(row) + "\n")
+        manifest["data_json_sha256"] = sha256(data_path)
+        manifest_path.write_text(json.dumps(manifest) + "\n")
+    result = invoke(tmp_path, train_root, controller)
+    assert result.returncode == 0, result.stderr
 
 
 def test_training_contract_rejects_trainer_mismatch(tmp_path: Path) -> None:
@@ -139,7 +182,7 @@ def test_training_contract_rejects_mutated_inference_hook(tmp_path: Path) -> Non
 
 def test_training_contract_rejects_incomplete_checkpoint(tmp_path: Path) -> None:
     train_root, controller = make_fixture(tmp_path)
-    state = train_root / "random_matched" / "checkpoint-1000" / "trainer_state.json"
+    state = train_root / "confidence_matched" / "checkpoint-1000" / "trainer_state.json"
     state.write_text('{"global_step": 999}\n')
     result = invoke(tmp_path, train_root, controller)
     assert result.returncode != 0
@@ -155,3 +198,29 @@ def test_training_contract_rejects_mutated_data_config(tmp_path: Path) -> None:
     result = invoke(tmp_path, train_root, controller)
     assert result.returncode != 0
     assert "trajectory config hash mismatch" in result.stderr
+
+
+def test_training_contract_rejects_shifted_next_action(tmp_path: Path) -> None:
+    train_root, controller = make_fixture(tmp_path)
+    manifest_path = train_root / "dprm_matched" / "branch_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    data_path = Path(manifest["data_json"])
+    row = json.loads(data_path.read_text())
+    row["dprm_next_action_step"] = 97
+    data_path.write_text(json.dumps(row) + "\n")
+    manifest["data_json_sha256"] = sha256(data_path)
+    manifest_path.write_text(json.dumps(manifest) + "\n")
+    result = invoke(tmp_path, train_root, controller)
+    assert result.returncode != 0
+    assert "trajectory/action alignment mismatch" in result.stderr
+
+
+def test_training_contract_rejects_wrong_loss_state_count(tmp_path: Path) -> None:
+    train_root, controller = make_fixture(tmp_path)
+    manifest_path = train_root / "dprm_matched" / "branch_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["trajectory_stage_contract"]["loss_state_visible_counts"] = [96]
+    manifest_path.write_text(json.dumps(manifest) + "\n")
+    result = invoke(tmp_path, train_root, controller)
+    assert result.returncode != 0
+    assert "loss-state visible counts are invalid" in result.stderr

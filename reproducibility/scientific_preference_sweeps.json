@@ -18,7 +18,8 @@
       "confidence_bins": 16,
       "auxiliary_bins": 2,
       "readiness": 64,
-      "guidance_candidates": [0.5, 1.0, 2.0, 4.0]
+      "guidance_candidates": [0.5, 1.0, 2.0, 4.0],
+      "selected_guidance": 2.0
     },
     "formal_decode_seeds": [20260812, 20260815, 20260816],
     "bucket_state": [
@@ -59,6 +60,7 @@
       "weighted_sum",
       "smooth_tchebycheff"
     ],
+    "reported_scalarization": "smooth_tchebycheff",
     "bucket_state": [
       "reveal_phase",
       "confidence_bin",
@@ -66,6 +68,7 @@
     ],
     "temperature": 0.05,
     "augmentation": 0.05,
+    "guidance": 1.0,
     "preference_response_criterion": "QED focus minus SA focus has positive QED delta and negative SA-benefit delta; the corresponding one-sided bounds of both 95% bootstrap intervals must exclude zero",
     "objectives": [
       "qed",

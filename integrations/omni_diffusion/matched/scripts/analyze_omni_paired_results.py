@@ -18,6 +18,20 @@ COMPARISONS = (
 )
 
 
+def parse_comparisons(values: list[str] | None) -> tuple[tuple[str, str], ...]:
+    if not values:
+        return COMPARISONS
+    parsed: list[tuple[str, str]] = []
+    for value in values:
+        parts = value.split(":", maxsplit=1)
+        if len(parts) != 2 or not all(parts):
+            raise ValueError(
+                f"invalid comparison {value!r}; expected BASELINE:METHOD"
+            )
+        parsed.append((parts[0], parts[1]))
+    return tuple(parsed)
+
+
 def load_scores(records_path: Path, metric: str) -> dict[str, dict[str, float]]:
     payload = json.loads(records_path.read_text(encoding="utf-8"))
     scores: dict[str, dict[str, float]] = {}
@@ -82,7 +96,15 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--bootstrap-iters", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=20260804)
+    parser.add_argument(
+        "--comparisons",
+        nargs="+",
+        default=None,
+        metavar="BASELINE:METHOD",
+        help="Paired comparisons to compute; defaults to the formal three-order set.",
+    )
     args = parser.parse_args()
+    comparisons = parse_comparisons(args.comparisons)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summaries_by_metric: dict[str, list[dict]] = {}
@@ -101,7 +123,7 @@ def main() -> None:
     for metric_idx, metric in enumerate(metrics):
         scores = load_scores(args.records, metric)
         summaries: list[dict] = []
-        for comparison_idx, (baseline, method) in enumerate(COMPARISONS):
+        for comparison_idx, (baseline, method) in enumerate(comparisons):
             if baseline not in scores or method not in scores:
                 continue
             summary, comparison_rows = paired_summary(

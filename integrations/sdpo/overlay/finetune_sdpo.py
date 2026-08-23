@@ -40,7 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--dprm_warmup_steps', type=int, default=100)
     parser.add_argument('--dprm_switch_steps', type=int, default=400)
     parser.add_argument('--dprm_ready_count', type=int, default=64)
-    parser.add_argument('--dprm_phase_bins', type=int, default=8)
+    parser.add_argument('--dprm_phase_bins', type=int, default=1)
     parser.add_argument('--dprm_conf_bins', type=int, default=10)
     parser.add_argument('--dprm_shortlist_size', type=int, default=64)
     parser.add_argument('--dprm_ablation', type=str, default='normal',

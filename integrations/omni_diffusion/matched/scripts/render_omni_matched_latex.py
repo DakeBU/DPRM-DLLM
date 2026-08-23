@@ -44,6 +44,7 @@ def macro(name: str, body: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--promotion-dir", type=Path, required=True)
+    parser.add_argument("--visual-review-report", type=Path, required=True)
     parser.add_argument("--paired", type=Path, required=True)
     parser.add_argument("--rows-output", type=Path, required=True)
     parser.add_argument("--aggregate-output", type=Path, required=True)
@@ -55,6 +56,18 @@ def main() -> None:
     report = json.loads((args.promotion_dir / "promotion_report.json").read_text())
     if report.get("passed") is not True:
         raise SystemExit("promotion report did not pass")
+
+    visual_marker = args.visual_review_report.parent / "SUPPLEMENT_VISUAL_READY"
+    if not visual_marker.is_file():
+        raise SystemExit("refusing to render Omni results without visual approval")
+    visual_report = json.loads(args.visual_review_report.read_text(encoding="utf-8"))
+    if visual_report.get("passed") is not True:
+        raise SystemExit("fixed-prompt visual review did not pass")
+    if visual_report.get("method_identity_used_for_review") is not False:
+        raise SystemExit("fixed-prompt visual review was not blinded")
+    if visual_report.get("outcome_ranked_replacement_allowed") is not False:
+        raise SystemExit("fixed-prompt visual review allowed outcome-ranked replacement")
+
     expected_paired_hash = report.get("evidence_sha256", {}).get("paired")
     if expected_paired_hash != sha256(args.paired):
         raise SystemExit("paired result does not match the promoted evidence hash")
@@ -65,8 +78,9 @@ def main() -> None:
     random_l = find_comparison(paired, "clip_cosine", "random", BASELINE)
     random_b = find_comparison(paired, "clip_b32_cosine", "random", BASELINE)
     comparisons = (clip_l, clip_b, random_l, random_b)
-    if not all(row.get("matched_prompts") == 96 for row in comparisons):
-        raise SystemExit("formal Omni table requires 96 paired prompts")
+    matched_counts = {int(row.get("matched_prompts", -1)) for row in comparisons}
+    if len(matched_counts) != 1 or next(iter(matched_counts)) <= 0:
+        raise SystemExit("formal Omni table requires one complete paired prompt set")
 
     random_l_mean = float(random_l["baseline_mean"])
     random_b_mean = float(random_b["baseline_mean"])
@@ -97,12 +111,9 @@ def main() -> None:
         ),
     ]
 
-    pairs = [
-        (confidence_l, dprm_l),
-        (0.658, 0.692),
-        (0.4735, 0.4892),
-        (0.696, 0.710),
-    ]
+    # This legacy renderer has no LLaDA-V result input. Do not mix hard-coded
+    # multimodal values into a newly promoted Omni result.
+    pairs = [(confidence_l, dprm_l)]
     confidence_aggregate = sum(c / max(c, d) for c, d in pairs) / len(pairs)
     dprm_aggregate = sum(d / max(c, d) for c, d in pairs) / len(pairs)
     aggregate = latex_row(

@@ -14,7 +14,7 @@ eligible positions are revealed, retained, remasked, or branched.
 | [`dcm`](dcm) | gene-expression token | reconstruction utility |
 | [`genmol`](genmol) | SAFE token | molecular reconstruction objectives |
 | [`sdpo`](sdpo) | DNA token | HepG2 expression utility |
-| [`omni_diffusion`](omni_diffusion) | visual codebook position | CLIP/aesthetic terminal utility |
+| [`omni_diffusion`](omni_diffusion) | visual codebook position | paired CLIP-L/14 and CLIP-B/32 terminal utility |
 | [`llada_v`](llada_v) | answer-token position | task-normalized VQA correctness |
 
 The authoritative commands are in

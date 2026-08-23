@@ -26,6 +26,7 @@ if DMPO_ROOT not in sys.path:
 
 from data_utils import SYSTEM_PROMPT
 from dprm_guidance import load_dprm_estimator, resolve_dprm_estimator_path
+from transformers_compat import install_llada_tp_plan_guard
 from fast_samplers.fast_dllm.generate import (
     generate_pd,
     generate_with_dual_cache,
@@ -36,6 +37,8 @@ from fast_samplers.wino.generate import generate_wino
 from fast_samplers.wino.modeling_llada import LLaDAModelLM as AutoModelWino
 from generate import generate
 from parsers import last_boxed_only_string, remove_boxed
+
+install_llada_tp_plan_guard()
 
 
 LEVEL_LABELS = {
@@ -65,6 +68,8 @@ def parse_args():
     parser.add_argument("--cfg_scale", type=float, default=0.0)
     parser.add_argument("--success_threshold", type=float, default=0.1)
     parser.add_argument("--save_every_batches", type=int, default=1)
+    parser.add_argument("--sample_idx_start", type=int, default=0)
+    parser.add_argument("--sample_idx_end", type=int, default=-1)
     parser.add_argument(
         "--use_fast_sampler",
         type=str,
@@ -307,6 +312,8 @@ def load_or_init_state(output_dir: Path, metadata: dict, num_examples: int, max_
             "remasking": "low_confidence",
             "dprm_estimator_path": "",
             "resolved_dprm_estimator_path": "",
+            "sample_idx_start": 0,
+            "sample_idx_end": -1,
         }
         required_matches = [
             "base_model_path",
@@ -325,6 +332,8 @@ def load_or_init_state(output_dir: Path, metadata: dict, num_examples: int, max_
             "remasking",
             "dprm_estimator_path",
             "resolved_dprm_estimator_path",
+            "sample_idx_start",
+            "sample_idx_end",
             "selected_indices",
         ]
         for key in required_matches:
@@ -378,6 +387,11 @@ def main():
     dataset_jsonl = resolve_dataset_jsonl(args.dataset_jsonl)
     rows, selected_indices, levels = load_eval_dataset(dataset_jsonl, args.test_size, args.seed)
     num_examples = len(rows)
+    if args.test_size is not None and num_examples != args.test_size:
+        raise RuntimeError(
+            f"Requested {args.test_size} Countdown examples but resolved {num_examples} from "
+            f"{dataset_jsonl}. Pass the complete test JSONL with --dataset_jsonl."
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
@@ -408,6 +422,8 @@ def main():
         "use_fast_sampler": args.use_fast_sampler,
         "remasking": args.remasking,
         "dprm_estimator_path": args.dprm_estimator_path,
+        "sample_idx_start": args.sample_idx_start,
+        "sample_idx_end": args.sample_idx_end,
         "num_examples": num_examples,
         "selected_indices": selected_indices.tolist(),
         "levels": levels.tolist(),
@@ -436,7 +452,14 @@ def main():
 
     try:
         num_batches = math.ceil(num_examples / args.batch_size)
-        for sample_idx in range(max_k):
+        sample_idx_start = max(0, int(args.sample_idx_start))
+        sample_idx_end = max_k if int(args.sample_idx_end) < 0 else min(max_k, int(args.sample_idx_end))
+        if sample_idx_start >= sample_idx_end:
+            raise ValueError(
+                f"Invalid sample shard range: start={sample_idx_start}, end={sample_idx_end}, max_k={max_k}"
+            )
+
+        for sample_idx in range(sample_idx_start, sample_idx_end):
             resume_start = int(sample_progress[sample_idx])
             if resume_start >= num_examples:
                 continue

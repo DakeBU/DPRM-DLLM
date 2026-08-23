@@ -98,7 +98,16 @@ def arm_sampling(model, xt, mask_id, sampling_cfg, device: torch.device = None, 
     return (xt, track_xt) if track else xt
 
 @torch.no_grad()
-def mdm_sampling(model, xt, mask_id, sampling_cfg, device: torch.device = None, track: bool = False, arm_init: bool = False):
+def mdm_sampling(
+    model,
+    xt,
+    mask_id,
+    sampling_cfg,
+    device: torch.device = None,
+    track: bool = False,
+    arm_init: bool = False,
+    dprm_state: dict | None = None,
+):
     # sampling hyperparameters
     # xt can include clean tokens
     # if track == True, we return the trace (used for the debugging purpose)
@@ -130,6 +139,8 @@ def mdm_sampling(model, xt, mask_id, sampling_cfg, device: torch.device = None, 
                 "max_candidates": getattr(sampling_cfg, "dprm_max_candidates", 64),
             },
         )
+        if dprm_state is not None:
+            dprm_controller.load_state_dict(dprm_state)
 
     if arm_init:
         xt_t1, xt = xt[:, :1], xt[:, 1:]
@@ -164,7 +175,14 @@ def mdm_sampling(model, xt, mask_id, sampling_cfg, device: torch.device = None, 
             log_conf = torch.log(p.max(dim=-1).values.clamp_min(1e-8))
             phase = confidence_phase_from_step(i, total_steps, dprm_controller.num_phases, xt.device, B)
             num_select = mask_indices.sum(dim=1).clamp(max=unmasking_num).long()
-            selected = dprm_controller.select_mask(log_conf, mask_indices, phase, i, num_select)
+            selected = dprm_controller.select_mask(
+                log_conf,
+                mask_indices,
+                phase,
+                i,
+                num_select,
+                force_full=dprm_state is not None,
+            )
             pred_tokens = torch.argmax(logits_with_noise, dim=-1)
             xt = torch.where(selected, pred_tokens, xt)
             if selected.any():
@@ -196,7 +214,15 @@ def mdm_sampling(model, xt, mask_id, sampling_cfg, device: torch.device = None, 
         return xt
 
 @torch.no_grad()
-def mdm_sampling_block(model, xt, block_size, mask_id, sampling_cfg, device: torch.device = None):
+def mdm_sampling_block(
+    model,
+    xt,
+    block_size,
+    mask_id,
+    sampling_cfg,
+    device: torch.device = None,
+    dprm_state: dict | None = None,
+):
     temperature = sampling_cfg.temperature
     confidence = sampling_cfg.confidence
     unmasking_num = sampling_cfg.unmasking_num
@@ -226,6 +252,8 @@ def mdm_sampling_block(model, xt, block_size, mask_id, sampling_cfg, device: tor
                 "max_candidates": getattr(sampling_cfg, "dprm_max_candidates", 64),
             },
         )
+        if dprm_state is not None:
+            dprm_controller.load_state_dict(dprm_state)
 
     for n in range(n_blocks):
         s = n * block_size
@@ -251,7 +279,14 @@ def mdm_sampling_block(model, xt, block_size, mask_id, sampling_cfg, device: tor
                 log_conf = torch.log(p.max(dim=-1).values.clamp_min(1e-8))
                 phase = confidence_phase_from_step(i, total_steps, dprm_controller.num_phases, xt.device, B)
                 num_select = valid_mask_ids.sum(dim=1).clamp(max=unmasking_num).long()
-                selected = dprm_controller.select_mask(log_conf, valid_mask_ids, phase, i, num_select)
+                selected = dprm_controller.select_mask(
+                    log_conf,
+                    valid_mask_ids,
+                    phase,
+                    i,
+                    num_select,
+                    force_full=dprm_state is not None,
+                )
                 pred_tokens = torch.argmax(logits_with_noise, dim=-1)
                 xt[:, s:e] = torch.where(selected, pred_tokens, xt[:, s:e])
                 if selected.any():

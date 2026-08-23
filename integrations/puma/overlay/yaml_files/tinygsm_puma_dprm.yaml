@@ -51,7 +51,7 @@ training:
     switch_steps: 60000
     warmup_policy: confidence
     ready_count: 128
-    sampled_shortlist: false
+    sampled_shortlist: true
     candidate_multiplier: 4
     min_candidates: 8
     max_candidates: 64

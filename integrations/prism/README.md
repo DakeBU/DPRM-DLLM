@@ -22,9 +22,25 @@ length `256`, and temperature `0.7`. DPRM uses `8` phases, `16` confidence bins,
 
 ## Overlay
 
+The tested upstream commit and all four executable commands are recorded under
+`prism` in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).
 The release includes Dream, LLaDA, and LLaDA-2.0-mini HTS overlays. The paper
 command is `overlay/LLaDA2mini/LLaDA2mini_Prism/scripts/run_gsm8k.sh`. Set
 `PRISM_ROOT` to the corresponding upstream checkout; Dream also requires
 `DREAM_MODEL_PATH`. `GPU_IDS`, `MODEL_PATH`, and `BASE_OUTPUT_PATH` are optional
 overrides. Run the variants in the registry and report accuracy together with
 mean NFE and verifier calls.
+Retain the question-level vote correctness, survivor correctness, and NFE
+records. `scripts/paired_bootstrap.py` recomputes each confidence--DPRM paired
+interval after choosing the corresponding scalar field with `--value`.
+
+The released raw records can be reduced to the paper table and paired intervals
+without the upstream plotting stack:
+
+```bash
+python integrations/prism/scripts/summarize_prism_records.py \
+  --confidence "$ARTIFACT_ROOT/prism/gsm8k/confidence_res.jsonl" \
+  --dprm "$ARTIFACT_ROOT/prism/gsm8k/dprm_res.jsonl" \
+  --output-dir results/prism
+```

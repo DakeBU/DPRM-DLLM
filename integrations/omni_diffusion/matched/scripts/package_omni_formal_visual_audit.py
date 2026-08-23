@@ -262,6 +262,7 @@ def write_blind_audit(
     for label in labels:
         rating_fields.extend(
             [
+                f"{label}_recognizable_yes_no",
                 f"{label}_semantic_alignment_1to5",
                 f"{label}_visual_coherence_1to5",
                 f"{label}_artifact_free_1to5",
@@ -323,6 +324,7 @@ def write_index(
     scores: dict[str, dict[str, Any]],
     common_count: int,
     first_sheet: Path,
+    fixed_sheet: Path,
     paired_sheet: Path,
     blind_sheets: list[Path],
     blind_key_path: Path,
@@ -354,6 +356,7 @@ def write_index(
         f"- Scores TSV: `{scores_path}`",
         f"- Paired contact sheet from formal summary: `{paired_sheet}`",
         f"- First matched examples: `{first_sheet}`",
+        f"- Pre-registered fixed examples: `{fixed_sheet}`",
     ]
     lines += [
         "",
@@ -384,6 +387,12 @@ def main() -> None:
     parser.add_argument("--orders", nargs="+", default=None)
     parser.add_argument("--num-examples", type=int, default=12)
     parser.add_argument("--blind-seed", type=int, default=20260713)
+    parser.add_argument(
+        "--fixed-prompt-ids",
+        nargs="*",
+        default=None,
+        help="Prompt ids declared before generation for the supplementary fixed sheet.",
+    )
     args = parser.parse_args()
 
     records = load_json(args.records)
@@ -405,6 +414,18 @@ def main() -> None:
     first_ids = common[: args.num_examples]
     first_sheet = args.out_dir / "omni_formal_first_examples.png"
     make_grid(order_maps, orders, first_ids, first_sheet, "Omni-Diffusion formal eval: first matched examples")
+    fixed_ids = args.fixed_prompt_ids or first_ids
+    missing_fixed = sorted(set(fixed_ids) - set(common))
+    if missing_fixed:
+        raise SystemExit(f"fixed visual prompts are missing complete outputs: {missing_fixed}")
+    fixed_sheet = args.out_dir / "omni_formal_preregistered_examples.png"
+    make_grid(
+        order_maps,
+        orders,
+        fixed_ids,
+        fixed_sheet,
+        "Omni-Diffusion pre-registered supplementary examples",
+    )
 
     paired_sheet = args.summary.parent / "paired_contact_sheet.png"
     blind_sheets, blind_key_path, ratings_path = write_blind_audit(
@@ -423,6 +444,7 @@ def main() -> None:
         scores=scores,
         common_count=len(common),
         first_sheet=first_sheet,
+        fixed_sheet=fixed_sheet,
         paired_sheet=paired_sheet,
         blind_sheets=blind_sheets,
         blind_key_path=blind_key_path,
@@ -433,8 +455,9 @@ def main() -> None:
         json.dumps(
             {
                 "selection_policy": "first lexicographic matched prompt ids before score inspection",
-                "main_figure_prompt_id": first_ids[0] if first_ids else None,
-                "supplement_fixed_prompt_ids": first_ids[1:],
+                "paper_role": "supplementary fixed-index and blinded visual audit",
+                "main_text_figure_prompt_id": None,
+                "supplement_fixed_prompt_ids": fixed_ids,
                 "first_prompt_ids": first_ids,
                 "blind_prompt_ids": common,
                 "orders": orders,

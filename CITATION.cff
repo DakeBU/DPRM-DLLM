@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use DPRM-DLLM, please cite the DPRM-DLLM paper and the host method you integrate with."
-title: "DPRM: Token Ordering as a Control Axis for Diffusion Language Models"
+title: "DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models"
 authors:
   - family-names: "Bu"
     given-names: "Dake"

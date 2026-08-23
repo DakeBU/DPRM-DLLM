@@ -58,6 +58,9 @@ def test_formal_visual_audit_uses_fixed_and_blinded_prompts_only(tmp_path: Path)
             *ORDERS,
             "--num-examples",
             "2",
+            "--fixed-prompt-ids",
+            "prompt_2301",
+            "prompt_2302",
         ],
         check=False,
         capture_output=True,
@@ -65,8 +68,9 @@ def test_formal_visual_audit_uses_fixed_and_blinded_prompts_only(tmp_path: Path)
     )
     assert result.returncode == 0, result.stderr
     manifest = json.loads((out_dir / "selection_manifest.json").read_text())
-    assert manifest["main_figure_prompt_id"] == "prompt_2300"
-    assert manifest["supplement_fixed_prompt_ids"] == ["prompt_2301"]
+    assert manifest["paper_role"] == "supplementary fixed-index and blinded visual audit"
+    assert manifest["main_text_figure_prompt_id"] is None
+    assert manifest["supplement_fixed_prompt_ids"] == ["prompt_2301", "prompt_2302"]
     assert manifest["first_prompt_ids"] == ["prompt_2300", "prompt_2301"]
     assert manifest["blind_prompt_ids"] == [
         "prompt_2300",
@@ -77,3 +81,6 @@ def test_formal_visual_audit_uses_fixed_and_blinded_prompts_only(tmp_path: Path)
     assert manifest["clip_used_for_selection"] is False
     assert not list(out_dir.glob("*top*dprm*"))
     assert "Largest" not in (out_dir / "visual_audit_index.md").read_text()
+    assert (out_dir / "omni_formal_preregistered_examples.png").is_file()
+    header = (out_dir / "human_rating_template.tsv").read_text().splitlines()[0]
+    assert "A_recognizable_yes_no" in header

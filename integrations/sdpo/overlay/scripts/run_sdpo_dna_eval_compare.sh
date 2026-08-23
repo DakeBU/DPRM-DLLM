@@ -12,6 +12,8 @@ DPRM_BETA=${DPRM_BETA:-1.0}
 DPRM_WARMUP_STEPS=${DPRM_WARMUP_STEPS:-100}
 DPRM_SWITCH_STEPS=${DPRM_SWITCH_STEPS:-400}
 DPRM_READY_COUNT=${DPRM_READY_COUNT:-64}
+DPRM_PHASE_BINS=${DPRM_PHASE_BINS:-1}
+DPRM_CONF_BINS=${DPRM_CONF_BINS:-10}
 DPRM_SHORTLIST_SIZE=${DPRM_SHORTLIST_SIZE:-64}
 
 cd "${ROOT}"
@@ -48,6 +50,8 @@ for item in "${RUNS[@]}"; do
     --dprm_warmup_steps "${DPRM_WARMUP_STEPS}" \
     --dprm_switch_steps "${DPRM_SWITCH_STEPS}" \
     --dprm_ready_count "${DPRM_READY_COUNT}" \
+    --dprm_phase_bins "${DPRM_PHASE_BINS}" \
+    --dprm_conf_bins "${DPRM_CONF_BINS}" \
     --dprm_shortlist_size "${DPRM_SHORTLIST_SIZE}"
 done
 

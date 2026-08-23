@@ -68,13 +68,19 @@ def main():
     parser.add_argument("--num_sample_batches", type=int, default=10)
     parser.add_argument("--bootstrap", type=int, default=1000)
     parser.add_argument("--output", type=str, required=True)
+    parser.add_argument(
+        "--raw_output",
+        type=str,
+        default="",
+        help="Compressed per-sequence and bootstrap records; defaults next to --output.",
+    )
     parser.add_argument("--order_policy", type=str, default="baseline",
                         choices=["baseline", "progressive", "entropy", "dprm", "dprm_random"])
     parser.add_argument("--dprm_beta", type=float, default=1.0)
     parser.add_argument("--dprm_warmup_steps", type=int, default=100)
     parser.add_argument("--dprm_switch_steps", type=int, default=400)
     parser.add_argument("--dprm_ready_count", type=int, default=64)
-    parser.add_argument("--dprm_phase_bins", type=int, default=8)
+    parser.add_argument("--dprm_phase_bins", type=int, default=1)
     parser.add_argument("--dprm_conf_bins", type=int, default=10)
     parser.add_argument("--dprm_shortlist_size", type=int, default=64)
     parser.add_argument("--dprm_ablation", type=str, default="normal",
@@ -103,8 +109,10 @@ def main():
     rng = np.random.default_rng(args.seed)
     n = len(all_seqs)
     boot = {"hepg2_mean": [], "log_lik_mean": [], "atac_acc": [], "kmer_pearson": [], "total_metric": []}
-    for _ in range(args.bootstrap):
+    bootstrap_indices = np.empty((args.bootstrap, n), dtype=np.int32)
+    for draw in range(args.bootstrap):
         idx = rng.integers(0, n, n)
+        bootstrap_indices[draw] = idx
         seqs = [all_seqs[i] for i in idx]
         hepg2 = preds[idx, 0].mean()
         atac = atac_success[idx].mean()
@@ -122,6 +130,18 @@ def main():
     metrics["model_path"] = args.model_path
     metrics["ordering_coverage"] = model.dprm_coverage_summary()
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
+    raw_output = args.raw_output or os.path.join(os.path.dirname(args.output), "eval_records.npz")
+    np.savez_compressed(
+        raw_output,
+        sequences=np.asarray(all_seqs),
+        token_ids=all_raw.detach().cpu().numpy(),
+        hepg2=np.asarray(preds[:, 0], dtype=np.float64),
+        atac_success=np.asarray(atac_success, dtype=np.float64),
+        log_likelihood=np.asarray(log_lik, dtype=np.float64),
+        bootstrap_indices=bootstrap_indices,
+        **{f"bootstrap_{key}": np.asarray(values, dtype=np.float64) for key, values in boot.items()},
+    )
+    metrics["raw_records"] = os.path.basename(raw_output)
     with open(args.output, "w") as f:
         json.dump(metrics, f, indent=2)
     print(json.dumps(metrics, indent=2))

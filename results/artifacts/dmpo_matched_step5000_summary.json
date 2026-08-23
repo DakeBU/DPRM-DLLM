@@ -1,0 +1,75 @@
+{
+  "endpoint_step": 5000,
+  "ks": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32
+  ],
+  "bootstrap_iterations": 5000,
+  "bootstrap_seed": 20260821,
+  "tasks": {
+    "math": {
+      "all": {
+        "n": 500,
+        "confidence": 0.5043333333333333,
+        "dprm": 0.5253333333333332,
+        "paired_delta": 0.021,
+        "ci95_low": -0.003333333333333334,
+        "ci95_high": 0.04533333333333333
+      },
+      "hard": {
+        "n": 128,
+        "confidence": 0.44270833333333337,
+        "dprm": 0.47916666666666663,
+        "paired_delta": 0.03645833333333333,
+        "ci95_low": -0.009114583333333334,
+        "ci95_high": 0.08333333333333334
+      },
+      "record_provenance": {
+        "confidence": {
+          "path": "dmpo/records/math_confidence_step5000",
+          "result_provenance": "archived_paper_result",
+          "checkpoint_binding_verified": false
+        },
+        "dprm_confidence": {
+          "path": "dmpo/records/math_dprm_step5000",
+          "result_provenance": "archived_paper_result",
+          "checkpoint_binding_verified": false
+        }
+      }
+    },
+    "countdown": {
+      "all": {
+        "n": 5120,
+        "confidence": 0.5337565104166667,
+        "dprm": 0.5504557291666666,
+        "paired_delta": 0.016699218749999998,
+        "ci95_low": 0.008203125,
+        "ci95_high": 0.025489095052083324
+      },
+      "hard": {
+        "n": 1024,
+        "confidence": 0.29638671875,
+        "dprm": 0.3338216145833333,
+        "paired_delta": 0.03743489583333333,
+        "ci95_low": 0.014648437499999997,
+        "ci95_high": 0.06022135416666667
+      },
+      "record_provenance": {
+        "confidence": {
+          "path": "dmpo/records/countdown_confidence_step5000",
+          "result_provenance": "archived_paper_result",
+          "checkpoint_binding_verified": false
+        },
+        "dprm_confidence": {
+          "path": "dmpo/records/countdown_dprm_step5000",
+          "result_provenance": "archived_paper_result",
+          "checkpoint_binding_verified": false
+        }
+      }
+    }
+  }
+}

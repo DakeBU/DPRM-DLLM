@@ -1,84 +1,147 @@
 # DPRM-Omni-Diffusion
 
-Omni-Diffusion represents an image as masked visual codebook tokens and applies
-a multimodal denoiser conditioned on text. The host sampler predicts token
-values and commits visual positions over `260` steps. DPRM changes the committed
-position; the denoiser, VQ tokenizer/decoder, prompt, seed, and continuation
-decoder stay fixed.
+This integration changes which masked visual-code position Omni-Diffusion
+commits next. The host predicts the token value and ranks positions by negative
+token entropy. DPRM retains the checkpoint, visual tokenizer, provisional token
+values, seed, and 260-step confidence continuation.
 
-## Matched Orders
+## Controller
 
-- `random_matched`: uniformly sampled visual positions;
-- `confidence_matched`: Omni's negative-token-entropy position order;
-- `dprm_matched`: confidence proposal plus a frozen process-value table;
-- `dprm_random_matched`: random-proposal DPRM control available in the registry.
+At visual step 96, the controller starts from one shared canvas and evaluates
+five declared actions:
 
-The reported comparison trains random, confidence, and DPRM from one checkpoint.
-Each branch receives teacher-forced canvases induced by its deployed order and
-executes one current-model action with the same selector before the unchanged
-denoising loss. CLIP-L/14 terminal utility builds the DPRM table on development
-prompts; it is not a training loss. At evaluation every method generates one
-image per prompt without a reward call or completed-image selection.
+- Omni's native lowest-entropy action;
+- positions at current-prompt confidence-rank quantiles `0.70`, `0.85`,
+  `0.90`, and `0.95`.
 
-## Paper Protocol
+Each action receives one deterministic confidence continuation. CLIP-L/14 is
+the terminal reward, and the deployed score is
 
-The held-out audit uses `96` prompt-text-deduplicated prompts, one fixed seed per
-prompt, `256` generated visual tokens, and the official `260`-step path.
-CLIP-L/14 is the paired primary metric and CLIP-B/32 is a directional check.
-The promotion gate also verifies order divergence, complete prompt pairing,
-zero test-time reward calls, and exact training/deployment contracts.
+```text
+native_order_score + guidance * (CLIP-L(action) - CLIP-L(native)) / 0.03.
+```
+
+The selected path is the DPRM output. CLIP-B/32 is computed only after
+selection as an independent semantic check. Uniform selection over the same
+five paths and reward-only selection are compute-matched controls. This is the
+`K=1` Monte Carlo action-value estimator and hard-tilt selection rule described
+in the paper; it is not manual image selection.
+
+## Paper Configuration
+
+The host checkout is pinned to commit
+`c4f4625f84197a72d556ea00f10e5b2775524252`. The frozen host checkpoint is the
+step-1000 confidence-trained checkpoint in the release package. Rank strata,
+action step, and reward scale are declared before evaluation. Guidance is
+selected from `0.25 0.5 1 2 4 8` on 128 development prompts and fixed to `8`
+before opening 512 disjoint confirmation prompts.
+
+| Order | CLIP-L/14 | CLIP-B/32 | Paths |
+|---|---:|---:|---:|
+| Random | 0.17939 | 0.23381 | 1 |
+| Omni default | 0.18661 | 0.23836 | 1 |
+| Uniform action | 0.18566 | 0.23796 | 5 |
+| DPRM | **0.21125** | **0.24854** | 5 |
+
+DPRM minus confidence is `+0.02464 [0.02249, 0.02677]` on CLIP-L/14 and
+`+0.01018 [0.00820, 0.01221]` on CLIP-B/32, using 5,000 paired bootstrap
+resamples over prompt ids. The complete machine-readable report is
+[`../../results/artifacts/omni_online_action_value_release.json`](../../results/artifacts/omni_online_action_value_release.json).
+The four registered order commands are listed in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).
 
 ## Reproduction
 
-1. Check out Omni-Diffusion at commit `c4f4625f84197a72d556ea00f10e5b2775524252`.
-2. Copy `matched/overlay/` into that checkout, preserving relative paths.
-3. Install this package in the same environment and set the required paths:
-
-   ```bash
-   export OMNI_ROOT="$HOME/checkouts/Omni-Diffusion"
-   export OMNI_MODEL_PATH="$HOME/models/omni-shared-checkpoint"
-   export OMNI_IMAGE_TOKENIZER_PATH="$HOME/models/magvitv2"
-   export OMNI_DATA_JSON="$HOME/data/tokenized_journeydb.jsonl"
-   export OMNI_CONTROLLER="$HOME/artifacts/frozen_controller.json"
-   export OMNI_RUN_ROOT="$HOME/outputs/omni-matched"
-   ```
-
-4. Run the matched pipeline. Development, trajectory, and evaluation prompt
-   ranges must be disjoint; defaults and hashes are written to the run manifest.
-
-   ```bash
-   bash integrations/omni_diffusion/matched/run_pipeline.sh
-   ```
-
-The pipeline writes branch manifests, source and code hashes, checkpoint audits,
-paired bootstrap statistics, the promotion decision, fixed-index images, and a
-blinded visual-rating package. A failed promotion gate remains a reported
-boundary result and is not rewritten as a positive row.
-
-## Completed-Path Diagnostic
-
-The files under `scripts/` outside `matched/` reproduce a completed-path action
-search used to inspect one-step visual consequences. It evaluates multiple
-terminal continuations and is therefore not the paper endpoint. Its values are
-stored in `results/artifacts/omni_completed_path_diagnostic.csv`, not in the
-canonical paper table.
-
-For that diagnostic only, rebuild a shared-state canvas with:
+Create an Omni-compatible environment, install this repository in editable
+mode, and set:
 
 ```bash
-python scripts/build_intermediate_canvas.py \
-  --confidence-dir outputs/intermediate/confidence \
-  --dprm-dir outputs/intermediate/dprm \
-  --formal-records outputs/selection/matched_four_order_records_scored.json \
-  --prompt-id "$PROMPT_ID" \
-  --output outputs/intermediate/canvas_comparison.png
+export OMNI_ROOT="$HOME/checkouts/Omni-Diffusion"
+export OMNI_MODEL_PATH="$HOME/models/dprm-omni-checkpoint-1000"
+export OMNI_IMAGE_TOKENIZER_PATH="$HOME/models/magvitv2"
+export VIRTUAL_ENV="$HOME/envs/omni"
+export OMNI_ONLINE_GPUS="0 1 2 3 4 5 6 7"
 ```
 
-The two runs must use the same prompt, seed, checkpoint, tokenizer, and sampler.
-The DPRM run changes one step-96 action with `--force-order-step 96` and the
-quantile selected by the diagnostic DPRM-BoN record, then resumes confidence
-decoding.
+Run development selection:
 
-`generate_four_orders.py` rejects a DPRM label after warmup unless a real table
-or action-value model is supplied. Diagnostic confidence fallback requires an
-explicit flag and is excluded from formal results.
+```bash
+export OMNI_ONLINE_PROMPT_FILE="$PWD/reproducibility/omni_partiprompts_development128.jsonl"
+export OMNI_ONLINE_ROOT="$HOME/outputs/omni_online_dev128"
+export OMNI_ONLINE_COUNT=128
+unset OMNI_ONLINE_FIXED_GUIDANCE
+bash integrations/omni_diffusion/matched/run_online_action_value_controller.sh
+```
+
+Run the untouched confirmation with the selected guidance:
+
+```bash
+export OMNI_ONLINE_PROMPT_FILE="$PWD/reproducibility/omni_partiprompts_confirmation512.jsonl"
+export OMNI_ONLINE_ROOT="$HOME/outputs/omni_online_confirmation512"
+export OMNI_ONLINE_COUNT=512
+export OMNI_ONLINE_FIXED_GUIDANCE=8
+export OMNI_ONLINE_INCLUDE_RANDOM=1
+bash integrations/omni_diffusion/matched/run_online_action_value_controller.sh
+
+python integrations/omni_diffusion/matched/scripts/publish_omni_online_results.py \
+  --summary "$OMNI_ONLINE_ROOT/selection/online_action_value_summary.json" \
+  --scored-records "$OMNI_ONLINE_ROOT/records/two_encoder.json" \
+  --run-manifest "$OMNI_ONLINE_ROOT/run_manifest.json" \
+  --output results/artifacts/omni_online_action_value_release.json
+```
+
+The runner writes one job for every prompt/action pair, hashes the prompt split
+and shared canvas, verifies that every forced branch changes exactly one
+position action, scores all paths, and performs selection without human input.
+
+## Supplementary Confirmation Cases
+
+The Supplement contains eight additional cases from the frozen 512-prompt
+confirmation. They are selected only after aggregate evaluation by the public
+rule in
+[`../../reproducibility/omni_supplementary_mechanism_cases.json`](../../reproducibility/omni_supplementary_mechanism_cases.json):
+the DPRM action must differ from confidence, both CLIP encoders must improve,
+and the prompt must expose an inspectable count, relation, or compositional
+attribute. These cases do not select the controller or contribute to its mean.
+
+The release bundle stores deterministic step-64/96/192 replays. Rebuild all
+four Supplementary figures with:
+
+```bash
+python integrations/omni_diffusion/matched/scripts/render_omni_supplement_cases.py \
+  --replay-manifest \
+    "$DPRM_ARTIFACT_ROOT/omni_diffusion/supplementary_mechanism_cases/replay_manifest.json" \
+  --output-dir "$HOME/outputs/omni_supplementary_figures"
+```
+
+Before rendering, the script checks SHA-256 digests of every replayed final
+image against its source image in the frozen confirmation package. It aborts
+if any pair differs.
+
+## Mechanism Figure
+
+The paper's beach and boy-with-kittens figure is a separate checkpoint-500
+mechanism diagnostic. It uses the native action plus rank quantiles
+`0.15 0.30 0.70 0.85`, seeds `20270085` and `20270027`, and terminal utility
+`CLIP-L/14 + 0.01 * LAION aesthetic`. The selected visual indices are 229 and
+192. This diagnostic is not included in the 512-prompt mean and is labeled
+separately in the paper. The renderer is
+`integrations/omni_diffusion/matched/scripts/render_omni_mechanism_cases.py`;
+its manifest fixes prompt text, seed, candidate set, checkpoint identifier, and
+input record paths.
+
+After downloading the Hugging Face artifact to `$DPRM_ARTIFACT_ROOT`, rebuild
+the figure with:
+
+```bash
+python integrations/omni_diffusion/matched/scripts/render_omni_mechanism_cases.py \
+  --confidence-dir "$DPRM_ARTIFACT_ROOT/omni_diffusion/mechanism_cases/beach/confidence" \
+  --dprm-dir "$DPRM_ARTIFACT_ROOT/omni_diffusion/mechanism_cases/beach/dprm" \
+  --formal-records "$DPRM_ARTIFACT_ROOT/omni_diffusion/mechanism_cases/audit_records_b32.json" \
+  --prompt-id 20270085 --case-name Beach \
+  --second-confidence-dir "$DPRM_ARTIFACT_ROOT/omni_diffusion/mechanism_cases/boy_kittens/confidence" \
+  --second-dprm-dir "$DPRM_ARTIFACT_ROOT/omni_diffusion/mechanism_cases/boy_kittens/dprm" \
+  --second-formal-records "$DPRM_ARTIFACT_ROOT/omni_diffusion/mechanism_cases/audit_records_b32.json" \
+  --second-prompt-id 20270027 --second-case-name "Boy and kittens" \
+  --output integrations/omni_diffusion/omni_intermediate_canvas_case.png
+```

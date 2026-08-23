@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DPRM uses terminal utility to control token order in diffusion language models and masked discrete diffusion systems.">
+  <title>DPRM | Token Ordering for Diffusion Language Models</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="site.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="wordmark" href="#top" aria-label="DPRM home">DPRM</a>
+    <nav aria-label="Primary navigation">
+      <a href="#visual-order">Visual order</a>
+      <a href="#results">Results</a>
+      <a href="#diagnostics">Diagnostics</a>
+    </nav>
+    <a class="icon-link" href="https://github.com/DakeBU/DPRM-DLLM" aria-label="Source code on GitHub" title="Source code">
+      <i data-lucide="github"></i>
+    </a>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Process reward models for masked diffusion</p>
+        <h1>DPRM</h1>
+        <p class="offer">A Plug-in Token-Ordering Module for Diffusion Language Models</p>
+        <p class="lead">Keep the denoiser and token sampler. Change which position is committed next using terminal utility.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://arxiv.org/abs/2604.24357"><i data-lucide="file-text"></i>Paper</a>
+          <a class="button secondary" href="https://github.com/DakeBU/DPRM-DLLM"><i data-lucide="code-2"></i>Code</a>
+          <a class="button secondary" href="https://huggingface.co/DakeBU/DPRM-DLLM"><i data-lucide="database"></i>Artifacts</a>
+        </div>
+      </div>
+      <figure class="overview-figure">
+        <img src="assets/dprm-overview.png" alt="DPRM ranks candidate token positions using confidence and estimated terminal utility.">
+      </figure>
+      <div class="metric-band" aria-label="Selected results">
+        <div><strong>+13.2%</strong><span>Omni CLIP-L/14</span></div>
+        <div><strong>+14.6%</strong><span>PUMA accuracy</span></div>
+        <div><strong>+12.9%</strong><span>Countdown Hard</span></div>
+        <div><strong>9 hosts</strong><span>one ordering interface</span></div>
+      </div>
+    </section>
+
+    <section class="section visual-section" id="visual-order">
+      <div class="section-heading">
+        <p class="eyebrow">Omni-Diffusion</p>
+        <h2>One action changes the image trajectory</h2>
+        <p>Both rows share the same canvas through step 95. At step 96, confidence commits its lowest-entropy position; DPRM selects a lower-confidence action with higher estimated terminal value.</p>
+      </div>
+
+      <div class="case-tabs" role="tablist" aria-label="Omni mechanism cases">
+        <button class="case-tab active" role="tab" aria-selected="true" data-case="beach">Beach &amp; kittens</button>
+        <button class="case-tab" role="tab" aria-selected="false" data-case="crowd">Crowd &amp; owls</button>
+        <button class="case-tab" role="tab" aria-selected="false" data-case="chairs">Chairs &amp; lecture</button>
+        <button class="case-tab" role="tab" aria-selected="false" data-case="robots">Robots &amp; armadillo</button>
+        <button class="case-tab" role="tab" aria-selected="false" data-case="avocado">Avocado &amp; gym</button>
+      </div>
+
+      <div class="visual-workspace" tabindex="0" aria-label="Scrollable Omni-Diffusion intermediate-state comparison">
+        <figure class="case-panel active" data-panel="beach">
+          <img src="assets/omni-beach-kittens.png" alt="Confidence and DPRM trajectories for beach children and a boy playing a flute for kittens.">
+          <figcaption><strong>DPRM commits an unfilled region that preserves object separation.</strong> The later canvas resolves three children and their toys, and retains the boy, flute, and kittens as separate entities.</figcaption>
+        </figure>
+        <figure class="case-panel" data-panel="crowd" hidden>
+          <img src="assets/omni-crowd-owls.png" alt="Confidence and DPRM trajectories for a crowd under fireworks and an owl family.">
+          <figcaption><strong>DPRM opens a missing spatial region instead of reinforcing an already confident object.</strong> Separate people remain beneath the fireworks and the owl family retains three bodies.</figcaption>
+        </figure>
+        <figure class="case-panel" data-panel="chairs" hidden>
+          <img src="assets/omni-chairs-donkey.png" alt="Confidence and DPRM trajectories for three chairs and a donkey lecture.">
+          <figcaption><strong>DPRM establishes a second support and a foreground-background boundary.</strong> Three chair silhouettes remain distinct; the lecturer separates from the audience.</figcaption>
+        </figure>
+        <figure class="case-panel" data-panel="robots" hidden>
+          <img src="assets/omni-robots-armadillo.png" alt="Confidence and DPRM trajectories for robot soccer and an armadillo playing bagpipes.">
+          <figcaption><strong>DPRM anchors the relation-bearing region.</strong> It preserves the pass between two robots and binds the bagpipe to the armadillo rather than merging attributes.</figcaption>
+        </figure>
+        <figure class="case-panel" data-panel="avocado" hidden>
+          <img src="assets/omni-avocado-rat.png" alt="Confidence and DPRM trajectories for an avocado armchair and a rat working out.">
+          <figcaption><strong>DPRM preserves the structural boundary needed by the prompt.</strong> The chair keeps its seat and avocado contour; the gym scene keeps the foreground equipment.</figcaption>
+        </figure>
+      </div>
+
+      <div class="paired-metrics">
+        <div class="metric-comparison"><span>CLIP-L/14</span><div><small>Confidence</small><b>0.18661</b></div><div class="winner"><small>DPRM</small><b>0.21125</b></div></div>
+        <div class="metric-comparison"><span>CLIP-B/32</span><div><small>Confidence</small><b>0.23836</b></div><div class="winner"><small>DPRM</small><b>0.24854</b></div></div>
+        <p>512 untouched prompts. Paired 95% intervals for both improvements exclude zero.</p>
+      </div>
+    </section>
+
+    <section class="section results-section" id="results">
+      <div class="section-heading compact">
+        <p class="eyebrow">Nine host settings</p>
+        <h2>Ordering gains across modalities</h2>
+      </div>
+      <div class="host-tabs" role="tablist" aria-label="Experiment domains">
+        <button class="host-tab active" role="tab" aria-selected="true" data-host="multimodal">Multimodal</button>
+        <button class="host-tab" role="tab" aria-selected="false" data-host="reasoning">Reasoning</button>
+        <button class="host-tab" role="tab" aria-selected="false" data-host="scientific">Scientific</button>
+      </div>
+
+      <div class="host-panel active" data-host-panel="multimodal">
+        <div class="result-table" role="table" aria-label="Multimodal results">
+          <div class="result-row header" role="row"><span>Host</span><span>Metric</span><span>Confidence</span><span>DPRM</span></div>
+          <div class="result-row" role="row"><strong>Omni-Diffusion</strong><span>CLIP-L/14</span><span>0.18661</span><mark>0.21125</mark></div>
+          <div class="result-row" role="row"><strong>Omni-Diffusion</strong><span>CLIP-B/32</span><span>0.23836</span><mark>0.24854</mark></div>
+          <div class="result-row" role="row"><strong>LLaDA-V</strong><span>RealWorldQA</span><span>47.35%</span><mark>48.92%</mark></div>
+          <div class="result-row" role="row"><strong>LLaDA-V</strong><span>Numeric / count</span><span>32.05%</span><mark>41.03%</mark></div>
+        </div>
+      </div>
+
+      <div class="host-panel" data-host-panel="reasoning" hidden>
+        <div class="result-table" role="table" aria-label="Reasoning results">
+          <div class="result-row header" role="row"><span>Host</span><span>Metric</span><span>Confidence</span><span>DPRM</span></div>
+          <div class="result-row" role="row"><strong>PUMA</strong><span>GSM8K accuracy</span><span>30.10%</span><mark>34.50%</mark></div>
+          <div class="result-row" role="row"><strong>DMPO</strong><span>MATH Hard</span><span>44.3</span><mark>47.9</mark></div>
+          <div class="result-row" role="row"><strong>DMPO</strong><span>Countdown Hard</span><span>29.6</span><mark>33.4</mark></div>
+          <div class="result-row" role="row"><strong>Prism</strong><span>Voted accuracy</span><span>82.41%</span><mark>83.85%</mark></div>
+        </div>
+      </div>
+
+      <div class="host-panel" data-host-panel="scientific" hidden>
+        <div class="result-table" role="table" aria-label="Scientific results">
+          <div class="result-row header" role="row"><span>Host</span><span>Rewarded objective</span><span>Confidence</span><span>DPRM</span></div>
+          <div class="result-row" role="row"><strong>DPLM-2 Bit</strong><span>Balanced score</span><span>0.7355</span><mark>0.7377</mark></div>
+          <div class="result-row" role="row"><strong>DCM</strong><span>Nonzero recovery</span><span>0.0183</span><mark>0.0198</mark></div>
+          <div class="result-row" role="row"><strong>GenMol V2</strong><span>QED</span><span>0.6392</span><mark>0.7350</mark></div>
+          <div class="result-row" role="row"><strong>SDPO-DNA</strong><span>Total utility</span><span>0.384</span><mark>2.119</mark></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section diagnostics-section" id="diagnostics">
+      <div class="section-heading">
+        <p class="eyebrow">Saved trajectories and controls</p>
+        <h2>What changes when order changes?</h2>
+      </div>
+      <div class="diagnostic-grid">
+        <figure class="wide"><img src="assets/puma-order-case.png" alt="Two PUMA reasoning traces comparing confidence and DPRM reveal order."><figcaption><strong>Reasoning.</strong> DPRM reveals wider context, backfills earlier positions, and delays numeric commitment on two DPRM-only GSM8K wins.</figcaption></figure>
+        <figure><img src="assets/lladav-order-case.png" alt="LLaDA-V same-canvas intervention showing cone before number."><figcaption><strong>Visual question answering.</strong> Revealing the object word before the numeric slot preserves the context needed for the correct count.</figcaption></figure>
+        <figure><img src="assets/countdown-token-diagnostics.png" alt="Countdown confidence-bin and token-level diagnostics."><figcaption><strong>Hard order classes.</strong> Confidence selects easy states early; reward tilt restores selected low-confidence regions later.</figcaption></figure>
+        <figure class="wide"><img src="assets/theory-diagnostics.png" alt="Theory-facing diagnostics for Countdown, DNA, and VQA."><figcaption><strong>Mechanism controls.</strong> Hard/OOD, shuffled-value, entropy-only, and format-aware controls isolate terminal-utility effects.</figcaption></figure>
+        <figure class="wide"><img src="assets/scientific-preferences.png" alt="Scientific-domain radar charts for protein, cells, molecules, and DNA."><figcaption><strong>Scientific preferences.</strong> Weighted and Tchebycheff rewards expose controllable Pareto responses across four scientific hosts.</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="section resources-section">
+      <div>
+        <p class="eyebrow">Reproducibility</p>
+        <h2>Code, checkpoints, raw records</h2>
+      </div>
+      <div class="resource-links">
+        <a href="https://github.com/DakeBU/DPRM-DLLM"><i data-lucide="github"></i><span><strong>GitHub</strong><small>Nine host integrations</small></span></a>
+        <a href="https://huggingface.co/DakeBU/DPRM-DLLM"><i data-lucide="database"></i><span><strong>Hugging Face</strong><small>Retained checkpoints and records</small></span></a>
+        <a href="https://arxiv.org/abs/2604.24357"><i data-lucide="book-open"></i><span><strong>Paper</strong><small>Method, theory, and protocols</small></span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>DPRM</span>
+    <span>A Plug-in Token-Ordering Module for Diffusion Language Models</span>
+  </footer>
+</body>
+</html>

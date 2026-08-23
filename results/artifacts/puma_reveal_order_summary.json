@@ -1,0 +1,46 @@
+{
+  "paired_examples": 1319,
+  "excluded_tokens": ["<|endoftext|>"],
+  "bootstrap_iterations": 5000,
+  "bootstrap_seed": 20260810,
+  "accuracy": {
+    "confidence": 0.3009855951478393,
+    "dprm": 0.34495830174374525,
+    "mean_delta": 0.04397270659590599,
+    "delta_ci95": [0.018953752843062926, 0.06899166034874905],
+    "dprm_only_wins": 169,
+    "confidence_only_wins": 111
+  },
+  "order_metrics": {
+    "same_step_span": {
+      "confidence": 5.214085772749318,
+      "dprm": 6.173128280262424,
+      "mean_delta": 0.9590425075131063,
+      "delta_ci95": [0.8201522894095832, 1.101505203791648]
+    },
+    "same_step_nonlocal_rate": {
+      "confidence": 0.15554892470153228,
+      "dprm": 0.1946617402991133,
+      "mean_delta": 0.039112815597581,
+      "delta_ci95": [0.0337744742832693, 0.0442449901219623]
+    },
+    "same_step_adjacency": {
+      "confidence": 0.5006237405358093,
+      "dprm": 0.3738784670931541,
+      "mean_delta": -0.1267452734426552,
+      "delta_ci95": [-0.13186055955596956, -0.12148047461166826]
+    },
+    "backfill_step_rate": {
+      "confidence": 0.21610586497027645,
+      "dprm": 0.27739393193570383,
+      "mean_delta": 0.061288066965427386,
+      "delta_ci95": [0.056752257455559764, 0.06584885485875487]
+    },
+    "first_numeric_step_fraction": {
+      "confidence": 0.09356945503721772,
+      "dprm": 0.11532948504356885,
+      "mean_delta": 0.021760030006351138,
+      "delta_ci95": [0.013037277819198327, 0.03133389810580241]
+    }
+  }
+}

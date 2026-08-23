@@ -22,6 +22,7 @@ from dprm.omni_order import (
     OmniOrderConfig,
     OmniOrderScorer,
     OmniRankBucketDPRM,
+    OmniStageRankCodeDPRM,
     adjusted_order_scores,
     build_action_features,
     entropy_penalty_order_scores,
@@ -30,6 +31,40 @@ from dprm.omni_order import (
     load_omni_order_controller,
     visual_candidate_mask,
 )
+
+
+def test_stage_rank_code_controller_uses_provisional_visual_code():
+    values = [[[0.0 for _ in range(4)] for _ in range(64)]]
+    counts = [[[0 for _ in range(4)] for _ in range(64)]]
+    values[0][57][3] = 0.5
+    counts[0][57][3] = 10
+    controller = OmniStageRankCodeDPRM(
+        active_steps=(64,),
+        rank_bins=64,
+        code_bins=4,
+        reward_values=tuple(tuple(tuple(row) for row in stage) for stage in values),
+        counts=tuple(tuple(tuple(row) for row in stage) for stage in counts),
+        beta=2.0,
+        min_count=8,
+    )
+    confidence = torch.linspace(-2.0, 0.0, 100)
+    token_ids = torch.full((100,), 168072, dtype=torch.long)
+    # The rank-57 cell spans candidates near the 0.90 quantile.
+    token_ids[89:91] = 168072 + 7000
+    adjusted, reward = controller.score(
+        confidence,
+        step=64,
+        provisional_token_ids=token_ids,
+    )
+    assert reward.max().item() == pytest.approx(0.5)
+    assert torch.any(adjusted > confidence)
+    unchanged, zero = controller.score(
+        confidence,
+        step=63,
+        provisional_token_ids=token_ids,
+    )
+    assert torch.equal(unchanged, confidence)
+    assert torch.count_nonzero(zero) == 0
 
 
 def test_prompt_text_deduplication_preserves_one_record_per_order():
@@ -62,6 +97,96 @@ def test_prompt_text_deduplication_preserves_one_record_per_order():
         ("new", "random"),
         ("new", "progressive_confidence"),
     ]
+
+
+def test_table_builder_can_credit_only_deployed_action_steps():
+    import importlib.util
+
+    script = (
+        Path(__file__).parents[1]
+        / "integrations"
+        / "omni_diffusion"
+        / "matched"
+        / "scripts"
+        / "build_omni_dprm_table.py"
+    )
+    spec = importlib.util.spec_from_file_location("build_omni_table_active", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    rows = [{"step": 64}, {"step": 96}, {"step": 128}]
+    assert module.active_trace_rows(rows, set()) is rows
+    assert module.active_trace_rows(rows, {96, 128}) == rows[1:]
+    assert [module.spatial_bin(index, 4) for index in (0, 15, 128, 255)] == [
+        0,
+        1,
+        2,
+        3,
+    ]
+    assert module.spatial_bin(68, 16) == 5
+
+
+def test_dual_clip_terminal_utility_normalizes_each_encoder_separately():
+    import importlib.util
+
+    script = (
+        Path(__file__).parents[1]
+        / "integrations"
+        / "omni_diffusion"
+        / "matched"
+        / "scripts"
+        / "build_omni_dprm_table.py"
+    )
+    spec = importlib.util.spec_from_file_location("build_omni_table_dual", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    records = [
+        {
+            "prompt_id": "p0",
+            "order": "random",
+            "trace_path": "p0-r",
+            "clip_cosine": 0.20,
+            "clip_b32_cosine": 0.30,
+        },
+        {
+            "prompt_id": "p0",
+            "order": "confidence",
+            "trace_path": "p0-c",
+            "clip_cosine": 0.24,
+            "clip_b32_cosine": 0.28,
+        },
+        {
+            "prompt_id": "p1",
+            "order": "random",
+            "trace_path": "p1-r",
+            "clip_cosine": 0.31,
+            "clip_b32_cosine": 0.21,
+        },
+        {
+            "prompt_id": "p1",
+            "order": "confidence",
+            "trace_path": "p1-c",
+            "clip_cosine": 0.29,
+            "clip_b32_cosine": 0.27,
+        },
+    ]
+    rewards, stats = module.normalized_rewards(
+        records,
+        "paired_prompt_advantage",
+        {"clip_cosine": 0.25, "clip_b32_cosine": 0.75},
+    )
+    assert set(rewards) == {"p0-r", "p0-c", "p1-r", "p1-c"}
+    assert sum(rewards.values()) == pytest.approx(0.0)
+    assert stats["metric_weights"] == {
+        "clip_cosine": 0.25,
+        "clip_b32_cosine": 0.75,
+    }
+    assert records[0]["dprm_reward"] == pytest.approx(rewards["p0-r"])
+    assert set(records[0]["dprm_reward_components"]) == {
+        "clip_cosine",
+        "clip_b32_cosine",
+    }
 
 
 def test_negative_entropy_prefers_peaked_distribution() -> None:
@@ -394,6 +519,63 @@ def test_bucket_table_policy_warmup_and_linear_gate_follow_action_index() -> Non
     torch.testing.assert_close(score64 - confidence, value64, rtol=1e-6, atol=1e-6)
 
 
+def test_bucket_table_limits_reward_to_fixed_actions_and_ambiguous_candidates() -> None:
+    controller = OmniBucketTableDPRM(
+        num_phases=1,
+        confidence_bins=1,
+        spatial_bins=3,
+        reward_temperature=1.0,
+        guidance_scale=1.0,
+        warmup_steps=0,
+        switch_steps=0,
+        ready_count=1,
+        counts=(((1.0, 1.0, 1.0),),),
+        exp_reward_sums=(((1.0, 4.0, 20.0),),),
+        policy_warmup_steps=0,
+        reward_action_steps=(64, 96),
+        max_base_score_gap=0.05,
+    )
+    confidence = torch.tensor([-0.10, -0.13, -0.40])
+    visual_indices = torch.tensor([0, 96, 240])
+    inactive_scores, inactive_values = controller.score(
+        confidence, step=65, visual_indices=visual_indices
+    )
+    torch.testing.assert_close(inactive_scores, confidence)
+    torch.testing.assert_close(inactive_values, torch.zeros_like(inactive_values))
+    active_scores, active_values = controller.score(
+        confidence, step=64, visual_indices=visual_indices
+    )
+    assert active_scores[1] > active_scores[0]
+    assert active_values[1] > 0
+    assert active_values[2] == 0
+
+
+def test_bucket_table_can_limit_reward_to_low_confidence_bins() -> None:
+    controller = OmniBucketTableDPRM(
+        num_phases=1,
+        confidence_bins=2,
+        spatial_bins=1,
+        reward_temperature=1.0,
+        guidance_scale=1.0,
+        warmup_steps=0,
+        switch_steps=0,
+        ready_count=1,
+        counts=(((1.0,), (1.0,)),),
+        exp_reward_sums=(((4.0,), (4.0,)),),
+        confidence_bin_edges=(0.5,),
+        policy_warmup_steps=0,
+        max_reward_confidence_bin=0,
+    )
+    confidence = torch.log(torch.tensor([0.25, 0.75]))
+    adjusted, values = controller.score(
+        confidence, step=1, visual_indices=torch.tensor([0, 1])
+    )
+    assert adjusted[0] > confidence[0]
+    assert values[0] > 0
+    assert adjusted[1] == confidence[1]
+    assert values[1] == 0
+
+
 def test_bucket_table_selects_same_visual_action_in_train_and_inference_layouts() -> None:
     counts = tuple(
         tuple(tuple(8.0 for _ in range(16)) for _ in range(3)) for _ in range(1)
@@ -459,6 +641,7 @@ def test_fixed_canvas_contract_survives_controller_freeze(tmp_path) -> None:
     counts = [[[8.0 for _ in range(16)] for _ in range(8)]]
     source = tmp_path / "source.json"
     candidate = tmp_path / "candidate.json"
+    decision = tmp_path / "decision.json"
     formal = tmp_path / "formal.json"
     source.write_text(
         json.dumps(
@@ -496,10 +679,34 @@ def test_fixed_canvas_contract_survives_controller_freeze(tmp_path) -> None:
             "0.01",
             "--ready-count",
             "4",
+            "--reward-action-steps",
+            "64",
+            "96",
+            "--max-base-score-gap",
+            "0.05",
         ],
         check=True,
         capture_output=True,
         text=True,
+    )
+    candidate_payload = json.loads(candidate.read_text(encoding="utf-8"))
+    decision.write_text(
+        json.dumps(
+            {
+                "design": "disjoint development selection",
+                "passed": True,
+                "selection_metric": "mean paired CLIP-L/14 delta",
+                "selected": "candidate_a",
+                "candidates": {
+                    "candidate_a": {
+                        "config": candidate_payload["config"],
+                        "metrics": {"mean_delta_vs_confidence": 0.01},
+                        "interventions": {"prompt_fraction_with_override": 0.5},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
     )
     subprocess.run(
         [
@@ -507,6 +714,14 @@ def test_fixed_canvas_contract_survives_controller_freeze(tmp_path) -> None:
             str(REPO_ROOT / "integrations" / "omni_diffusion" / "matched" / "scripts" / "prepare_omni_formal_controller.py"),
             "--input",
             str(candidate),
+            "--selection-decision",
+            str(decision),
+            "--table-prompt-range",
+            "2000",
+            "2047",
+            "--selection-prompt-range",
+            "2100",
+            "2131",
             "--output",
             str(formal),
         ],
@@ -519,6 +734,7 @@ def test_fixed_canvas_contract_survives_controller_freeze(tmp_path) -> None:
     deployment = payload["metadata"]["deployment_contract"]
     match = payload["metadata"]["train_test_order_match"]
     assert source_summary["fixed_visual_canvas"] is True
+    assert payload["metadata"]["source_prompt_text_sha256"] == []
     assert deployment == {
         "paths_per_prompt": 1,
         "positions_per_order_action": 1,
@@ -529,3 +745,22 @@ def test_fixed_canvas_contract_survives_controller_freeze(tmp_path) -> None:
     }
     assert match["training_state_policy"] == "same_frozen_bucket_controller"
     assert match["inference_policy"] == "same_frozen_bucket_controller"
+    assert payload["metadata"]["stagewise_order_contract"] == {
+        "reward_action_steps": [64, 96],
+        "max_base_score_gap": 0.05,
+        "max_reward_confidence_bin": None,
+        "fallback": "native confidence order",
+    }
+    assert payload["metadata"]["development_selection"] == {
+        "design": "disjoint development selection",
+        "selection_metric": "mean paired CLIP-L/14 delta",
+        "selected_label": "candidate_a",
+        "candidate_count": 1,
+        "table_prompt_range": [2000, 2047],
+        "selection_prompt_range": [2100, 2131],
+        "selection_prompt_file": None,
+        "selection_prompt_file_sha256": None,
+        "selection_prompt_text_sha256": None,
+        "selected_metrics": {"mean_delta_vs_confidence": 0.01},
+        "selected_interventions": {"prompt_fraction_with_override": 0.5},
+    }

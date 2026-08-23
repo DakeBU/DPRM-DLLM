@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "description": "One deployable DPRM state is retained per host. Baseline and preference-control outputs remain as records and are regenerated with the public commands.",
+  "hosts": {
+    "puma": {"primary_artifact_id": "dprm_2m"},
+    "dmpo": {"primary_artifact_id": "countdown_dprm_checkpoint"},
+    "prism": {"primary_artifact_id": null},
+    "dplm": {"primary_artifact_id": "tchebycheff"},
+    "dcm": {"primary_artifact_id": "recovery_controller"},
+    "genmol": {"primary_artifact_id": "balanced"},
+    "sdpo": {"primary_artifact_id": "dprm_random"},
+    "omni_diffusion": {"primary_artifact_id": "selected_dprm_checkpoint_index"},
+    "llada_v": {"primary_artifact_id": "rwqa_controller"}
+  }
+}

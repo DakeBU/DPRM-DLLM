@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "selection_rule": "Concrete prompt text selected before generation and without method outputs.",
+  "prompts": [
+    {
+      "prompt_id": 2501,
+      "sha256": "1c6bff3bac106ef793041c268fc66410fcb10f6cf098c9813619c54b24bce84e",
+      "text": "A detailed painting illustrates a winter scene in a Scottish landscape, featuring a lone stone megalith standing atop a grassy hill, surrounded by moss. The ancient and prehistoric scenery evokes a sense of history and mystery."
+    },
+    {
+      "prompt_id": 2521,
+      "sha256": "109154289a462b87c02f35445b221ed01d9e3c927c9cca8b47ab51ead357f2b0",
+      "text": "A group of people playing volleyball on the snow-covered summit of Mount Everest."
+    },
+    {
+      "prompt_id": 2524,
+      "sha256": "3ae04404c129544f4641ad645d4ba948af27db90d9bf3bfcbafa731c6fce786e",
+      "text": "A doll house aquarium with colorful fish, captured in hyper-detail and sharp clarity."
+    },
+    {
+      "prompt_id": 2554,
+      "sha256": "2f1411c07d4d074acd8becf1c45e418dbc881481debf87949d22783e00c1872d",
+      "text": "A cat wearing winter clothing is walking on a cold day."
+    }
+  ]
+}

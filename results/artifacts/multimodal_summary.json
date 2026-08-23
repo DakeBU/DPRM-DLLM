@@ -1,23 +1,100 @@
 {
   "omni_diffusion": {
-    "status": "formal matched evaluation pending",
-    "protocol": "three trained branches, one path per prompt, no test-time reward calls"
+    "status": "reported",
+    "protocol": "frozen online action-value controller; one shared step-96 canvas; native action plus four declared confidence-rank actions",
+    "confirmation_n": 512,
+    "action_step": 96,
+    "candidate_paths": 5,
+    "guidance": 8.0,
+    "confidence": {
+      "clip_l14": 0.18660674947022926,
+      "clip_b32": 0.23835885734297335
+    },
+    "dprm": {
+      "clip_l14": 0.2112487233534921,
+      "clip_b32": 0.24854060370125808
+    },
+    "paired_delta": {
+      "clip_l14": [0.024641973883262835, 0.02249469248272362, 0.02676788451572065],
+      "clip_b32": [0.010181746358284727, 0.008197876295162132, 0.01220505488672643]
+    },
+    "detail": "results/artifacts/omni_online_action_value_release.json"
   },
   "llada_v": {
-    "ai2d": {"n": 500, "random": 0.628, "confidence": 0.658, "dprm_confidence": 0.692, "dprm_random": 0.654},
+    "protocol": {
+      "bootstrap_draws": 5000,
+      "bootstrap_seed": 20260811,
+      "pairing_key": "doc_id",
+      "selection": "controller fixed before each declared evaluation interval"
+    },
+    "ai2d_preregistered_diagnostic": {
+      "n": 244,
+      "confidence": 0.7336065573770492,
+      "dprm_confidence": 0.7213114754098361,
+      "paired_delta": {
+        "mean": -0.012295081967213115,
+        "ci95": [-0.036885245901639344, 0.012295081967213115]
+      },
+      "active_controller": true,
+      "promoted": false
+    },
     "realworldqa": {
       "n": 509,
       "confidence": 0.47347740667976423,
       "dprm_confidence": 0.48919449901768175,
-      "changed_reveal_order_fraction": 0.375,
-      "paired_delta": {"mean": 0.015717092337917484, "ci95": [-0.005893909626719057, 0.03732809430255403]},
-      "numeric": {"n": 78, "confidence": 0.32051282051282054, "dprm_confidence": 0.41025641025641024, "wins": 7, "losses": 0, "paired_delta": {"mean": 0.08974358974358974, "ci95": [0.038461538461538464, 0.15384615384615385]}}
-    },
-    "chartqa_frozen_transfer": {
-      "n": 500,
-      "confidence": 0.696,
-      "dprm_confidence": 0.710,
-      "numeric": {"n": 145, "confidence": 0.7172413793103448, "dprm_confidence": 0.7517241379310344, "paired_delta": {"mean": 0.034482758620689655, "ci95": [0.006896551724137931, 0.06896551724137931]}}
+      "paired_delta": {
+        "mean": 0.015717092337917484,
+        "ci95": [
+          -0.003929273084479371,
+          0.03732809430255403
+        ]
+      },
+      "wins": 19,
+      "losses": 11,
+      "by_prompt_format": {
+        "choice": {
+          "n": 290,
+          "confidence": 0.6172413793103448,
+          "dprm_confidence": 0.6206896551724138,
+          "paired_delta": {
+            "mean": 0.0034482758620689655,
+            "ci95": [
+              -0.02413793103448276,
+              0.034482758620689655
+            ]
+          },
+          "wins": 10,
+          "losses": 9
+        },
+        "numeric": {
+          "n": 78,
+          "confidence": 0.32051282051282054,
+          "dprm_confidence": 0.41025641025641024,
+          "paired_delta": {
+            "mean": 0.08974358974358974,
+            "ci95": [
+              0.02564102564102564,
+              0.15384615384615385
+            ]
+          },
+          "wins": 7,
+          "losses": 0
+        },
+        "open": {
+          "n": 141,
+          "confidence": 0.2624113475177305,
+          "dprm_confidence": 0.2624113475177305,
+          "paired_delta": {
+            "mean": 0.0,
+            "ci95": [
+              -0.028368794326241134,
+              0.028368794326241134
+            ]
+          },
+          "wins": 2,
+          "losses": 2
+        }
+      }
     }
   }
 }

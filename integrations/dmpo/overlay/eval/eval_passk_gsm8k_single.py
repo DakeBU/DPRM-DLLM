@@ -33,6 +33,9 @@ from fast_samplers.fast_dllm.modeling_llada import LLaDAModelLM as AutoModelFast
 from fast_samplers.wino.generate import generate_wino
 from fast_samplers.wino.modeling_llada import LLaDAModelLM as AutoModelWino
 from dprm_guidance import load_dprm_estimator, resolve_dprm_estimator_path
+from transformers_compat import install_llada_tp_plan_guard
+
+install_llada_tp_plan_guard()
 
 
 def parse_args():
@@ -51,6 +54,8 @@ def parse_args():
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--cfg_scale", type=float, default=0.0)
     parser.add_argument("--save_every_batches", type=int, default=1)
+    parser.add_argument("--sample_idx_start", type=int, default=0)
+    parser.add_argument("--sample_idx_end", type=int, default=-1)
     parser.add_argument(
         "--use_fast_sampler",
         type=str,
@@ -183,6 +188,8 @@ def load_or_init_state(output_dir: Path, metadata: dict, num_examples: int, max_
             "remasking": "low_confidence",
             "dprm_estimator_path": "",
             "resolved_dprm_estimator_path": "",
+            "sample_idx_start": 0,
+            "sample_idx_end": -1,
         }
         required_matches = [
             "base_model_path",
@@ -200,6 +207,8 @@ def load_or_init_state(output_dir: Path, metadata: dict, num_examples: int, max_
             "remasking",
             "dprm_estimator_path",
             "resolved_dprm_estimator_path",
+            "sample_idx_start",
+            "sample_idx_end",
             "selected_indices",
         ]
         for key in required_matches:
@@ -283,6 +292,8 @@ def main():
         "use_fast_sampler": args.use_fast_sampler,
         "remasking": args.remasking,
         "dprm_estimator_path": args.dprm_estimator_path,
+        "sample_idx_start": args.sample_idx_start,
+        "sample_idx_end": args.sample_idx_end,
         "num_examples": num_examples,
         "selected_indices": selected_indices.tolist(),
         "levels": levels.tolist(),
@@ -310,7 +321,14 @@ def main():
 
     try:
         num_batches = math.ceil(num_examples / args.batch_size)
-        for sample_idx in range(max_k):
+        sample_idx_start = max(0, int(args.sample_idx_start))
+        sample_idx_end = max_k if int(args.sample_idx_end) < 0 else min(max_k, int(args.sample_idx_end))
+        if sample_idx_start >= sample_idx_end:
+            raise ValueError(
+                f"Invalid sample shard range: start={sample_idx_start}, end={sample_idx_end}, max_k={max_k}"
+            )
+
+        for sample_idx in range(sample_idx_start, sample_idx_end):
             resume_start = int(sample_progress[sample_idx])
             if resume_start >= num_examples:
                 continue

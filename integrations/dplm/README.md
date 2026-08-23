@@ -23,6 +23,9 @@ Tchebycheff temperature and augmentation are `0.05`.
 
 ## Overlay and Evaluation
 
+The tested upstream commit and all four executable commands are recorded under
+`dplm` in
+[`../../reproducibility/experiments.json`](../../reproducibility/experiments.json).
 Set `DPLM_ROOT` to the upstream checkout and `DPLM2_BIT_CHECKPOINT` to the
 pretrained DPLM-2 Bit checkpoint. Copy `overlay/src/` and `overlay/configs/` into
 the upstream checkout, then use `overlay/run/train_dprm_dplm2_bit_650m_fair.sh`
@@ -32,3 +35,16 @@ weighted controller is used otherwise. CAMEO uses all `163` targets. CoGen-200
 is a predeclared 10-sample development gate; the release reports it as a diagnostic
 because neither scalarization passed the bootstrap threshold for full
 five-length confirmation.
+For CAMEO, save one metric row per shared target and use
+`scripts/paired_bootstrap.py --direction lower` for RMSD or the default
+`--direction higher` for TM-score. Co-generation samples are unpaired and are
+therefore bootstrapped by the host evaluator rather than this paired utility.
+
+The released CoGen-200 records reproduce the bounded development gate with:
+
+```bash
+python integrations/dplm/scripts/summarize_dplm_cogen_records.py \
+  --baseline confidence.csv --candidate ws=weighted_sum.csv \
+  --candidate tcheby=tchebycheff.csv --bootstrap 5000 --seed 20260813 \
+  --reference-summary development_gate.json
+```

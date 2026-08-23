@@ -65,6 +65,7 @@ from dprm.omni_order import (
     OmniOrderScorer,
     OmniBucketTableDPRM,
     OmniRankBucketDPRM,
+    OmniStageRankCodeDPRM,
     OmniStageRankSpatialDPRM,
     load_omni_order_controller,
     adjusted_order_scores,
@@ -532,6 +533,7 @@ class Trainer(HFTrainer):
                 "candidate_sum": 0,
                 "selected_sum": 0,
                 "dprm_scorer_actions": 0,
+                "dprm_direct_overrides": 0,
             }
         cache_limit = max(int(os.environ.get("DPRM_OMNI_MATCHED_CACHE_SIZE", "8192")), 1)
         run_records = []
@@ -600,15 +602,30 @@ class Trainer(HFTrainer):
                 # global decode step r.
                 step = min(revealed, total_steps - 1)
                 scores = torch.rand_like(confidence) if policy == "random_matched" else confidence
+                scorer_active = False
                 if isinstance(scorer, OmniRankBucketDPRM):
                     scores, _ = scorer.score(confidence, step=step)
+                    scorer_active = step == int(scorer.active_step)
+                elif isinstance(scorer, OmniStageRankCodeDPRM):
+                    scores, _ = scorer.score(
+                        confidence,
+                        step=step,
+                        provisional_token_ids=provisional_local,
+                    )
+                    scorer_active = step in set(scorer.active_steps)
                 elif isinstance(scorer, (OmniStageRankSpatialDPRM, OmniBucketTableDPRM)):
                     scores, _ = scorer.score(
                         confidence,
                         step=step,
                         visual_indices=candidates_local,
                     )
-                    rollin_stats["dprm_scorer_actions"] += 1
+                    if isinstance(scorer, OmniStageRankSpatialDPRM):
+                        scorer_active = step in set(scorer.active_steps)
+                    else:
+                        scorer_active = (
+                            not scorer.reward_action_steps
+                            or step in set(scorer.reward_action_steps)
+                        )
                 elif scorer is not None and (not active_steps or step in active_steps):
                     local_candidates = torch.arange(
                         candidates_local.numel(), device=clean.device
@@ -629,8 +646,18 @@ class Trainer(HFTrainer):
                         scorer=scorer,
                         guidance_scale=guidance,
                     )
+                    scorer_active = True
                 take = min(reveal_budget, int(candidates_local.numel()) - 1)
                 selected_local = candidates_local[torch.topk(scores, take).indices]
+                if scorer_active:
+                    rollin_stats["dprm_scorer_actions"] += 1
+                    confidence_selected = candidates_local[
+                        torch.topk(confidence, take).indices
+                    ]
+                    rollin_stats["dprm_direct_overrides"] += int(
+                        set(selected_local.detach().cpu().tolist())
+                        != set(confidence_selected.detach().cpu().tolist())
+                    )
                 selected_positions = run[selected_local]
                 before_mask_count = int(run_masked.sum().item())
                 state[batch_idx, selected_positions] = clean[batch_idx, selected_positions]
@@ -774,6 +801,10 @@ class Trainer(HFTrainer):
                 "theory/rollin_candidates_per_action": rollin["candidate_sum"] / actions,
                 "theory/rollin_selected_per_action": rollin["selected_sum"] / actions,
                 "theory/rollin_dprm_scorer_fraction": rollin["dprm_scorer_actions"] / actions,
+                "theory/rollin_dprm_direct_override_fraction": (
+                    rollin["dprm_direct_overrides"]
+                    / max(float(rollin["dprm_scorer_actions"]), 1.0)
+                ),
             })
             rollin.update({
                 "actions": 0,
@@ -787,6 +818,7 @@ class Trainer(HFTrainer):
                 "candidate_sum": 0,
                 "selected_sum": 0,
                 "dprm_scorer_actions": 0,
+                "dprm_direct_overrides": 0,
             })
 
         if grad_norm is not None:

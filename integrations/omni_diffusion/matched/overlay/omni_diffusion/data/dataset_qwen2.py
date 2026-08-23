@@ -998,6 +998,21 @@ def preprocess(
                 f"expected {expected_trajectory_policy}, found "
                 f"{observed_trajectory_policy}"
             )
+        trajectory_step = sample.get("dprm_trajectory_step")
+        next_action_step = sample.get("dprm_next_action_step")
+        if trajectory_step is None or next_action_step is None:
+            raise RuntimeError(
+                "precomputed Omni trajectory requires explicit post-action and next-action steps"
+            )
+        if (
+            int(next_action_step) != int(trajectory_step) + 1
+            or len(matched_revealed) != int(next_action_step)
+        ):
+            raise RuntimeError(
+                "precomputed Omni trajectory is not aligned to its next training action: "
+                f"post={trajectory_step}, next={next_action_step}, "
+                f"revealed={len(matched_revealed)}"
+            )
     if matched_revealed is not None:
         visual = (input_ids >= 168072) & (input_ids < 168072 + 8192)
         visual_positions = torch.where(visual[0])[0]

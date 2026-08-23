@@ -8,14 +8,38 @@
       "upstream": "https://github.com/JaeyeonKim01/PUMA",
       "upstream_commit": "d32992dfd10352de59dd64f4ecb6a2fc7871a301",
       "root_env": "PUMA_ROOT",
+      "execution_root": "host",
+      "working_subdir": ".",
       "integration_readme": "integrations/puma/README.md",
       "entrypoint": "integrations/puma/overlay/train.py",
-      "result_file": "results/paper_results.csv",
+      "result_file": "results/artifacts/dmpo_matched_step5000_summary.json",
+      "evaluation_unit": "GSM8K question with paired correctness and reveal trace",
+      "statistics_command": "python scripts/paired_bootstrap.py --baseline \"$PUMA_CONFIDENCE_JSONL\" --method \"$PUMA_DPRM_JSONL\" --key example_id --value correct --scale 100 --output \"$PUMA_STATS_JSON\"",
       "variants": [
-        {"id": "random", "policy": "random masking", "status": "implemented_control", "command": "python train.py --cfg yaml_files/tinygsm_baseline.yaml"},
-        {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "python train.py --cfg yaml_files/tinygsm_puma.yaml"},
-        {"id": "dprm_confidence", "policy": "DPRM with confidence warmup", "status": "reported", "command": "python train.py --cfg yaml_files/tinygsm_puma_dprm.yaml"},
-        {"id": "dprm_random", "policy": "DPRM with random warmup", "status": "implemented_control", "command": "python train.py --cfg yaml_files/tinygsm_puma_dprm_random.yaml"}
+        {
+          "id": "random",
+          "policy": "random masking",
+          "status": "implemented_control",
+          "command": "python train.py --cfg yaml_files/tinygsm_baseline.yaml"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence progressive",
+          "status": "reported",
+          "command": "python train.py --cfg yaml_files/tinygsm_puma.yaml"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "DPRM with confidence warmup",
+          "status": "reported",
+          "command": "python train.py --cfg yaml_files/tinygsm_puma_dprm.yaml"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "DPRM with random warmup",
+          "status": "implemented_control",
+          "command": "python train.py --cfg yaml_files/tinygsm_puma_dprm_random.yaml"
+        }
       ]
     },
     {
@@ -24,14 +48,38 @@
       "upstream": "https://github.com/yuchen-zhu-zyc/DMPO",
       "upstream_commit": "a521073fe534ddc51a4e02f21d3080cb697c1d97",
       "root_env": "DMPO_ROOT",
+      "execution_root": "host",
+      "working_subdir": ".",
       "integration_readme": "integrations/dmpo/README.md",
-      "entrypoint": "integrations/dmpo/overlay/DMPO/run_dmpo.sh",
+      "entrypoint": "integrations/dmpo/overlay/DMPO/run_paper_dmpo.sh",
       "result_file": "results/paper_results.csv",
+      "evaluation_unit": "reasoning example with an ordered Boolean success vector",
+      "statistics_command": "python integrations/dmpo/scripts/render_matched_results.py --repro-root /tmp/unused --record-source-map reproducibility/dmpo_record_sources.json --artifact-root \"$DPRM_ARTIFACT_ROOT\" --output results/artifacts/dmpo_matched_step5000_summary.json",
       "variants": [
-        {"id": "random", "policy": "random masking", "status": "reported", "command": "LOSS_MASK_SAMPLER=random SAMPLER_REMASKING=random bash DMPO/run_dmpo.sh"},
-        {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "LOSS_MASK_SAMPLER=progressive LOSS_PROGRESSIVE_ORDER_POLICY=confidence SAMPLER_REMASKING=low_confidence bash DMPO/run_dmpo.sh"},
-        {"id": "dprm_confidence", "policy": "DPRM with confidence warmup", "status": "reported", "command": "LOSS_MASK_SAMPLER=progressive LOSS_PROGRESSIVE_ORDER_POLICY=dprm_soft_bon DPRM_WARMUP_POLICY=confidence bash DMPO/run_dmpo.sh"},
-        {"id": "dprm_random", "policy": "DPRM with random warmup", "status": "implemented_control", "command": "LOSS_MASK_SAMPLER=progressive LOSS_PROGRESSIVE_ORDER_POLICY=dprm_soft_bon DPRM_WARMUP_POLICY=random bash DMPO/run_dmpo.sh"}
+        {
+          "id": "random",
+          "policy": "random masking with the host decoder",
+          "status": "implemented_control",
+          "command": "bash DMPO/run_paper_dmpo.sh all random"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence progressive",
+          "status": "reported",
+          "command": "bash DMPO/run_paper_dmpo.sh all confidence"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "DPRM with confidence warmup",
+          "status": "reported",
+          "command": "bash DMPO/run_paper_dmpo.sh all dprm_confidence"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "DPRM with random warmup",
+          "status": "implemented_control",
+          "command": "bash DMPO/run_paper_dmpo.sh all dprm_random"
+        }
       ]
     },
     {
@@ -40,14 +88,38 @@
       "upstream": "https://github.com/viiika/Prism",
       "upstream_commit": "21466a8dcb582ffafc1d218ff74e2c31b664c152",
       "root_env": "PRISM_ROOT",
+      "execution_root": "host",
+      "working_subdir": "LLaDA2mini/LLaDA2mini_Prism",
       "integration_readme": "integrations/prism/README.md",
       "entrypoint": "integrations/prism/overlay/LLaDA2mini/LLaDA2mini_Prism/scripts/run_gsm8k.sh",
       "result_file": "results/paper_results.csv",
+      "evaluation_unit": "GSM8K question with vote, survivor, and NFE records",
+      "statistics_command": "python scripts/paired_bootstrap.py --baseline \"$PRISM_CONFIDENCE_JSONL\" --method \"$PRISM_DPRM_JSONL\" --key example_id --value voted_correct --scale 100 --output \"$PRISM_STATS_JSON\"",
       "variants": [
-        {"id": "random", "policy": "random reveal order", "status": "implemented_control", "command": "ORDER_POLICY=random bash scripts/run_gsm8k.sh"},
-        {"id": "confidence", "policy": "confidence reveal order", "status": "reported", "command": "ORDER_POLICY=confidence bash scripts/run_gsm8k.sh"},
-        {"id": "dprm_confidence", "policy": "online DPRM with confidence warmup", "status": "reported", "command": "ORDER_POLICY=dprm_soft_bon bash scripts/run_gsm8k.sh"},
-        {"id": "dprm_random", "policy": "online DPRM with random warmup", "status": "implemented_control", "command": "ORDER_POLICY=dprm_random bash scripts/run_gsm8k.sh"}
+        {
+          "id": "random",
+          "policy": "random reveal order",
+          "status": "implemented_control",
+          "command": "ORDER_POLICY=random bash scripts/run_gsm8k.sh"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence reveal order",
+          "status": "reported",
+          "command": "ORDER_POLICY=confidence bash scripts/run_gsm8k.sh"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "online DPRM with confidence warmup",
+          "status": "reported",
+          "command": "ORDER_POLICY=dprm_soft_bon bash scripts/run_gsm8k.sh"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "online DPRM with random warmup",
+          "status": "implemented_control",
+          "command": "ORDER_POLICY=dprm_random bash scripts/run_gsm8k.sh"
+        }
       ]
     },
     {
@@ -56,15 +128,41 @@
       "upstream": "https://github.com/bytedance/dplm",
       "upstream_commit": "8a2e15e53416b4536f03f79ad1f6f6a9cbd5e19d",
       "root_env": "DPLM_ROOT",
-      "required_env": ["DPLM2_BIT_CHECKPOINT"],
+      "execution_root": "host",
+      "working_subdir": ".",
+      "required_env": [
+        "DPLM2_BIT_CHECKPOINT"
+      ],
       "integration_readme": "integrations/dplm/README.md",
       "entrypoint": "integrations/dplm/overlay/run/train_dprm_dplm2_bit_650m_fair.sh",
       "result_file": "results/paper_results.csv",
+      "evaluation_unit": "shared CAMEO target; generated sample for co-generation",
+      "statistics_command": "python scripts/paired_bootstrap.py --baseline \"$DPLM_CONFIDENCE_TARGETS\" --method \"$DPLM_DPRM_TARGETS\" --key target_id --value tm_score --output \"$DPLM_STATS_JSON\"",
       "variants": [
-        {"id": "random", "policy": "host random/default masking", "status": "implemented_control", "command": "python train.py experiment=dplm2/dprm_dplm_650m trainer.max_steps=5000 model.order.enable=false"},
-        {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "python train.py experiment=dplm2/dprm_dplm_650m trainer.max_steps=5000 model.order.train_order_policy=progressive_confidence model.order.decode_order_policy=confidence"},
-        {"id": "dprm_confidence", "policy": "weighted-sum DPRM", "status": "reported", "command": "python train.py experiment=dplm2/dprm_joint_ws_dplm_650m"},
-        {"id": "dprm_tcheby", "policy": "Tchebycheff DPRM", "status": "reported_development_gate", "command": "python train.py experiment=dplm2/dprm_joint_tcheby_dplm_650m"}
+        {
+          "id": "random",
+          "policy": "host random/default masking",
+          "status": "implemented_control",
+          "command": "python train.py experiment=dplm2/dprm_dplm_650m trainer.max_steps=5000 model.order.enable=false"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence progressive",
+          "status": "reported",
+          "command": "python train.py experiment=dplm2/dprm_dplm_650m trainer.max_steps=5000 model.order.train_order_policy=progressive_confidence model.order.decode_order_policy=confidence"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "weighted-sum DPRM",
+          "status": "reported",
+          "command": "python train.py experiment=dplm2/dprm_joint_ws_dplm_650m"
+        },
+        {
+          "id": "dprm_tcheby",
+          "policy": "Tchebycheff DPRM",
+          "status": "reported_development_gate",
+          "command": "python train.py experiment=dplm2/dprm_joint_tcheby_dplm_650m"
+        }
       ]
     },
     {
@@ -73,14 +171,48 @@
       "upstream": "https://github.com/sanjukta7/aivc-dcm",
       "upstream_commit": "a2fa8e53578b99ca90df34391862e3ddf810bee5",
       "root_env": "DCM_ROOT",
+      "execution_root": "release",
+      "working_subdir": ".",
       "integration_readme": "integrations/dcm/README.md",
       "entrypoint": "integrations/dcm/scripts/run_terminal_calibration.sh",
       "result_file": "results/paper_results.csv",
+      "evaluation_unit": "held-out cell with four decoded reconstructions",
+      "statistics_command": "bash integrations/dcm/scripts/run_terminal_calibration.sh",
+      "result_variants": {
+        "dprm_recovery": "dprm_confidence",
+        "dprm_mae": "dprm_confidence",
+        "dprm_balanced": "dprm_confidence",
+        "dprm_zero": "dprm_confidence"
+      },
       "variants": [
-        {"id": "random", "policy": "random ordered masking", "status": "implemented_control", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dcm_dentate.yaml"},
-        {"id": "confidence", "policy": "confidence progressive on the shared frozen model", "status": "reported", "command": "RUN_REPLICATION=0 bash integrations/dcm/scripts/run_terminal_calibration.sh"},
-        {"id": "dprm_confidence", "policy": "terminal-rollout smooth-Tchebycheff preference DPRM on the shared frozen model", "status": "reported", "command": "bash integrations/dcm/scripts/run_terminal_calibration.sh"},
-        {"id": "dprm_random", "policy": "random-warmup training-time smooth-Tchebycheff control", "status": "implemented_control", "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dprm_multiobjective_dentate.yaml --order_policy dprm_random --dprm_reward_mode reconstruction_tchebycheff --dprm_objective_weights 0.45 0.35 0.20 --dprm_gene_aux_mode predicted_zero"}
+        {
+          "id": "random",
+          "policy": "random ordered masking",
+          "status": "implemented_control",
+          "execution_root": "host",
+          "working_subdir": ".",
+          "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dcm_dentate.yaml"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence progressive on the shared frozen model",
+          "status": "reported",
+          "command": "RUN_REPLICATION=0 bash integrations/dcm/scripts/run_terminal_calibration.sh"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "terminal-rollout smooth-Tchebycheff preference DPRM on the shared frozen model",
+          "status": "reported",
+          "command": "bash integrations/dcm/scripts/run_terminal_calibration.sh"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "random-warmup training-time smooth-Tchebycheff control",
+          "status": "implemented_control",
+          "execution_root": "host",
+          "working_subdir": ".",
+          "command": "python scripts/train_rnaseq.py --config configs/rnaseq_dprm_multiobjective_dentate.yaml --order_policy dprm_random --dprm_reward_mode reconstruction_tchebycheff --dprm_objective_weights 0.45 0.35 0.20 --dprm_gene_aux_mode predicted_zero"
+        }
       ]
     },
     {
@@ -89,14 +221,49 @@
       "upstream": "https://github.com/NVIDIA-Digital-Bio/genmol",
       "upstream_commit": "add09fc83b7255bd09c797e527c0f4b51f5fb7c1",
       "root_env": "GENMOL_ROOT",
+      "execution_root": "release",
+      "working_subdir": ".",
       "integration_readme": "integrations/genmol/README.md",
       "entrypoint": "integrations/genmol/scripts/run_preference_sweep.sh",
       "result_file": "results/paper_results.csv",
+      "evaluation_unit": "generated molecule or shared fragment-task unit",
+      "statistics_command": "python integrations/genmol/overlay/scripts/aggregate_ordering_eval.py --method \"$GENMOL_METHOD_SUMMARIES\" --baseline \"$GENMOL_BASELINE_LABEL\" --output-dir \"$GENMOL_STATS_DIR\"",
+      "result_variants": {
+        "dprm_qed": "dprm_random",
+        "dprm_balanced": "dprm_random",
+        "dprm_sa": "dprm_random"
+      },
       "variants": [
-        {"id": "random", "policy": "native GenMol order", "status": "reported", "command": "bash scripts/run_ordering_train.sh 0 genmol-native random_mdlm outputs/genmol-native 5000"},
-        {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "bash scripts/run_ordering_train.sh 0 genmol-confidence confidence outputs/genmol-confidence 5000"},
-        {"id": "dprm_confidence", "policy": "confidence-warmup balanced smooth-Tchebycheff control", "status": "implemented_control", "command": "DPRM_REWARD_MODE=molecular_tchebycheff DPRM_OBJECTIVE_WEIGHTS='[0.55,0.45]' DPRM_AUX_MODE=molecular_token_class bash scripts/run_ordering_train.sh 0 genmol-dprm-confidence dprm_confidence outputs/genmol-dprm-confidence 5000"},
-        {"id": "dprm_random", "policy": "random-warmup QED/balanced/SA smooth-Tchebycheff preference path", "status": "reported", "command": "SCALARIZATION=smooth_tchebycheff GPU_LIST=0,1,2 bash integrations/genmol/scripts/run_preference_sweep.sh"}
+        {
+          "id": "random",
+          "policy": "native GenMol order",
+          "status": "implemented_control",
+          "execution_root": "host",
+          "working_subdir": ".",
+          "command": "bash scripts/run_ordering_train.sh 0 genmol-native random_mdlm outputs/genmol-native 5000"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence progressive",
+          "status": "reported",
+          "execution_root": "host",
+          "working_subdir": ".",
+          "command": "bash scripts/run_ordering_train.sh 0 genmol-confidence confidence outputs/genmol-confidence 5000"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "confidence-warmup balanced smooth-Tchebycheff control",
+          "status": "implemented_control",
+          "execution_root": "host",
+          "working_subdir": ".",
+          "command": "DPRM_REWARD_MODE=molecular_tchebycheff DPRM_OBJECTIVE_WEIGHTS='[0.55,0.45]' DPRM_AUX_MODE=molecular_token_class bash scripts/run_ordering_train.sh 0 genmol-dprm-confidence dprm_confidence outputs/genmol-dprm-confidence 5000"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "random-warmup QED/balanced/SA smooth-Tchebycheff preference path",
+          "status": "reported",
+          "command": "SCALARIZATION=smooth_tchebycheff GPU_LIST=0,1,2 bash integrations/genmol/scripts/run_preference_sweep.sh"
+        }
       ]
     },
     {
@@ -105,14 +272,38 @@
       "upstream": "https://github.com/hanjq17/discrete-diffusion-sdpo",
       "upstream_commit": "f244b97b711d598e5d6ed826b342379289b5efb0",
       "root_env": "SDPO_DNA_ROOT",
+      "execution_root": "host",
+      "working_subdir": ".",
       "integration_readme": "integrations/sdpo/README.md",
       "entrypoint": "integrations/sdpo/overlay/scripts/run_sdpo_dna_variant.sh",
       "result_file": "results/paper_results.csv",
+      "evaluation_unit": "generated regulatory DNA sequence",
+      "statistics_command": "bash scripts/run_sdpo_dna_eval_compare.sh && python scripts/summarize_sdpo_dna_results.py",
       "variants": [
-        {"id": "random", "policy": "native SDPO", "status": "reported", "command": "ORDER_POLICY=baseline RUN_NAME=sdpo-native bash scripts/run_sdpo_dna_variant.sh"},
-        {"id": "confidence", "policy": "confidence progressive", "status": "reported", "command": "ORDER_POLICY=progressive RUN_NAME=sdpo-confidence bash scripts/run_sdpo_dna_variant.sh"},
-        {"id": "dprm_confidence", "policy": "DPRM with confidence warmup", "status": "reported", "command": "ORDER_POLICY=dprm RUN_NAME=sdpo-dprm bash scripts/run_sdpo_dna_variant.sh"},
-        {"id": "dprm_random", "policy": "DPRM with random warmup", "status": "reported", "command": "ORDER_POLICY=dprm_random RUN_NAME=sdpo-dprm-random bash scripts/run_sdpo_dna_variant.sh"}
+        {
+          "id": "random",
+          "policy": "native SDPO",
+          "status": "reported",
+          "command": "DPRM_PHASE_BINS=1 ORDER_POLICY=baseline RUN_NAME=sdpo-native bash scripts/run_sdpo_dna_variant.sh"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence progressive",
+          "status": "reported",
+          "command": "DPRM_PHASE_BINS=1 ORDER_POLICY=progressive RUN_NAME=sdpo-confidence bash scripts/run_sdpo_dna_variant.sh"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "DPRM with confidence warmup",
+          "status": "reported",
+          "command": "DPRM_PHASE_BINS=1 ORDER_POLICY=dprm RUN_NAME=sdpo-dprm bash scripts/run_sdpo_dna_variant.sh"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "DPRM with random warmup",
+          "status": "reported",
+          "command": "DPRM_PHASE_BINS=1 ORDER_POLICY=dprm_random RUN_NAME=sdpo-dprm-random bash scripts/run_sdpo_dna_variant.sh"
+        }
       ]
     },
     {
@@ -121,16 +312,46 @@
       "upstream": "https://github.com/VITA-MLLM/Omni-Diffusion",
       "upstream_commit": "c4f4625f84197a72d556ea00f10e5b2775524252",
       "root_env": "OMNI_ROOT",
-      "required_env": ["OMNI_MODEL_PATH", "OMNI_IMAGE_TOKENIZER_PATH", "OMNI_DATA_JSON", "OMNI_RUN_ROOT"],
-      "prerequisite": "Apply the matched overlay to upstream commit c4f4625, freeze a controller on development prompts, and provide disjoint trajectory and evaluation prompt ranges.",
+      "execution_root": "release",
+      "working_subdir": ".",
+      "required_env": [
+        "OMNI_MODEL_PATH",
+        "OMNI_IMAGE_TOKENIZER_PATH",
+        "OMNI_ONLINE_PROMPT_FILE",
+        "OMNI_ONLINE_ROOT",
+        "VIRTUAL_ENV"
+      ],
+      "prerequisite": "Use upstream commit c4f4625, the released step-1000 host checkpoint, and the frozen PartiPrompts split. Development selects guidance; confirmation sets OMNI_ONLINE_FIXED_GUIDANCE=8.",
       "integration_readme": "integrations/omni_diffusion/README.md",
-      "entrypoint": "integrations/omni_diffusion/matched/run_pipeline.sh",
-      "result_file": "results/artifacts/multimodal_summary.json",
+      "entrypoint": "integrations/omni_diffusion/matched/run_online_action_value_controller.sh",
+      "result_file": "results/artifacts/omni_online_action_value_release.json",
+      "evaluation_unit": "held-out prompt with five action-conditioned paths from one shared step-96 canvas",
+      "statistics_command": "python integrations/omni_diffusion/matched/scripts/publish_omni_online_results.py --summary \"$OMNI_ONLINE_ROOT/selection/online_action_value_summary.json\" --scored-records \"$OMNI_ONLINE_ROOT/records/two_encoder.json\" --run-manifest \"$OMNI_ONLINE_ROOT/run_manifest.json\" --output results/artifacts/omni_online_action_value_release.json",
       "variants": [
-        {"id": "random", "policy": "trained random visual-token order", "status": "formal_pending", "command": "bash integrations/omni_diffusion/matched/run_pipeline.sh"},
-        {"id": "confidence", "policy": "trained Omni default confidence order", "status": "formal_pending", "command": "bash integrations/omni_diffusion/matched/run_pipeline.sh"},
-        {"id": "dprm_confidence", "policy": "trained one-path DPRM with confidence proposal", "status": "formal_pending", "command": "bash integrations/omni_diffusion/matched/run_pipeline.sh"},
-        {"id": "dprm_random", "policy": "DPRM random-proposal inference control", "status": "implemented_control", "command": "python integrations/omni_diffusion/scripts/generate_four_orders.py --model-path \"$OMNI_MODEL_PATH\" --image-tokenizer-path \"$OMNI_IMAGE_TOKENIZER_PATH\" --order-policy dprm_random_warmup --dprm-table \"$OMNI_CONTROLLER\" --output-dir \"$OMNI_RUN_ROOT/dprm_random_control\""}
+        {
+          "id": "random",
+          "policy": "random visual-position control on the frozen host checkpoint",
+          "status": "reported_control",
+          "command": "OMNI_ONLINE_INCLUDE_RANDOM=1 bash integrations/omni_diffusion/matched/run_online_action_value_controller.sh"
+        },
+        {
+          "id": "confidence",
+          "policy": "Omni negative-entropy position order",
+          "status": "reported",
+          "command": "bash integrations/omni_diffusion/matched/run_online_action_value_controller.sh"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "online action-value DPRM over the native action and four confidence-rank strata",
+          "status": "reported",
+          "command": "OMNI_ONLINE_FIXED_GUIDANCE=8 bash integrations/omni_diffusion/matched/run_online_action_value_controller.sh"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "uniform random selection over the same five DPRM action candidates",
+          "status": "reported_control",
+          "command": "OMNI_ONLINE_FIXED_GUIDANCE=8 bash integrations/omni_diffusion/matched/run_online_action_value_controller.sh"
+        }
       ]
     },
     {
@@ -139,16 +360,44 @@
       "upstream": "https://github.com/ML-GSAI/LLaDA-V",
       "upstream_commit": "f8b02ce04b09f4f271fe55a3652059a73bbc7a32",
       "model": "https://huggingface.co/GSAI-ML/LLaDA-V",
-      "root_env": "LLADA_V_ROOT",
+      "root_env": "LLADA_V_LMMS_ROOT",
+      "execution_root": "release",
+      "working_subdir": ".",
+      "required_env": [
+        "LLADA_V_MODEL_PATH",
+        "LLADA_V_OUTPUT_ROOT"
+      ],
       "prerequisite": "DPRM variants load the table fitted by scripts/build_dprm_table.py on the declared fit interval and selected by scripts/select_controller.py on the development interval.",
       "integration_readme": "integrations/llada_v/README.md",
-      "entrypoint": "integrations/llada_v/overlay/host/modeling_llada.py",
+      "entrypoint": "integrations/llada_v/run_realworldqa_protocol.sh",
       "result_file": "results/artifacts/multimodal_summary.json",
+      "evaluation_unit": "image-conditioned VQA document paired by doc_id",
+      "statistics_command": "python integrations/llada_v/scripts/summarize_multimodal_results.py --rwqa-confidence \"$LLADAV_RWQA_CONFIDENCE\" --rwqa-dprm \"$LLADAV_RWQA_DPRM\" --rwqa-doc-min 256 --rwqa-doc-max 765 --bootstrap 5000 --base-summary results/artifacts/multimodal_summary.json --output \"$LLADAV_STATS_JSON\"",
       "variants": [
-        {"id": "random", "policy": "random answer-token order", "status": "reported_ai2d", "command": "lmms-eval --model llava_onevision_llada --tasks ai2d --gen_kwargs remasking=random"},
-        {"id": "confidence", "policy": "confidence answer-token order", "status": "reported", "command": "lmms-eval --model llava_onevision_llada --tasks ai2d,realworldqa --gen_kwargs remasking=progressive_confidence"},
-        {"id": "dprm_confidence", "policy": "format/EOT/position bucket DPRM", "status": "reported", "command": "DPRM_LLADAV_TABLE=outputs/dprm_table.json lmms-eval --model llava_onevision_llada --tasks ai2d,realworldqa --gen_kwargs remasking=dprm_confidence_warmup"},
-        {"id": "dprm_random", "policy": "DPRM with random warmup", "status": "reported_ai2d", "command": "DPRM_LLADAV_TABLE=outputs/dprm_table.json lmms-eval --model llava_onevision_llada --tasks ai2d --gen_kwargs remasking=dprm_random_warmup"}
+        {
+          "id": "random",
+          "policy": "random answer-token order",
+          "status": "implemented_control",
+          "command": "LLADA_V_TASK=realworldqa LLADA_V_ORDER=random bash integrations/llada_v/run_lmms_eval.sh"
+        },
+        {
+          "id": "confidence",
+          "policy": "confidence answer-token order",
+          "status": "reported",
+          "command": "LLADA_V_TASK=realworldqa LLADA_V_ORDER=progressive_confidence bash integrations/llada_v/run_lmms_eval.sh"
+        },
+        {
+          "id": "dprm_confidence",
+          "policy": "format/EOT/position bucket DPRM",
+          "status": "reported",
+          "command": "bash integrations/llada_v/run_realworldqa_protocol.sh"
+        },
+        {
+          "id": "dprm_random",
+          "policy": "DPRM with random warmup",
+          "status": "implemented_control",
+          "command": "LLADA_V_TASK=realworldqa LLADA_V_ORDER=dprm_random_warmup DPRM_LLADAV_TABLE=\"${DPRM_LLADAV_TABLE:?set the table selected by run_realworldqa_protocol.sh}\" bash integrations/llada_v/run_lmms_eval.sh"
+        }
       ]
     }
   ]

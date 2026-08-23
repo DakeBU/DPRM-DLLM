@@ -13,7 +13,7 @@ CONFIDENCE_DATA_CONFIG="${DPRM_OMNI_CONFIDENCE_DATA_CONFIG:-${DATA_CONFIG}}"
 DPRM_DATA_CONFIG="${DPRM_OMNI_DPRM_DATA_CONFIG:-${DATA_CONFIG}}"
 DATA_JSON="${DPRM_OMNI_DATA_JSON:-${OMNI_ROOT}/datasets/jsonl/JourneyDB/BLIP3o_JourneyDB_T2I_tokenized.jsonl}"
 OUT_BASE="${DPRM_OMNI_OUT_BASE:?set DPRM_OMNI_OUT_BASE}"
-MAX_STEPS="${DPRM_OMNI_MAX_STEPS:-1500}"
+MAX_STEPS="${DPRM_OMNI_MAX_STEPS:-1000}"
 SAVE_STEPS="${DPRM_OMNI_SAVE_STEPS:-750}"
 SAVE_TOTAL_LIMIT="${DPRM_OMNI_SAVE_TOTAL_LIMIT:-1}"
 WARMUP_RATIO="${DPRM_OMNI_WARMUP_RATIO:-0.03}"
@@ -27,11 +27,17 @@ RESUME_FROM_CHECKPOINT="${DPRM_OMNI_RESUME_FROM_CHECKPOINT:-}"
 GRADIENT_CHECKPOINTING="${DPRM_OMNI_GRADIENT_CHECKPOINTING:-False}"
 DEEPSPEED_CONFIG="${DPRM_OMNI_DEEPSPEED_CONFIG:-${OMNI_ROOT}/scripts/deepspeed/ds_config_zero2.json}"
 
+IFS=',' read -r -a GPU_IDS <<< "${GPUS}"
+if (( ${#GPU_IDS[@]} != NPROC )); then
+  echo "DPRM_OMNI_NPROC=${NPROC} but DPRM_OMNI_GPUS contains ${#GPU_IDS[@]} devices: ${GPUS}" >&2
+  exit 2
+fi
+
 read -r -a ORDERS <<< "${DPRM_OMNI_ORDERS:-random progressive_confidence}"
 MATCHED_SCORER="${DPRM_OMNI_DPRM_SCORER:-}"
 MATCHED_REVEAL_BUDGET="${DPRM_OMNI_MATCHED_REVEAL_BUDGET:-1}"
 ONLINE_ROLLIN="${DPRM_OMNI_ONLINE_ROLLIN:-0}"
-HYBRID_ROLLIN="${DPRM_OMNI_HYBRID_ROLLIN:-0}"
+HYBRID_ROLLIN="${DPRM_OMNI_HYBRID_ROLLIN:-1}"
 
 mkdir -p "${OUT_BASE}"
 source "${ENV}/bin/activate"
@@ -77,22 +83,29 @@ import json
 import sys
 
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
-edges = payload.get("config", {}).get("confidence_bin_edges", [])
-if not edges:
-    raise SystemExit(
-        "formal Omni DPRM training requires development-frozen confidence "
-        "quantile edges; equal-width bins are diagnostic only"
-    )
+artifact_format = payload.get("format")
+allowed_formats = {
+    "omni_bucket_table_dprm_v1",
+    "omni_stage_rank_code_dprm_v1",
+    "omni_stage_rank_spatial_dprm_v1",
+}
+if artifact_format not in allowed_formats:
+    raise SystemExit(f"unsupported formal Omni controller: {artifact_format!r}")
+config = payload.get("config", {})
 source_summary = payload.get("metadata", {}).get("source_summary", {})
-if source_summary.get("prompt_text_deduplicated") is not True:
-    raise SystemExit(
-        "formal Omni DPRM training requires one matched source rollout per "
-        "order and unique prompt text"
-    )
+if artifact_format == "omni_bucket_table_dprm_v1":
+    if not config.get("confidence_bin_edges"):
+        raise SystemExit("absolute-confidence tables require frozen quantile edges")
+    if source_summary.get("prompt_text_deduplicated") is not True:
+        raise SystemExit("absolute-confidence tables require unique source prompts")
+else:
+    if not config.get("active_steps"):
+        raise SystemExit("rank-bucket tables require fixed active steps")
+    if source_summary.get("action_conditioned_continuations") is not True:
+        raise SystemExit("rank-bucket tables require action-conditioned continuations")
 score_contract = payload.get("metadata", {}).get("score_contract", {})
 expected_score = {
     "base_order_score": "negative_token_entropy",
-    "bucket_coordinate": "exp_negative_token_entropy",
     "position_selection_rule": "single_path_top1_adjusted_order_score",
 }
 for key, expected in expected_score.items():
@@ -101,6 +114,17 @@ for key, expected in expected_score.items():
             f"formal Omni DPRM score contract mismatch for {key}: "
             f"{score_contract.get(key)!r} != {expected!r}"
         )
+expected_coordinate = (
+    "exp_negative_token_entropy"
+    if artifact_format == "omni_bucket_table_dprm_v1"
+    else (
+        "within_state_confidence_rank_and_provisional_code"
+        if artifact_format == "omni_stage_rank_code_dprm_v1"
+        else "within_state_confidence_rank"
+    )
+)
+if score_contract.get("bucket_coordinate") != expected_coordinate:
+    raise SystemExit("formal Omni DPRM bucket-coordinate contract mismatch")
 deployment = payload.get("metadata", {}).get("deployment_contract", {})
 if deployment.get("paths_per_prompt") != 1 or deployment.get("terminal_reward_calls_at_test") != 0:
     raise SystemExit("formal Omni DPRM must use one path and no terminal-reward calls at test time")
@@ -112,6 +136,13 @@ if deployment.get("ordered_visual_positions") != 256:
     raise SystemExit("formal Omni DPRM must order exactly 256 visual-code positions")
 if source_summary.get("fixed_visual_canvas") is not True:
     raise SystemExit("formal Omni DPRM requires fixed-canvas development rollouts")
+stagewise = payload.get("metadata", {}).get("stagewise_order_contract", {})
+if not stagewise.get("reward_action_steps"):
+    raise SystemExit("formal Omni DPRM requires fixed stagewise reward actions")
+if artifact_format == "omni_bucket_table_dprm_v1" and stagewise.get("max_base_score_gap") is None:
+    raise SystemExit("formal Omni DPRM requires confidence-ambiguity gating")
+if stagewise.get("fallback") != "native confidence order":
+    raise SystemExit("formal Omni DPRM must fall back to native confidence order")
 PY
   fi
 done
@@ -159,7 +190,13 @@ for ORDER in "${ORDERS[@]}"; do
         | tail -1 \
         | cut -f2-
     )"
-    if [[ -n "${LATEST_COMPLETE_CKPT}" ]]; then
+    if [[ "${RESUME_FROM_CHECKPOINT}" == "auto" ]]; then
+      [[ -n "${LATEST_COMPLETE_CKPT}" ]] || {
+        echo "cannot auto-resume ${ORDER}: no complete branch-local checkpoint" >&2
+        exit 2
+      }
+      EFFECTIVE_RESUME="${LATEST_COMPLETE_CKPT}"
+    elif [[ -n "${LATEST_COMPLETE_CKPT}" ]]; then
       EXPLICIT_STEP="${RESUME_FROM_CHECKPOINT##*checkpoint-}"
       LATEST_STEP="${LATEST_COMPLETE_CKPT##*checkpoint-}"
       if [[ "${EXPLICIT_STEP}" =~ ^[0-9]+$ && "${LATEST_STEP}" =~ ^[0-9]+$ ]] \
@@ -169,6 +206,19 @@ for ORDER in "${ORDERS[@]}"; do
     fi
     RESUME_ARGS=(--resume_from_checkpoint "${EFFECTIVE_RESUME}")
     OVERWRITE_ARGS=(--overwrite_output_dir)
+    if [[ -s "${OUT_DIR}/branch_manifest.json" ]]; then
+      SAVED_WORLD_SIZE="$(${PYTHON} - "${OUT_DIR}/branch_manifest.json" <<'PY'
+import json
+import sys
+
+print(json.load(open(sys.argv[1], encoding="utf-8"))["distributed_world_size"])
+PY
+)"
+      if [[ "${SAVED_WORLD_SIZE}" != "${NPROC}" ]]; then
+        echo "cannot resume ${ORDER}: checkpoint world size ${SAVED_WORLD_SIZE} != requested ${NPROC}" >&2
+        exit 2
+      fi
+    fi
     echo "resuming ${ORDER} from latest complete checkpoint: ${EFFECTIVE_RESUME}"
   fi
   export DPRM_TRAIN_ORDER_POLICY="${ORDER}"
@@ -231,6 +281,53 @@ if not path.is_file():
 print(path)
 PY
 )"
+  TRAJECTORY_STAGE_CONTRACT="$("${PYTHON}" - "${EFFECTIVE_DATA_JSON}" "${MATCHED_SCORER}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data_path, controller_path = map(Path, sys.argv[1:])
+post_actions = set()
+next_actions = set()
+rows = 0
+with data_path.open(encoding="utf-8") as handle:
+    for line in handle:
+        row = json.loads(line)
+        post = int(row["dprm_trajectory_step"])
+        next_action = int(row["dprm_next_action_step"])
+        revealed = len(row["dprm_revealed_visual_indices"])
+        if next_action != post + 1 or revealed != next_action:
+            raise SystemExit(
+                f"invalid post-action training canvas in {data_path}: "
+                f"post={post}, next={next_action}, revealed={revealed}"
+            )
+        post_actions.add(post)
+        next_actions.add(next_action)
+        rows += 1
+if rows == 0:
+    raise SystemExit(f"empty matched trajectory data: {data_path}")
+controller = json.loads(controller_path.read_text(encoding="utf-8"))
+reward_actions = controller.get("config", {}).get("reward_action_steps", [])
+if not reward_actions:
+    reward_actions = controller.get("config", {}).get("active_steps", [])
+if not reward_actions:
+    reward_actions = controller.get("metadata", {}).get("stagewise_order_contract", {}).get(
+        "reward_action_steps", []
+    )
+missing = sorted(set(map(int, reward_actions)) - next_actions)
+if missing:
+    raise SystemExit(f"matched trajectories do not train reward actions {missing}")
+print(json.dumps({
+    "post_action_checkpoints": sorted(post_actions),
+    "policy_input_visible_counts": sorted(next_actions),
+    "training_next_action_steps": sorted(next_actions),
+    "loss_state_visible_counts": sorted(value + 1 for value in next_actions),
+    "hybrid_transition_then_loss": True,
+    "controller_reward_action_steps": sorted(map(int, reward_actions)),
+    "reward_action_coverage_verified": True,
+}))
+PY
+)"
   cat > "${OUT_DIR}/branch_manifest.json" <<JSON
 {
   "order": "${ORDER}",
@@ -240,6 +337,7 @@ PY
   "data_config_sha256": "$(sha256sum "${EFFECTIVE_DATA_CONFIG}" | awk '{print $1}')",
   "data_json": "${EFFECTIVE_DATA_JSON}",
   "data_json_sha256": "$(sha256sum "${EFFECTIVE_DATA_JSON}" | awk '{print $1}')",
+  "trajectory_stage_contract": ${TRAJECTORY_STAGE_CONTRACT},
   "controller": "${MATCHED_SCORER}",
   "controller_sha256": "$([[ -s "${MATCHED_SCORER}" ]] && sha256sum "${MATCHED_SCORER}" | awk '{print $1}' || printf '')",
   "trainer_sha256": "$(sha256sum "${OMNI_ROOT}/tools/trainer_v4_51_3.py" | awk '{print $1}')",

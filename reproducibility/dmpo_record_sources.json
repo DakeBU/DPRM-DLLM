@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "math": {
+      "confidence": {
+        "path": "dmpo/records/math_confidence_step5000",
+        "result_provenance": "archived_paper_result",
+        "checkpoint_binding_verified": false
+      },
+      "dprm_confidence": {
+        "path": "dmpo/records/math_dprm_step5000",
+        "result_provenance": "archived_paper_result",
+        "checkpoint_binding_verified": false
+      }
+    },
+    "countdown": {
+      "confidence": {
+        "path": "dmpo/records/countdown_confidence_step5000",
+        "result_provenance": "archived_paper_result",
+        "checkpoint_binding_verified": false
+      },
+      "dprm_confidence": {
+        "path": "dmpo/records/countdown_dprm_step5000",
+        "result_provenance": "archived_paper_result",
+        "checkpoint_binding_verified": false
+      }
+    }
+  }
+}

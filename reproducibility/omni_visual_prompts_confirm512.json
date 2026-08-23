@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "selection_rule": "Four fixed indices spaced across the untouched confirmation interval; prompt text was registered before generation and without method outputs.",
+  "prompts": [
+    {
+      "prompt_id": 1001,
+      "sha256": "e55bcbaa069f93d8f47478e22eaefc972927e8789d619d3b830366888234e393",
+      "text": "A 3D apple made of a circuit board."
+    },
+    {
+      "prompt_id": 1170,
+      "sha256": "e574db1618b4b6195ee5adc2269c2e4cc9fedd806db434501a50e80be991e8d7",
+      "text": "A dimly lit Shisha Lounge exudes a raw and gritty atmosphere, evoking a sense of youth rebellion and underground culture."
+    },
+    {
+      "prompt_id": 1340,
+      "sha256": "f23fe0eaadf70259743cc92513cee4872017069208e63ab8d899823a73b37ffb",
+      "text": "A weathered Roman statue stands amidst the overgrown vines inside a Victorian house, surrounded by darkness and a teal fog, creating a baroque and cinematic atmosphere."
+    },
+    {
+      "prompt_id": 1510,
+      "sha256": "02a95e94e8a68773bbfcebdd3ae21b8b6eaab13298dddd6436a08e2d58f31e2d",
+      "text": "A beautiful painting of pink roses to give to my girlfriend."
+    }
+  ]
+}

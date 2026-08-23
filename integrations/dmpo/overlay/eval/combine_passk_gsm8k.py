@@ -9,10 +9,10 @@ import numpy as np
 
 LEVEL_SPECS = [
     ("overall", "GSM8K pass@K: {vanilla_label} vs {progressive_label}", None),
-    ("trivial_level0", "Trivial (0.0-0.3) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 0),
-    ("easy_level1", "Easy (0.3-0.5) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 1),
-    ("medium_level2", "Medium (0.5-0.7) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 2),
-    ("hard_level3", "Hard (0.7-1.0) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 3),
+    ("trivial_level0", "Trivial (level 0) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 0),
+    ("easy_level1", "Easy (level 1) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 1),
+    ("medium_level2", "Medium (level 2) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 2),
+    ("hard_level3", "Hard (level 3) GSM8K pass@K: {vanilla_label} vs {progressive_label}", 3),
 ]
 
 

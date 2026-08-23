@@ -64,7 +64,13 @@ def deduplicate_prompt_text(records: list[dict[str, Any]]) -> list[dict[str, Any
     return kept
 
 
-def add_clip_scores(records: list[dict[str, Any]], model_name: str, device: str, batch_size: int) -> None:
+def add_clip_scores(
+    records: list[dict[str, Any]],
+    model_name: str,
+    device: str,
+    batch_size: int,
+    metric_name: str = "clip_cosine",
+) -> None:
     from transformers import CLIPModel, CLIPProcessor
 
     model = CLIPModel.from_pretrained(model_name).to(device).eval()
@@ -91,29 +97,33 @@ def add_clip_scores(records: list[dict[str, Any]], model_name: str, device: str,
             text_features = text_features / text_features.norm(dim=-1, keepdim=True)
             scores = (image_features * text_features).sum(dim=-1).detach().cpu().tolist()
             for rec, score in zip(batch, scores):
-                rec["clip_cosine"] = float(score)
+                rec[metric_name] = float(score)
 
 
-def reuse_clip_scores(records: list[dict[str, Any]], table_path: Path) -> int:
+def reuse_clip_scores(
+    records: list[dict[str, Any]], table_path: Path, metric_name: str = "clip_cosine"
+) -> int:
     with table_path.open(encoding="utf-8") as handle:
         table = json.load(handle)
     source_records = table.get("metadata", {}).get("records", [])
     scores = {
-        (str(rec.get("order", "")), str(rec.get("prompt_id", ""))): float(rec["clip_cosine"])
+        (str(rec.get("order", "")), str(rec.get("prompt_id", ""))): float(rec[metric_name])
         for rec in source_records
-        if rec.get("clip_cosine") is not None
+        if rec.get(metric_name) is not None
     }
     reused = 0
     for rec in records:
         key = (str(rec.get("order", "")), str(rec.get("prompt_id", "")))
         if key in scores:
-            rec["clip_cosine"] = scores[key]
+            rec[metric_name] = scores[key]
             reused += 1
     return reused
 
 
-def normalized_rewards(records: list[dict[str, Any]], mode: str) -> tuple[dict[str, float], dict[str, Any]]:
-    scores = [float(rec["clip_cosine"]) for rec in records]
+def normalized_metric_rewards(
+    records: list[dict[str, Any]], mode: str, metric_name: str
+) -> tuple[dict[str, float], dict[str, Any]]:
+    scores = [float(rec[metric_name]) for rec in records]
     mean = statistics.fmean(scores) if scores else 0.0
     std = statistics.pstdev(scores) if len(scores) > 1 else 1.0
     std = max(float(std), 1e-6)
@@ -137,19 +147,19 @@ def normalized_rewards(records: list[dict[str, Any]], mode: str) -> tuple[dict[s
             )
         raw_advantages: list[float] = []
         for prompt_id, group in groups.items():
-            baseline = statistics.fmean(float(rec["clip_cosine"]) for rec in group)
+            baseline = statistics.fmean(float(rec[metric_name]) for rec in group)
             for rec in group:
-                advantage = float(rec["clip_cosine"]) - baseline
+                advantage = float(rec[metric_name]) - baseline
                 paired_advantages[str(rec["trace_path"])] = advantage
-                rec["prompt_clip_baseline"] = baseline
-                rec["raw_paired_advantage"] = advantage
+                rec[f"prompt_{metric_name}_baseline"] = baseline
+                rec[f"raw_{metric_name}_paired_advantage"] = advantage
                 raw_advantages.append(advantage)
             paired_groups += 1
         paired_std = max(float(statistics.pstdev(raw_advantages)), 1e-6)
 
     rewards: dict[str, float] = {}
     for rec in records:
-        score = float(rec["clip_cosine"])
+        score = float(rec[metric_name])
         if mode == "raw":
             reward = score
         elif mode == "centered":
@@ -161,12 +171,51 @@ def normalized_rewards(records: list[dict[str, Any]], mode: str) -> tuple[dict[s
         else:
             raise ValueError(f"unknown reward normalization: {mode}")
         rewards[str(rec["trace_path"])] = float(reward)
-        rec["dprm_reward"] = float(reward)
     return rewards, {
-        "clip_mean": mean,
-        "clip_std": std,
+        "metric": metric_name,
+        "mean": mean,
+        "std": std,
         "paired_prompt_groups": paired_groups,
         "paired_advantage_std": paired_std,
+    }
+
+
+def normalized_rewards(
+    records: list[dict[str, Any]],
+    mode: str,
+    metric_weights: dict[str, float] | None = None,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    """Build one terminal utility after normalizing each metric separately."""
+    metric_weights = metric_weights or {"clip_cosine": 1.0}
+    if not metric_weights or sum(abs(weight) for weight in metric_weights.values()) <= 0:
+        raise ValueError("at least one non-zero terminal-utility weight is required")
+
+    metric_rewards: dict[str, dict[str, float]] = {}
+    metric_stats: dict[str, dict[str, Any]] = {}
+    for metric_name, weight in metric_weights.items():
+        if any(record.get(metric_name) is None for record in records):
+            raise ValueError(f"missing {metric_name} for terminal-utility construction")
+        rewards, stats = normalized_metric_rewards(records, mode, metric_name)
+        metric_rewards[metric_name] = rewards
+        metric_stats[metric_name] = stats | {"weight": float(weight)}
+
+    rewards: dict[str, float] = {}
+    for record in records:
+        trace_path = str(record["trace_path"])
+        reward = sum(
+            float(weight) * metric_rewards[metric_name][trace_path]
+            for metric_name, weight in metric_weights.items()
+        )
+        rewards[trace_path] = reward
+        record["dprm_reward_components"] = {
+            metric_name: metric_rewards[metric_name][trace_path]
+            for metric_name in metric_weights
+        }
+        record["dprm_reward"] = reward
+    return rewards, {
+        "mode": mode,
+        "metric_weights": {key: float(value) for key, value in metric_weights.items()},
+        "metrics": metric_stats,
     }
 
 
@@ -180,12 +229,39 @@ def read_trace(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def active_trace_rows(
+    rows: list[dict[str, Any]], active_steps: set[int]
+) -> list[dict[str, Any]]:
+    """Restrict process-value credit to the deployment decision stages."""
+    if not active_steps:
+        return rows
+    return [row for row in rows if int(row.get("step", -1)) in active_steps]
+
+
+def spatial_bin(visual_index: int, aux_bins: int, image_side: int = 16) -> int:
+    """Map a saved visual index to the requested row-major spatial grid."""
+    if aux_bins <= 1:
+        return 0
+    side_bins = int(round(aux_bins**0.5))
+    index = max(0, min(int(visual_index), image_side * image_side - 1))
+    if side_bins * side_bins == aux_bins:
+        row, column = divmod(index, image_side)
+        row_bin = row * side_bins // image_side
+        column_bin = column * side_bins // image_side
+        return min(aux_bins - 1, row_bin * side_bins + column_bin)
+    return min(aux_bins - 1, index * aux_bins // (image_side * image_side))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rollout-root", type=Path, required=True)
     parser.add_argument("--orders", nargs="+", default=["random", "progressive_confidence"])
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--clip-model", default="openai/clip-vit-large-patch14")
+    parser.add_argument("--secondary-clip-model", default=None)
+    parser.add_argument("--secondary-metric-name", default="clip_b32_cosine")
+    parser.add_argument("--primary-reward-weight", type=float, default=1.0)
+    parser.add_argument("--secondary-reward-weight", type=float, default=0.0)
     parser.add_argument(
         "--deduplicate-prompt-text",
         action="store_true",
@@ -198,6 +274,12 @@ def main() -> None:
         type=Path,
         default=None,
         help="Reuse CLIP scores keyed by (order, prompt_id) from an existing DPRM table.",
+    )
+    parser.add_argument(
+        "--reuse-secondary-clip-from-table",
+        type=Path,
+        default=None,
+        help="Reuse secondary CLIP scores from an existing DPRM table.",
     )
     parser.add_argument(
         "--reward-normalization",
@@ -224,6 +306,16 @@ def main() -> None:
     parser.add_argument("--warmup-steps", type=int, default=0)
     parser.add_argument("--switch-steps", type=int, default=64)
     parser.add_argument(
+        "--active-steps",
+        type=int,
+        nargs="*",
+        default=(),
+        help=(
+            "Accumulate terminal-return statistics only for these reveal steps. "
+            "Omit to use every traced action."
+        ),
+    )
+    parser.add_argument(
         "--require-fixed-visual-canvas",
         action="store_true",
         help="Require one trace action for each visual index 0..255 and no format-token actions.",
@@ -243,11 +335,45 @@ def main() -> None:
     missing_clip = [rec for rec in records if rec.get("clip_cosine") is None]
     if missing_clip:
         add_clip_scores(missing_clip, args.clip_model, args.device, args.clip_batch_size)
-    rewards, reward_stats = normalized_rewards(records, args.reward_normalization)
+
+    reused_secondary_clip = 0
+    metric_weights = {"clip_cosine": args.primary_reward_weight}
+    if args.secondary_clip_model is not None or args.secondary_reward_weight != 0.0:
+        if args.secondary_clip_model is None:
+            raise ValueError("--secondary-clip-model is required for a secondary utility")
+        if args.reuse_secondary_clip_from_table is not None:
+            reused_secondary_clip = reuse_clip_scores(
+                records,
+                args.reuse_secondary_clip_from_table,
+                args.secondary_metric_name,
+            )
+        missing_secondary = [
+            rec for rec in records if rec.get(args.secondary_metric_name) is None
+        ]
+        if missing_secondary:
+            add_clip_scores(
+                missing_secondary,
+                args.secondary_clip_model,
+                args.device,
+                args.clip_batch_size,
+                args.secondary_metric_name,
+            )
+        metric_weights[args.secondary_metric_name] = args.secondary_reward_weight
+    rewards, reward_stats = normalized_rewards(
+        records, args.reward_normalization, metric_weights
+    )
 
     traces = {
         str(rec["trace_path"]): read_trace(Path(rec["trace_path"])) for rec in records
     }
+    active_steps = {int(step) for step in args.active_steps}
+    credited_traces = {
+        path: active_trace_rows(rows, active_steps) for path, rows in traces.items()
+    }
+    if active_steps and not any(credited_traces.values()):
+        raise ValueError(
+            f"no trace decisions match active steps {sorted(active_steps)}"
+        )
     if args.require_fixed_visual_canvas:
         for rec in records:
             if rec.get("fixed_t2i_scaffold") is not True:
@@ -269,7 +395,7 @@ def main() -> None:
     if args.confidence_binning == "development_quantile":
         selected_confidence = [
             float(value)
-            for rows in traces.values()
+            for rows in credited_traces.values()
             for row in rows
             for value in row.get("selected_confidence", [])
         ]
@@ -304,7 +430,7 @@ def main() -> None:
     for rec in records:
         reward = rewards[str(rec["trace_path"])]
         exp_reward = math.exp(args.reward_temperature * max(min(reward, 20.0), -20.0))
-        rows = traces[str(rec["trace_path"])]
+        rows = credited_traces[str(rec["trace_path"])]
         total_steps = max(int(rec.get("steps", len(rows))), 1)
         for row in rows:
             trace_rows += 1
@@ -315,6 +441,11 @@ def main() -> None:
                 phase = max(0, min(args.num_phases - 1, int(row["phase"])))
             selected_confidence = row.get("selected_confidence", [])
             selected_aux = row.get("selected_aux_bins", [])
+            selected_visual = row.get("selected_visual_indices", [])
+            if selected_visual and len(selected_visual) == len(selected_confidence):
+                selected_aux = [
+                    spatial_bin(index, args.aux_bins) for index in selected_visual
+                ]
             if selected_confidence and len(selected_confidence) == len(selected_aux):
                 buckets = [
                     {
@@ -374,8 +505,12 @@ def main() -> None:
             "rollout_root": str(args.rollout_root),
             "orders": args.orders,
             "clip_model": args.clip_model,
+            "secondary_clip_model": args.secondary_clip_model,
+            "secondary_metric_name": args.secondary_metric_name,
             "reused_clip_from_table": str(args.reuse_clip_from_table) if args.reuse_clip_from_table else None,
             "num_reused_clip_scores": reused_clip,
+            "reused_secondary_clip_from_table": str(args.reuse_secondary_clip_from_table) if args.reuse_secondary_clip_from_table else None,
+            "num_reused_secondary_clip_scores": reused_secondary_clip,
             "reward_normalization": args.reward_normalization,
             "reward_stats": reward_stats,
             "num_rollouts": len(records),
@@ -383,6 +518,8 @@ def main() -> None:
             "prompt_text_deduplicated": bool(args.deduplicate_prompt_text),
             "fixed_visual_canvas": bool(args.require_fixed_visual_canvas),
             "trace_rows": trace_rows,
+            "source_trace_rows": sum(len(rows) for rows in traces.values()),
+            "active_steps": sorted(active_steps),
             "selected_total": selected_total,
             "nonempty_buckets": nonempty,
             "total_buckets": total_buckets,

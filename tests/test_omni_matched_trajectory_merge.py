@@ -29,6 +29,7 @@ def trajectory_row(prompt: str, policy: str, step: int) -> dict:
         "dprm_source_index": 17,
         "dprm_trajectory_policy": policy,
         "dprm_trajectory_step": step,
+        "dprm_next_action_step": step + 1,
         "dprm_revealed_visual_indices": list(range(step + 1)),
     }
 
@@ -90,9 +91,33 @@ def test_matched_trajectory_merge_records_pairing_hashes(tmp_path: Path) -> None
     assert manifest["rows_per_policy"] == 2
     assert manifest["unique_prompts"] == 1
     assert manifest["paired_state_key_count"] == 2
+    assert manifest["post_action_checkpoints"] == [31, 63]
+    assert manifest["training_next_action_steps"] == [32, 64]
     assert manifest["paired_state_key_sha256"] == expected_key_hash
     assert manifest["policy_pairing_verified"] is True
     assert manifest["clean_target_pairing_verified"] is True
+    assert manifest["canvas_divergence"]["dprm_vs_confidence"] == {
+        "paired_canvases": 2,
+        "different_canvases": 0,
+        "different_fraction": 0.0,
+        "mean_substituted_positions": 0.0,
+        "by_post_action_step": {
+            "31": {
+                "paired_canvases": 1,
+                "different_canvases": 0,
+                "different_fraction": 0.0,
+                "mean_substituted_positions": 0.0,
+                "max_substituted_positions": 0,
+            },
+            "63": {
+                "paired_canvases": 1,
+                "different_canvases": 0,
+                "different_fraction": 0.0,
+                "mean_substituted_positions": 0.0,
+                "max_substituted_positions": 0,
+            },
+        },
+    }
     assert len(manifest["paired_clean_target_sha256"]) == 64
     assert manifest["forbidden_prompt_overlap"] == 0
 

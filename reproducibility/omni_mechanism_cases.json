@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "role": "fixed mechanism diagnostic; excluded from the 512-prompt confirmation mean",
+  "checkpoint": "Omni confidence checkpoint-500",
+  "action_step": 96,
+  "candidate_rank_quantiles": [0.15, 0.30, 0.70, 0.85],
+  "selection": "hard terminal-utility tilt with confidence fallback",
+  "terminal_utility": "CLIP-L/14 cosine + 0.01 * LAION aesthetic score",
+  "cases": [
+    {
+      "id": "beach",
+      "prompt_id": "20270085",
+      "seed": 20270085,
+      "prompt": "Two little boys and a little girl playing on a sunny beach with clear blue skies, as they explore the shore and dig in the sand with their toy pail and shovel.",
+      "selected_quantile": 0.15,
+      "default_visual_index": 156,
+      "selected_visual_index": 229,
+      "default_action_confidence": 0.03164658322930336,
+      "selected_action_confidence": 0.020754337310791016,
+      "confidence_clip_l14": 0.27711355686187744,
+      "dprm_clip_l14": 0.3314807415008545,
+      "confidence_clip_b32": 0.32946068048477173,
+      "dprm_clip_b32": 0.34731602668762207,
+      "hf_confidence_dir": "omni_diffusion/mechanism_cases/beach/confidence",
+      "hf_dprm_dir": "omni_diffusion/mechanism_cases/beach/dprm"
+    },
+    {
+      "id": "boy_kittens",
+      "prompt_id": "20270027",
+      "seed": 20270027,
+      "prompt": "A boy sits on a stoop while playing a flute for an audience of kittens on the sidewalk.",
+      "selected_quantile": 0.30,
+      "default_visual_index": 186,
+      "selected_visual_index": 192,
+      "default_action_confidence": 0.10215643048286438,
+      "selected_action_confidence": 0.02623593993484974,
+      "confidence_clip_l14": 0.28843873739242554,
+      "dprm_clip_l14": 0.31169044971466064,
+      "confidence_clip_b32": 0.30447253584861755,
+      "dprm_clip_b32": 0.3159780502319336,
+      "hf_confidence_dir": "omni_diffusion/mechanism_cases/boy_kittens/confidence",
+      "hf_dprm_dir": "omni_diffusion/mechanism_cases/boy_kittens/dprm"
+    }
+  ],
+  "records": "omni_diffusion/mechanism_cases/audit_records_b32.json",
+  "renderer": "integrations/omni_diffusion/matched/scripts/render_omni_mechanism_cases.py",
+  "paper_figure_sha256": "4e0316c616b9a461b8fc49177670b4a8f0cda2d5253d2f600aecb715f95bd405"
+}

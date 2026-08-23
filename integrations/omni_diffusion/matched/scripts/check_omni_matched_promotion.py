@@ -44,6 +44,11 @@ def main() -> None:
     parser.add_argument("--run-manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--expected-prompts", type=int, default=96)
+    parser.add_argument(
+        "--role",
+        choices=("development", "confirmation"),
+        default="confirmation",
+    )
     args = parser.parse_args()
 
     paired = json.loads(args.paired.read_text(encoding="utf-8"))
@@ -59,17 +64,58 @@ def main() -> None:
     training_audit_hash = (
         sha256(training_audit_path) if training_audit_path.is_file() else ""
     )
+    visual_manifest_path = Path(run_manifest.get("visual_prompt_preregistration", ""))
+    visual_validation_path = Path(run_manifest.get("visual_prompt_validation", ""))
+    visual_validation = (
+        json.loads(visual_validation_path.read_text(encoding="utf-8"))
+        if visual_validation_path.is_file()
+        else {}
+    )
+    visual_manifest_hash = (
+        sha256(visual_manifest_path) if visual_manifest_path.is_file() else ""
+    )
+    visual_validation_hash = (
+        sha256(visual_validation_path) if visual_validation_path.is_file() else ""
+    )
     clip_l = comparison(paired, "clip_cosine")
     clip_b = comparison(paired, "clip_b32_cosine")
     order_delta = divergence(order)
     deployment = controller.get("metadata", {}).get("deployment_contract", {})
+    external_prompt_file = bool(run_manifest.get("prompt_jsonl"))
+    fixed_visual_prompt_ids = run_manifest.get("fixed_visual_prompt_ids", [])
+    if external_prompt_file:
+        visual_prompt_check = fixed_visual_prompt_ids == []
+        visual_validation_check = (
+            visual_validation.get("prompt_count") == args.expected_prompts
+            and visual_validation.get("unique_prompt_count") == args.expected_prompts
+            and visual_validation.get("unique_prompt_id_count") == args.expected_prompts
+        )
+    else:
+        visual_prompt_check = (
+            isinstance(fixed_visual_prompt_ids, list)
+            and len(fixed_visual_prompt_ids) == 4
+            and len(set(fixed_visual_prompt_ids)) == 4
+            and all(
+                int(prompt_id.removeprefix("prompt_"))
+                in range(
+                    int(run_manifest.get("prompt_offset", -1)),
+                    int(run_manifest.get("prompt_offset", -1))
+                    + int(run_manifest.get("prompt_count", 0)),
+                )
+                for prompt_id in fixed_visual_prompt_ids
+            )
+        )
+        visual_validation_check = visual_validation.get("passed") is True
 
     checks = {
         "all_prompts_paired_clip_l14": clip_l.get("matched_prompts") == args.expected_prompts,
         "all_prompts_paired_clip_b32": clip_b.get("matched_prompts") == args.expected_prompts,
         "clip_l14_paired_ci_low_positive": float(clip_l.get("ci95_low", 0.0)) > 0.0,
         "clip_b32_mean_delta_positive": float(clip_b.get("mean_delta", 0.0)) > 0.0,
-        "order_changes_measurably": float(order_delta.get("moved_position_fraction", 0.0)) >= 0.02,
+        "order_changes_measurably": (
+            float(order_delta.get("direct_override_fraction", 0.0)) >= 0.001
+            and float(order_delta.get("has_direct_override", 0.0)) >= 0.20
+        ),
         "single_path_deployment": deployment.get("paths_per_prompt") == 1,
         "no_test_reward_calls": deployment.get("terminal_reward_calls_at_test") == 0,
         "no_complete_image_selection": deployment.get("complete_image_selection") is False,
@@ -85,15 +131,12 @@ def main() -> None:
         "evaluation_has_no_aesthetic_scoring": run_manifest.get("aesthetic_scoring") is False,
         "evaluation_metrics_are_fixed": run_manifest.get("evaluation_metrics")
         == ["CLIP-L/14", "CLIP-B/32"],
-        "main_figure_prompt_is_preregistered": run_manifest.get("main_figure_prompt_id")
-        == f"prompt_{int(run_manifest.get('prompt_offset', -1)):04d}",
-        "supplement_prompts_are_preregistered": run_manifest.get(
-            "supplement_figure_prompt_ids"
-        )
-        == [
-            f"prompt_{int(run_manifest.get('prompt_offset', -1)) + offset:04d}"
-            for offset in (1, 2, 3)
-        ],
+        "visual_or_external_prompts_are_preregistered": visual_prompt_check,
+        "visual_prompt_manifest_hash_intact": visual_manifest_hash
+        == run_manifest.get("visual_prompt_preregistration_sha256"),
+        "prompt_validation_passed": visual_validation_check,
+        "visual_prompt_validation_hash_intact": visual_validation_hash
+        == run_manifest.get("visual_prompt_validation_sha256"),
         "evaluation_fixes_t2i_scaffold": run_manifest.get("fixed_t2i_scaffold") is True,
         "evaluation_orders_visual_positions_only": run_manifest.get("ordered_action_space")
         == "256 visual-code positions; four T2I format tokens fixed",
@@ -105,7 +148,7 @@ def main() -> None:
     passed = all(checks.values())
     report = {
         "passed": passed,
-        "role": "prespecified manuscript promotion gate",
+        "role": f"prespecified {args.role} gate",
         "checks": checks,
         "clip_l14": clip_l,
         "clip_b32": clip_b,
@@ -116,6 +159,8 @@ def main() -> None:
             "controller": sha256(args.controller),
             "run_manifest": sha256(args.run_manifest),
             "training_contract_audit": training_audit_hash,
+            "visual_prompt_preregistration": visual_manifest_hash,
+            "visual_prompt_validation": visual_validation_hash,
         },
         "failure_policy": (
             "Keep this untouched test result. Any follow-up changes must be selected "
