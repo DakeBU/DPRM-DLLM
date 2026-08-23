@@ -54,13 +54,17 @@ the PAT in `origin`, a command argument, or a checked-in file.
 
 ```bash
 source .venv/bin/activate
-read -rsp "Hugging Face token: " HF_TOKEN; echo
-export HF_TOKEN
-hf upload DakeBU/DPRM-DLLM \
-  "$DPRM_ARTIFACT_ROOT" . \
-  --repo-type model
-unset HF_TOKEN
+python -m huggingface_hub.commands.huggingface_cli login
+python -m huggingface_hub.commands.huggingface_cli repo create \
+  DakeBU/DPRM-DLLM --repo-type model --exist-ok
+python -m huggingface_hub.commands.huggingface_cli upload-large-folder \
+  DakeBU/DPRM-DLLM "$DPRM_ARTIFACT_ROOT" \
+  --repo-type model --num-workers 4
 ```
+
+`upload-large-folder` records local progress and can be rerun after a network
+interruption. Do not place the Hugging Face token in a command argument or a
+checked-in file.
 
 After upload, download the manifest and one small raw-record archive from the
 Hub and rerun `verify_artifact_manifest.py` against the downloaded bundle.

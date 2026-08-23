@@ -17,6 +17,7 @@
     <a class="wordmark" href="#top" aria-label="DPRM home">DPRM</a>
     <nav aria-label="Primary navigation">
       <a href="#visual-order">Visual order</a>
+      <a href="#vqa-gallery">VQA</a>
       <a href="#results">Results</a>
       <a href="#diagnostics">Diagnostics</a>
     </nav>
@@ -92,6 +93,41 @@
         <div class="metric-comparison"><span>CLIP-B/32</span><div><small>Confidence</small><b>0.23836</b></div><div class="winner"><small>DPRM</small><b>0.24854</b></div></div>
         <p>512 untouched prompts. Paired 95% intervals for both improvements exclude zero.</p>
       </div>
+
+      <div class="gallery-heading">
+        <p class="eyebrow">Frozen confirmation split</p>
+        <h3>Four-policy image gallery</h3>
+        <p>Random, Omni default, a deterministic uniform action, and DPRM use matched prompts and seeds. Every displayed DPRM result improves both CLIP encoders over Omni default; the gallery is separate from controller selection.</p>
+      </div>
+      <div class="gallery-tabs" role="tablist" aria-label="Omni qualitative gallery pages">
+        <button class="omni-gallery-tab active" role="tab" aria-selected="true" data-omni-gallery="1">Gallery 1</button>
+        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="2">Gallery 2</button>
+        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="3">Gallery 3</button>
+        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="4">Gallery 4</button>
+      </div>
+      <div class="gallery-workspace omni-gallery-workspace" tabindex="0" aria-label="Scrollable four-policy Omni-Diffusion gallery">
+        <figure class="omni-gallery-panel active" data-omni-panel="1"><img src="assets/omni_qualitative_gallery_1.webp" alt="Four-policy Omni comparisons for a treasure chest, hamster dragon, badger, and pig."></figure>
+        <figure class="omni-gallery-panel" data-omni-panel="2" hidden><img src="assets/omni_qualitative_gallery_2.webp" alt="Four-policy Omni comparisons for a framed car painting, voxel capybara, volcano, and astronaut dolphin."></figure>
+        <figure class="omni-gallery-panel" data-omni-panel="3" hidden><img src="assets/omni_qualitative_gallery_3.webp" alt="Four-policy Omni comparisons for a Corvette, gecko conductor, vase, and tiger corral."></figure>
+        <figure class="omni-gallery-panel" data-omni-panel="4" hidden><img src="assets/omni_qualitative_gallery_4.webp" alt="Four-policy Omni comparisons for a balloon, gym rat, antique car, and tuxedo tiger."></figure>
+      </div>
+    </section>
+
+    <section class="section vqa-section" id="vqa-gallery">
+      <div class="section-heading">
+        <p class="eyebrow">LLaDA-V · RealWorldQA</p>
+        <h2>Order preserves the context needed for a count</h2>
+        <p>The strict numeric/count interval has seven DPRM-only wins and no losses. In six wins, DPRM exposes the object word before the first numeric token; confidence often commits a leading <strong>1</strong> and completes it as <strong>10</strong>.</p>
+      </div>
+      <div class="gallery-tabs" role="tablist" aria-label="LLaDA-V qualitative gallery pages">
+        <button class="llada-gallery-tab active" role="tab" aria-selected="true" data-llada-gallery="1">Cases 1–4</button>
+        <button class="llada-gallery-tab" role="tab" aria-selected="false" data-llada-gallery="2">Cases 5–7</button>
+      </div>
+      <div class="gallery-workspace llada-gallery-workspace" tabindex="0" aria-label="Scrollable LLaDA-V strict held-out examples">
+        <figure class="llada-gallery-panel active" data-llada-panel="1"><img src="assets/lladav_realworldqa_gallery_1.webp" alt="Four RealWorldQA numeric examples where DPRM answers correctly and confidence order does not."></figure>
+        <figure class="llada-gallery-panel" data-llada-panel="2" hidden><img src="assets/lladav_realworldqa_gallery_2.webp" alt="Three additional RealWorldQA numeric examples where DPRM answers correctly."></figure>
+      </div>
+      <div class="vqa-summary"><strong>+8.97 percentage points</strong><span>32.05% confidence → 41.03% DPRM · paired 95% CI [+2.56, +15.38]</span></div>
     </section>
 
     <section class="section results-section" id="results">

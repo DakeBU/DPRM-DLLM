@@ -73,3 +73,23 @@ python integrations/llada_v/scripts/summarize_multimodal_results.py \
 
 The script pairs by `doc_id`, rejects incomplete declared intervals, and uses
 only prompt text to define choice, numeric, and open-answer subsets.
+
+## Qualitative Gallery
+
+The gallery contains all seven DPRM-only wins in the strict held-out
+numeric/count class. The document ids are fixed in
+[`../../reproducibility/llada_v_qualitative_gallery.json`](../../reproducibility/llada_v_qualitative_gallery.json).
+After downloading the official RealWorldQA evaluation split, rebuild both
+gallery pages with:
+
+```bash
+python integrations/llada_v/scripts/render_qualitative_gallery.py \
+  --confidence-records outputs/rwqa/confidence.jsonl \
+  --dprm-records outputs/rwqa/dprm_confidence.jsonl \
+  --manifest reproducibility/llada_v_qualitative_gallery.json \
+  --output-dir "$HOME/outputs/llada_v_qualitative_gallery"
+```
+
+The renderer checks that every listed document is incorrect under confidence
+order and correct under DPRM using the same target-normalized evaluator as the
+reported paired audit.

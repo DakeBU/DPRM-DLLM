@@ -11,14 +11,14 @@ function activate(buttons, panels, buttonKey, panelKey, value) {
   });
 }
 
-function bindTabs(buttonSelector, panelSelector, buttonKey, panelKey) {
+function bindTabs(buttonSelector, panelSelector, buttonKey, panelKey, workspaceSelector) {
   const buttons = [...document.querySelectorAll(buttonSelector)];
   const panels = [...document.querySelectorAll(panelSelector)];
   buttons.forEach((button, index) => {
     button.addEventListener("click", () => {
       activate(buttons, panels, buttonKey, panelKey, button.dataset[buttonKey]);
-      const workspace = document.querySelector(".visual-workspace");
-      if (button.classList.contains("case-tab") && workspace) workspace.scrollTo({ left: 0, top: 0 });
+      const workspace = workspaceSelector ? document.querySelector(workspaceSelector) : null;
+      if (workspace) workspace.scrollTo({ left: 0, top: 0 });
     });
     button.addEventListener("keydown", (event) => {
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -32,7 +32,9 @@ function bindTabs(buttonSelector, panelSelector, buttonKey, panelKey) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  bindTabs(".case-tab", ".case-panel", "case", "panel");
+  bindTabs(".case-tab", ".case-panel", "case", "panel", ".visual-workspace");
+  bindTabs(".omni-gallery-tab", ".omni-gallery-panel", "omniGallery", "omniPanel", ".omni-gallery-workspace");
+  bindTabs(".llada-gallery-tab", ".llada-gallery-panel", "lladaGallery", "lladaPanel", ".llada-gallery-workspace");
   bindTabs(".host-tab", ".host-panel", "host", "hostPanel");
   if (window.lucide) window.lucide.createIcons();
 });

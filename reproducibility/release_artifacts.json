@@ -279,6 +279,42 @@
           "path": "omni_diffusion/supplementary_mechanism_cases/figures/omni_mechanism_cases_4.png",
           "bytes": 3882530,
           "sha256": "662084f6ebb6e190aa4b2f795af47bdec37ab449baf29a87b0a2890f2c8ed595"
+        },
+        {
+          "id": "qualitative_gallery_manifest",
+          "path": "omni_diffusion/qualitative_gallery/omni_qualitative_gallery.json",
+          "bytes": 863,
+          "sha256": "ff7130fca16daf46cfcf95cfabb5619c197a3dea05fb522801963e401a7c3368"
+        },
+        {
+          "id": "qualitative_gallery_records",
+          "path": "omni_diffusion/qualitative_gallery/omni_qualitative_gallery_records.json",
+          "bytes": 20586,
+          "sha256": "ce0d9cf51c0546f47fc5188d941565cd30dded45a744e4b471bf61c10320321d"
+        },
+        {
+          "id": "qualitative_gallery_1",
+          "path": "omni_diffusion/qualitative_gallery/omni_qualitative_gallery_1.png",
+          "bytes": 5544030,
+          "sha256": "567acbe6f6eb8e63d3ab32be32389eb08d9643700bb2781a50910fb1ccd6fd05"
+        },
+        {
+          "id": "qualitative_gallery_2",
+          "path": "omni_diffusion/qualitative_gallery/omni_qualitative_gallery_2.png",
+          "bytes": 4861657,
+          "sha256": "b134d9384fbf950b0ededed3d499460a72e81c295734fff509427205b2f35038"
+        },
+        {
+          "id": "qualitative_gallery_3",
+          "path": "omni_diffusion/qualitative_gallery/omni_qualitative_gallery_3.png",
+          "bytes": 5492861,
+          "sha256": "da924523e802db1bac4b608f00d7bc174ab460b10066bae7571911894704784a"
+        },
+        {
+          "id": "qualitative_gallery_4",
+          "path": "omni_diffusion/qualitative_gallery/omni_qualitative_gallery_4.png",
+          "bytes": 5392048,
+          "sha256": "8af76d4e81fe918435537b7de54b2a8bf4bab3259bb01571ecf4289f4a04e528"
         }
       ]
     },
@@ -302,6 +338,30 @@
           "path": "llada_v/diagnostics/ai2d_preregistered_confirmation.tar.gz",
           "bytes": 521973,
           "sha256": "b43cb48e591d1c45249955baa803cdf8bf4cb715b811f60943dd01cf902baf07"
+        },
+        {
+          "id": "qualitative_gallery_manifest",
+          "path": "llada_v/qualitative_gallery/llada_v_qualitative_gallery.json",
+          "bytes": 529,
+          "sha256": "8c0cf5eee6e1c90f4fcd78d8e71340d39f742df70fbe95a9a2f40e6b460b0a16"
+        },
+        {
+          "id": "qualitative_gallery_records",
+          "path": "llada_v/qualitative_gallery/lladav_realworldqa_gallery_records.json",
+          "bytes": 1327,
+          "sha256": "0e9d885a1685a8e4f7a165a0fc6266743970bcfbf759e9ddf3048e7af2a1351e"
+        },
+        {
+          "id": "qualitative_gallery_1",
+          "path": "llada_v/qualitative_gallery/lladav_realworldqa_gallery_1.png",
+          "bytes": 3285843,
+          "sha256": "78cc57ace73f0734796afb4d26ff0045a743f55453cc18a0d8a445d88b278229"
+        },
+        {
+          "id": "qualitative_gallery_2",
+          "path": "llada_v/qualitative_gallery/lladav_realworldqa_gallery_2.png",
+          "bytes": 2684780,
+          "sha256": "d755b49911ca49863dab4e89ba62c4936260c88b54ce4186ac9229c60167402a"
         }
       ]
     }

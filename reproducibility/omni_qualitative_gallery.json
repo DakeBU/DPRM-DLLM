@@ -1,0 +1,22 @@
+{
+  "protocol": "post-evaluation qualitative gallery from the frozen 512-prompt confirmation split",
+  "selection_rule": "Among records where DPRM improves both CLIP-L/14 and CLIP-B/32 over Omni default, rank by standardized DPRM scores plus 0.25 times the standardized paired improvements; retain recognizable non-abstract prompts for display only.",
+  "metric_use": "The gallery does not select the controller and does not add observations to aggregate metrics.",
+  "uniform_action": {
+    "candidate_order": [
+      "confidence",
+      "step96_q0.70",
+      "step96_q0.85",
+      "step96_q0.90",
+      "step96_q0.95"
+    ],
+    "rule": "SHA256(prompt|seed|salt) interpreted as an integer modulo five",
+    "salt": "uniform_gallery_v1"
+  },
+  "figures": [
+    [276, 435, 48, 299],
+    [402, 142, 371, 184],
+    [106, 86, 34, 227],
+    [230, 26, 423, 364]
+  ]
+}

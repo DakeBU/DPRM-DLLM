@@ -1,16 +1,24 @@
 # DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models
 
-Official implementation of [**DPRM: A Plug-in Token-Ordering Module for
-Diffusion Language Models**](https://arxiv.org/abs/2604.24357), a plug-in
-ordering controller for masked discrete diffusion models. DPRM keeps the host
-architecture, token-value rule, training labels, and task objective fixed. It
-changes which eligible token positions are committed next.
+<p align="center">
+  <a href="https://dakebu.github.io/DPRM-DLLM/"><img alt="Project page" src="https://img.shields.io/badge/Project-Page-d74c3f?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  <a href="https://arxiv.org/abs/2604.24357"><img alt="Paper" src="https://img.shields.io/badge/arXiv-2604.24357-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white"></a>
+  <a href="https://github.com/DakeBU/DPRM-DLLM"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-Code-181717?style=for-the-badge&logo=github&logoColor=white"></a>
+  <a href="https://huggingface.co/DakeBU/DPRM-DLLM"><img alt="Hugging Face artifacts" src="https://img.shields.io/badge/Hugging_Face-Artifacts-ffd21e?style=for-the-badge&logo=huggingface&logoColor=111111"></a>
+</p>
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-4c8bf5?style=flat-square"></a>
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776ab?style=flat-square&logo=python&logoColor=white">
+  <img alt="Host integrations" src="https://img.shields.io/badge/Host_integrations-9-2f6a29?style=flat-square">
+  <img alt="Release tests" src="https://img.shields.io/badge/Release_tests-148_passed-146c5a?style=flat-square">
+</p>
+
+Official implementation of a plug-in ordering controller for masked discrete
+diffusion models. DPRM keeps the host architecture, token-value rule, training
+labels, and task objective fixed. It changes which eligible token positions are
+committed next.
 
 ![DPRM overview](DPRM1.png)
-
-**[Project page](https://dakebu.github.io/DPRM-DLLM/)** ·
-**[Paper](https://arxiv.org/abs/2604.24357)** ·
-**[Release artifacts](https://huggingface.co/DakeBU/DPRM-DLLM)**
 
 ## Results At A Glance
 
@@ -39,6 +47,17 @@ Scientific integrations expose declared preferences for
 single-cell reconstruction and molecular QED--synthetic-accessibility benefit;
 the DNA integration separately measures how HepG2-guided order changes ATAC,
 k-mer correlation, and reference likelihood.
+
+## Visual Results
+
+<a href="https://dakebu.github.io/DPRM-DLLM/#visual-order">
+  <img alt="Random, Omni default, uniform-action, and DPRM image comparison" src="docs/assets/omni_qualitative_gallery_1.webp">
+</a>
+
+Random, Omni default, a reproducible uniform action, and DPRM use matched
+prompts and seeds. The [project page](https://dakebu.github.io/DPRM-DLLM/)
+contains the complete scrollable Omni and LLaDA-V galleries, intermediate
+canvases, reasoning traces, and scientific preference plots.
 
 ## Method
 
@@ -131,14 +150,13 @@ the selected position mask and ordering diagnostics.
 | GenMol V2 | molecular diffusion | SAFE-token position | [`integrations/genmol`](integrations/genmol) | [NVIDIA-Digital-Bio/genmol](https://github.com/NVIDIA-Digital-Bio/genmol) |
 | SDPO | DNA reward optimization | DNA-token position | [`integrations/sdpo`](integrations/sdpo) | [hanjq17/discrete-diffusion-sdpo](https://github.com/hanjq17/discrete-diffusion-sdpo) |
 
-The machine-readable experiment registry is
-[`reproducibility/experiments.json`](reproducibility/experiments.json). It lists
-the tested upstream commit, four executable order settings per host, and whether each setting is a
-paper result, a matched control, or an implemented reproduction mode. Numerical
-paper results are stored in [`results/paper_results.csv`](results/paper_results.csv),
-with protocol notes in [`results/README.md`](results/README.md).
-Each registry entry also declares the natural evaluation unit and the command
-that rebuilds uncertainty from raw per-unit records.
+<details>
+<summary><strong>Reproduction registry and release audit</strong></summary>
+
+[`reproducibility/experiments.json`](reproducibility/experiments.json) records
+the upstream revisions and executable order settings. Canonical numerical rows
+are in [`results/paper_results.csv`](results/paper_results.csv), with protocol
+notes in [`results/README.md`](results/README.md).
 
 Evaluators retain one record per prompt, question, target, cell, molecule, or
 sequence. When an upstream evaluator does not compute uncertainty,
@@ -190,6 +208,8 @@ run writes `<HOST_ROOT>/dprm_run_manifests/<host>_<variant>.json` with the exact
 command, upstream revision, registry hash, integration-code hash, UTC times,
 and exit status. Use `--manifest-out` to place this record beside a particular
 experiment output.
+
+</details>
 
 ## Result Files
 

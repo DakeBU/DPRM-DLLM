@@ -118,6 +118,25 @@ Before rendering, the script checks SHA-256 digests of every replayed final
 image against its source image in the frozen confirmation package. It aborts
 if any pair differs.
 
+The additional four-policy gallery uses random order, Omni default, a
+deterministic uniform draw over the five declared action paths, and DPRM. Its
+case indices and uniform-draw salt are fixed in
+[`../../reproducibility/omni_qualitative_gallery.json`](../../reproducibility/omni_qualitative_gallery.json).
+Rebuild its four pages from the confirmation records with:
+
+```bash
+python integrations/omni_diffusion/matched/scripts/render_omni_qualitative_gallery.py \
+  --summary "$DPRM_ARTIFACT_ROOT/omni_diffusion/records/confirmation512/selection/online_action_value_summary.json" \
+  --scored-records "$DPRM_ARTIFACT_ROOT/omni_diffusion/records/confirmation512/records/two_encoder.json" \
+  --confirmation-root "$DPRM_ARTIFACT_ROOT/omni_diffusion/records/confirmation512" \
+  --manifest reproducibility/omni_qualitative_gallery.json \
+  --output-dir "$HOME/outputs/omni_qualitative_gallery"
+```
+
+The renderer verifies that every displayed DPRM image improves both CLIP
+encoders over Omni default. Gallery membership does not affect controller
+selection or aggregate metrics.
+
 ## Mechanism Figure
 
 The paper's beach and boy-with-kittens figure is a separate checkpoint-500
