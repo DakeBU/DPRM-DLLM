@@ -76,7 +76,7 @@ def main() -> None:
             (
                 image_cell("Random", random, args.confirmation_root),
                 image_cell("Omni default", confidence, args.confirmation_root),
-                image_cell("Uniform action", uniform, args.confirmation_root),
+                image_cell("Uniform order", uniform, args.confirmation_root),
                 image_cell("DPRM", dprm, args.confirmation_root),
             )
         )

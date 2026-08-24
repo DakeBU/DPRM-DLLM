@@ -8,23 +8,23 @@ values, seed, and 260-step confidence continuation.
 ## Controller
 
 At visual step 96, the controller starts from one shared canvas and evaluates
-five declared actions:
+five declared positions:
 
-- Omni's native lowest-entropy action;
+- Omni's native lowest-entropy position;
 - positions at current-prompt confidence-rank quantiles `0.70`, `0.85`,
   `0.90`, and `0.95`.
 
-Each action receives one deterministic confidence continuation. CLIP-L/14 is
+Each position receives one deterministic confidence continuation. CLIP-L/14 is
 the terminal reward, and the deployed score is
 
 ```text
-native_order_score + guidance * (CLIP-L(action) - CLIP-L(native)) / 0.03.
+native_order_score + guidance * (CLIP-L(position) - CLIP-L(native)) / 0.03.
 ```
 
 The selected path is the DPRM output. CLIP-B/32 is computed only after
 selection as an independent semantic check. Uniform selection over the same
 five paths and reward-only selection are compute-matched controls. This is the
-`K=1` Monte Carlo action-value estimator and hard-tilt selection rule described
+`K=1` Monte Carlo position-value estimator and hard-tilt selection rule described
 in the paper; it is not manual image selection.
 
 ## Paper Configuration
@@ -32,7 +32,7 @@ in the paper; it is not manual image selection.
 The host checkout is pinned to commit
 `c4f4625f84197a72d556ea00f10e5b2775524252`. The frozen host checkpoint is the
 step-1000 confidence-trained checkpoint in the release package. Rank strata,
-action step, and reward scale are declared before evaluation. Guidance is
+intervention step, and reward scale are declared before evaluation. Guidance is
 selected from `0.25 0.5 1 2 4 8` on 128 development prompts and fixed to `8`
 before opening 512 disjoint confirmation prompts.
 
@@ -40,7 +40,7 @@ before opening 512 disjoint confirmation prompts.
 |---|---:|---:|---:|
 | Random | 0.17939 | 0.23381 | 1 |
 | Omni default | 0.18661 | 0.23836 | 1 |
-| Uniform action | 0.18566 | 0.23796 | 5 |
+| Uniform order | 0.18566 | 0.23796 | 5 |
 | DPRM | **0.21125** | **0.24854** | 5 |
 
 DPRM minus confidence is `+0.02464 [0.02249, 0.02677]` on CLIP-L/14 and
@@ -90,9 +90,9 @@ python integrations/omni_diffusion/matched/scripts/publish_omni_online_results.p
   --output results/artifacts/omni_online_action_value_release.json
 ```
 
-The runner writes one job for every prompt/action pair, hashes the prompt split
+The runner writes one job for every prompt/position pair, hashes the prompt split
 and shared canvas, verifies that every forced branch changes exactly one
-position action, scores all paths, and performs selection without human input.
+token-order decision, scores all paths, and performs selection without human input.
 
 ## Supplementary Confirmation Cases
 
@@ -100,7 +100,7 @@ The Supplement contains eight additional cases from the frozen 512-prompt
 confirmation. They are selected only after aggregate evaluation by the public
 rule in
 [`../../reproducibility/omni_supplementary_mechanism_cases.json`](../../reproducibility/omni_supplementary_mechanism_cases.json):
-the DPRM action must differ from confidence, both CLIP encoders must improve,
+the DPRM position must differ from confidence, both CLIP encoders must improve,
 and the prompt must expose an inspectable count, relation, or compositional
 attribute. These cases do not select the controller or contribute to its mean.
 
@@ -119,7 +119,7 @@ image against its source image in the frozen confirmation package. It aborts
 if any pair differs.
 
 The additional four-policy gallery uses random order, Omni default, a
-deterministic uniform draw over the five declared action paths, and DPRM. Its
+deterministic uniform draw over the five declared position paths, and DPRM. Its
 case indices and uniform-draw salt are fixed in
 [`../../reproducibility/omni_qualitative_gallery.json`](../../reproducibility/omni_qualitative_gallery.json).
 Rebuild its four pages from the confirmation records with:
@@ -140,7 +140,7 @@ selection or aggregate metrics.
 ## Mechanism Figure
 
 The paper's beach and boy-with-kittens figure is a separate checkpoint-500
-mechanism diagnostic. It uses the native action plus rank quantiles
+mechanism diagnostic. It uses the native position plus rank quantiles
 `0.15 0.30 0.70 0.85`, seeds `20270085` and `20270027`, and terminal utility
 `CLIP-L/14 + 0.01 * LAION aesthetic`. The selected visual indices are 229 and
 192. This diagnostic is not included in the 512-prompt mean and is labeled

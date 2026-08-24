@@ -87,7 +87,7 @@ def main() -> None:
             "paths": 1,
         },
         "uniform": {
-            "label": "Uniform action",
+            "label": "Uniform order",
             "clip_l14": float(metrics["clip_cosine"]["uniform_mean"]),
             "clip_b32": float(metrics["clip_b32_cosine"]["uniform_mean"]),
             "paths": 5,

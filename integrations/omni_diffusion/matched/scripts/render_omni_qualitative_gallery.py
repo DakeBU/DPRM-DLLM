@@ -58,7 +58,7 @@ def confirmation_relative_path(path: Path) -> str:
 
 def render_figure(rows: list[dict[str, Any]], output: Path) -> None:
     fig, axes = plt.subplots(len(rows), 4, figsize=(12.2, 3.05 * len(rows)))
-    headers = ["Random", "Omni default", "Uniform action", "DPRM"]
+    headers = ["Random", "Omni default", "Uniform order", "DPRM"]
     for column, title in enumerate(headers):
         axes[0, column].set_title(title, fontsize=12, fontweight="bold", pad=10)
 
@@ -136,7 +136,7 @@ def main() -> None:
             for label, method, item in (
                 ("Random", "random", random),
                 ("Omni default", "confidence", confidence),
-                ("Uniform action", uniform_name, uniform),
+                ("Uniform order", uniform_name, uniform),
                 ("DPRM", str(selected["selected_method"]), chosen),
             ):
                 image_path = resolve_image_path(item, args.confirmation_root)
@@ -191,7 +191,7 @@ def main() -> None:
                     "\\centering",
                     f"\\includegraphics[width=\\linewidth]{{figs/{path.name}}}",
                     "\\caption{Post-evaluation Omni-Diffusion qualitative gallery. "
-                    "Random, Omni default, a deterministic uniform action, and DPRM use matched prompts and seeds. "
+                    "Random order, Omni default, a deterministic uniform order, and DPRM use matched prompts and seeds. "
                     "The displayed DPRM result improves both CLIP-L/14 and CLIP-B/32 over Omni default. "
                     "These examples visualize the frozen confirmation split and do not select the controller.}",
                     f"\\label{{fig:omni_qualitative_gallery_{index}}}",

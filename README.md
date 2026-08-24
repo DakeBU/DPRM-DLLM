@@ -26,6 +26,13 @@ diffusion models. DPRM keeps the host architecture, token-value rule, training
 labels, and task objective fixed. It changes which eligible token positions are
 committed next.
 
+Confidence-based decoding is the strongest common ordering heuristic, but it
+optimizes local certainty rather than terminal quality and can therefore be
+myopic. DPRM instead tilts the host trajectory distribution by terminal reward
+and uses the resulting Doob process reward to order candidate positions. A
+compact table shares this correction across states while retaining confidence
+as the base order and fallback.
+
 ![DPRM overview](DPRM1.png)
 
 ## Results At A Glance
@@ -53,18 +60,26 @@ labels it simply as DPRM.
 | GenMol V2 | QED | 0.6392 | **0.7350** | **+15.0%** |
 | SDPO-DNA | Total utility, 3-seed mean | 1.389 | **2.129** | **+53.3%** |
 
-Prism raises mean NFE from `609` to `1071`; it is a quality--compute result.
-Intervals, preference endpoints, and all retained per-example records are on the
-[project page](https://dakebu.github.io/DPRM-DLLM/) and in the paper supplement.
+Seven hosts require no additional denoiser calls: DPRM only looks up a value and
+reranks positions already scored by the host. Prism raises mean NFE from `609`
+to `1071` because its verifier reward first becomes available during test-time
+search; there is no training trajectory stream from which to preload values.
+Omni evaluates five continuations from the current canvas because a table fitted
+on earlier prompts failed to transfer across unrelated images. These two rows
+are explicit quality--compute results. Entropy-only and random-order controls
+also underperform DPRM, showing that uncertainty alone is not the source of the
+gain. Intervals, preference endpoints, and all retained per-example records are
+on the [project page](https://dakebu.github.io/DPRM-DLLM/) and in the paper
+supplement.
 
 ## Method
 
-For a partial state `s`, the host supplies a proposal `q0(a | s)` over reveal
-actions and DPRM targets the Doob-transformed action law
+For a partial state `s`, the host supplies a proposal `q0(i | s)` over candidate
+positions and DPRM targets the Doob-transformed token-order law
 
 ```text
-pi*(a | s) proportional to q0(a | s) exp(beta R*(a; s)),
-R*(a; s) = beta^-1 log E[exp(beta R(X_T)) | s, a].
+pi*(i | s) proportional to q0(i | s) exp(beta R*(i; s)),
+R*(i; s) = beta^-1 log E[exp(beta R(X_T)) | s, i].
 ```
 
 The repository implements two estimators of the conditional future utility:
@@ -73,11 +88,11 @@ The repository implements two estimators of the conditional future utility:
   `confidence_bin`, and an optional low-dimensional auxiliary bin. Counts and
   exponentiated terminal rewards provide a log-moment value for each cell.
   Readiness gates reduce unsupported cells to the host confidence order.
-- **Online visual DPRM** evaluates five predeclared position actions from one
-  shared Omni-Diffusion canvas: the native confidence action and four
-  confidence-rank strata. CLIP-L/14 supplies the terminal action value;
+- **Prompt-local visual DPRM** evaluates five predeclared positions from one
+  shared Omni-Diffusion canvas: the native confidence position and four
+  confidence-rank strata. CLIP-L/14 supplies the terminal position value;
   CLIP-B/32 is held out as an independent semantic check. The selected path
-  differs from the host path in one position action, while the checkpoint,
+  differs from the host path at one token-order decision, while the checkpoint,
   provisional token values, seed, tokenizer, and continuation rule are fixed.
 
 `src/dprm/` contains the host-independent controller, multi-objective reward

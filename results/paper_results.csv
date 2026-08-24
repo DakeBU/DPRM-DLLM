@@ -1,12 +1,12 @@
 host,task,method,variant,metric,direction,value,ci95_low,ci95_high,n,protocol
 Omni-Diffusion,PartiPrompts,Random,random,clip_l14,higher,0.179386320,,,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,Omni default,confidence,clip_l14,higher,0.186606749,,,512,online_action_value_confirmation
-Omni-Diffusion,PartiPrompts,Uniform action,dprm_random,clip_l14,higher,0.185663123,,,512,online_action_value_confirmation
+Omni-Diffusion,PartiPrompts,Uniform order,dprm_random,clip_l14,higher,0.185663123,,,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,DPRM,dprm_confidence,clip_l14,higher,0.211248723,,,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,DPRM,dprm_confidence,clip_l14_paired_delta,higher,0.024641974,0.022494692,0.026767885,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,Random,random,clip_b32,higher,0.233814179,,,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,Omni default,confidence,clip_b32,higher,0.238358857,,,512,online_action_value_confirmation
-Omni-Diffusion,PartiPrompts,Uniform action,dprm_random,clip_b32,higher,0.237956719,,,512,online_action_value_confirmation
+Omni-Diffusion,PartiPrompts,Uniform order,dprm_random,clip_b32,higher,0.237956719,,,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,DPRM,dprm_confidence,clip_b32,higher,0.248540604,,,512,online_action_value_confirmation
 Omni-Diffusion,PartiPrompts,DPRM,dprm_confidence,clip_b32_paired_delta,higher,0.010181746,0.008197876,0.012205055,512,online_action_value_confirmation
 LLaDA-V,RealWorldQA,Confidence,confidence,accuracy,higher,0.473477,,,509,heldout_after_dev

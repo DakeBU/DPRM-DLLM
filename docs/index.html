@@ -44,7 +44,7 @@
           <span><sup>8</sup>Nanyang Technological University</span>
         </div>
         <p class="corresponding"><sup>*</sup>Corresponding authors</p>
-        <p class="lead">Keep the denoiser and token sampler. Change which position is committed next using terminal utility.</p>
+        <p class="lead">Confidence is an efficient token-order heuristic, but local certainty can be myopic. DPRM uses terminal utility to decide which position should be committed next.</p>
         <div class="hero-actions">
           <a class="button primary" href="https://arxiv.org/abs/2604.24357"><i data-lucide="file-text"></i>Paper</a>
           <a class="button secondary" href="https://github.com/DakeBU/DPRM-DLLM"><i data-lucide="code-2"></i>Code</a>
@@ -65,8 +65,8 @@
     <section class="section visual-section" id="visual-order">
       <div class="section-heading">
         <p class="eyebrow">Omni-Diffusion</p>
-        <h2>One action changes the image trajectory</h2>
-        <p>Both rows share the same canvas through step 95. At step 96, confidence commits its lowest-entropy position; DPRM selects a lower-confidence action with higher estimated terminal value.</p>
+        <h2>One token-order change alters the image trajectory</h2>
+        <p>Both rows share the same canvas through step 95. At step 96, confidence commits its lowest-entropy position; DPRM selects a lower-confidence position with higher estimated terminal value.</p>
       </div>
 
       <div class="media-scroll trajectory-workspace" tabindex="0" aria-label="Scrollable Omni-Diffusion trajectory examples">
@@ -95,7 +95,7 @@
       <div class="gallery-heading">
         <p class="eyebrow">Frozen confirmation split</p>
         <h3>Four-policy image gallery</h3>
-        <p>Random, Omni default, a deterministic uniform action, and DPRM use matched generation settings. These reader-selected cases emphasize visual quality and prompt fidelity; they are displayed only after the controller and aggregate evaluation were frozen.</p>
+        <p>Random order, Omni default, a deterministic uniform order, and DPRM use matched generation settings. These reader-selected cases emphasize visual quality and prompt fidelity; they are displayed only after the controller and aggregate evaluation were frozen.</p>
       </div>
       <div class="media-scroll four-policy-workspace" tabindex="0" aria-label="Scrollable four-policy Omni-Diffusion examples">
         <div class="scroll-gallery four-policy-gallery">
@@ -170,12 +170,14 @@
           <div class="result-row" role="row"><strong>SDPO-DNA</strong><span>Total utility, 3-seed mean</span><span>1.389</span><mark>2.129</mark></div>
         </div>
       </div>
+      <p class="result-note">Seven hosts use the same denoiser-call budget as confidence. Prism estimates verifier-conditioned values during test-time search, while Omni uses five continuations from the current canvas because values learned from earlier prompts did not transfer reliably across unrelated images.</p>
     </section>
 
     <section class="section diagnostics-section" id="diagnostics">
       <div class="section-heading">
         <p class="eyebrow">Saved trajectories and controls</p>
         <h2>What changes when order changes?</h2>
+        <p>Entropy-only and random-order controls do not reproduce the gains. The saved traces instead test whether terminal reward identifies useful uncertain positions rather than merely preferring uncertainty.</p>
       </div>
       <div class="diagnostic-grid">
         <figure class="wide"><img src="assets/puma-order-case.png" alt="Two PUMA reasoning traces comparing confidence and DPRM reveal order."><figcaption><strong>Reasoning.</strong> DPRM reveals wider context, backfills earlier positions, and delays numeric commitment on two DPRM-only GSM8K wins.</figcaption></figure>

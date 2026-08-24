@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the fixed-prompt Omni shared-state action case study."""
+"""Build the fixed-prompt Omni shared-state token-order case study."""
 
 from __future__ import annotations
 
@@ -26,10 +26,13 @@ def load_record(path: Path, key: str, prompt_id: str) -> dict:
 
 
 def frame(root: Path, step: int) -> Image.Image:
-    return Image.open(root / "history_frames" / f"step_{step:04d}.png").convert("RGB")
+    frame_path = root / "history_frames" / f"step_{step:04d}.png"
+    if not frame_path.exists() and step == STEPS[-1]:
+        frame_path = root / "omni_t2i_progressive_confidence.png"
+    return Image.open(frame_path).convert("RGB")
 
 
-def mark_action(
+def mark_position(
     ax, visual_index: int, color: str, image_size: tuple[int, int]
 ) -> None:
     row, column = divmod(visual_index, 16)
@@ -133,7 +136,7 @@ def main() -> None:
     )
     column_titles = (
         "Same trajectory\nstep 64",
-        "One action differs\nstep 96",
+        "One token order differs\nstep 96",
         "Later denoising\nstep 192",
         "Completed image\nstep 259",
     )
@@ -159,13 +162,13 @@ def main() -> None:
         override = case["override"]
         image_size = frame(case["confidence_dir"], 96).size
         if override.get("default_visual_index") is not None:
-            mark_action(
+            mark_position(
                 axes[confidence_row, 1],
                 int(override["default_visual_index"]),
                 "#2474B5",
                 image_size,
             )
-        mark_action(
+        mark_position(
             axes[dprm_row, 1],
             int(override["visual_index"]),
             "#D95F0E",
@@ -195,7 +198,7 @@ def main() -> None:
         )
     if len(cases) > 1:
         fig.suptitle(
-            "Lower-confidence actions establish useful global visual structure",
+            "One token-order change alters the image trajectory",
             fontsize=13.0,
             fontweight="bold",
             y=0.94,

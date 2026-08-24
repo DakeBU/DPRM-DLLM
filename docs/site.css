@@ -150,8 +150,11 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
 .four-policy-gallery { width: max(100%, 1420px); }
 .scroll-gallery figure { margin: 0; padding: 14px; background: white; }
 .scroll-gallery img {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   height: auto;
+  object-fit: contain;
+  object-position: left top;
 }
 .image-metadata-crop { overflow: hidden; }
 .image-metadata-crop img { display: block; margin-top: -5.5%; }
@@ -189,6 +192,7 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
 .host-tabs { margin-bottom: 8px; }
 .host-panel { border-top: 1px solid var(--ink); }
 .result-table { width: 100%; }
+.result-note { max-width: 900px; margin: 24px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .result-row { min-height: 58px; display: grid; grid-template-columns: 1.15fr 1.4fr 0.72fr 0.72fr; align-items: center; border-bottom: 1px solid var(--line); }
 .result-row > * { padding: 12px; }
 .result-row.header { min-height: 42px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }

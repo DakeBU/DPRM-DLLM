@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render pairs of frozen Omni action-order mechanism cases."""
+"""Render pairs of frozen Omni token-order mechanism cases."""
 
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def main() -> None:
         pair = cases[figure_index : figure_index + 2]
         fig, axes = plt.subplots(2 * len(pair), 4, figsize=(12.8, 4.55 * len(pair)), squeeze=False,
             gridspec_kw={"left": 0.13, "right": 0.99, "top": 0.91, "bottom": 0.035, "wspace": 0.035, "hspace": 0.08})
-        titles = ("Same trajectory\nstep 64", "One action differs\nstep 96", "Later denoising\nstep 192", "Completed image")
+        titles = ("Same trajectory\nstep 64", "One token order differs\nstep 96", "Later denoising\nstep 192", "Completed image")
         for column, title in enumerate(titles):
             axes[0, column].set_title(title, fontsize=10.2, pad=7)
         explanations = []
@@ -102,8 +102,8 @@ def main() -> None:
                         spine.set_linewidth(1.5)
                         spine.set_edgecolor("#66717C" if method_index == 0 else "#D95F0E")
                 image_size = frame(root, 96).size
-                action = override["default_visual_index"] if method_index == 0 else override["visual_index"]
-                mark(axes[row, 1], int(action), "#2474B5" if method_index == 0 else "#D95F0E", image_size)
+                position = override["default_visual_index"] if method_index == 0 else override["visual_index"]
+                mark(axes[row, 1], int(position), "#2474B5" if method_index == 0 else "#D95F0E", image_size)
                 label = "Confidence" if method_index == 0 else "DPRM"
                 l14 = case["confidence_clip_l14"] if method_index == 0 else case["dprm_clip_l14"]
                 b32 = case["confidence_clip_b32"] if method_index == 0 else case["dprm_clip_b32"]
@@ -121,7 +121,7 @@ def main() -> None:
             "\\begin{figure}[H]",
             "\\centering",
             f"\\includegraphics[width=0.98\\linewidth]{{figs/{filename}}}",
-            f"\\caption{{Additional Omni-Diffusion one-action diagnostics from the frozen 512-prompt confirmation. \\textbf{{{explanation}}} Blue and orange mark the confidence and DPRM step-96 actions; all earlier states and all later continuation rules are shared. Both CLIP encoders improve in each case.}}",
+            f"\\caption{{Additional Omni-Diffusion token-order diagnostics from the frozen 512-prompt confirmation. \\textbf{{{explanation}}} Blue and orange mark the confidence and DPRM step-96 positions; all earlier states and all later continuation rules are shared. Both CLIP encoders improve in each case.}}",
             f"\\label{{fig:omni_supplement_mechanism_{number}}}",
             "\\end{figure}",
             "",

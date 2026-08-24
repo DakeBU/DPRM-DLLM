@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 METHODS = ["confidence", "step96_q0.70", "step96_q0.85", "step96_q0.90", "step96_q0.95"]
 SALT = "uniform_gallery_v1"
-LABELS = ("Random", "Omni default", "Uniform action", "DPRM")
+LABELS = ("Random", "Omni default", "Uniform order", "DPRM")
 
 
 def load(path: Path) -> Any:
@@ -125,6 +125,7 @@ def main() -> None:
     parser.add_argument("--scored-records", type=Path, required=True)
     parser.add_argument("--confirmation-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--indices", nargs="*", type=int)
     args = parser.parse_args()
 
     selected = load(args.summary)["records"]
@@ -135,6 +136,8 @@ def main() -> None:
     manifest: list[dict[str, Any]] = []
 
     for index, chosen in enumerate(selected):
+        if args.indices is not None and index not in args.indices:
+            continue
         prompt, seed = record_key(chosen)
         confidence = lookup["confidence"][(prompt, seed)]
         random = lookup["random"][(prompt, seed)]
