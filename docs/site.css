@@ -134,32 +134,26 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
   cursor: pointer;
 }
 .host-tab.active, .gallery-tabs button.active { border-color: var(--ink); color: white; background: var(--ink); }
-.media-disclosure { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: white; }
-.media-disclosure + .paired-metrics { margin-top: 18px; }
-.media-disclosure summary {
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 0 16px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 13px;
-  font-weight: 700;
+.media-scroll {
+  height: min(70vh, 720px);
+  min-height: 540px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #bec5cb;
+  background: #e6e9eb;
+  scrollbar-color: #6b737b #d4d8db;
 }
-.media-disclosure summary::-webkit-details-marker { display: none; }
-.media-disclosure summary svg { width: 18px; flex: 0 0 auto; transition: transform 160ms ease; }
-.media-disclosure[open] summary { border-bottom: 1px solid var(--line); }
-.media-disclosure[open] summary svg { transform: rotate(180deg); }
-.media-disclosure summary:focus-visible { outline: 3px solid var(--coral); outline-offset: -3px; }
-.disclosure-gallery { display: grid; gap: 34px; padding: 22px; background: #e6e9eb; }
-.disclosure-gallery figure { margin: 0; padding: 16px; background: white; }
-.disclosure-gallery img { width: 100%; }
+.media-scroll + .paired-metrics { margin-top: 18px; }
+.media-scroll:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
+.scroll-gallery { display: grid; gap: 20px; padding: 18px; }
+.trajectory-gallery { width: max(100%, 1500px); }
+.four-policy-gallery { width: max(100%, 1420px); }
+.scroll-gallery figure { margin: 0; padding: 14px; background: white; }
+.scroll-gallery img { width: 100%; }
 .image-metadata-crop { overflow: hidden; }
 .image-metadata-crop img { display: block; margin-top: -5.5%; }
-.disclosure-gallery figcaption { max-width: 980px; padding: 12px 2px 2px; color: #3f454b; font-size: 13px; line-height: 1.5; }
-.disclosure-gallery figcaption strong { color: var(--ink); }
+.scroll-gallery figcaption { max-width: 980px; padding: 12px 2px 2px; color: #3f454b; font-size: 13px; line-height: 1.5; }
+.scroll-gallery figcaption strong { color: var(--ink); }
 .paired-metrics { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 12px; margin-top: 18px; }
 .metric-comparison { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: stretch; border: 1px solid var(--line); background: white; }
 .metric-comparison > span { align-self: center; padding: 12px; font-size: 12px; font-weight: 700; }
@@ -236,8 +230,10 @@ footer span:first-child { color: white; font: 700 18px/1 "Source Serif 4", Georg
   .gallery-workspace figure { width: 980px; padding: 12px; }
   .llada-gallery-workspace figure { width: 900px; }
   .vqa-summary { align-items: flex-start; flex-direction: column; gap: 5px; }
-  .disclosure-gallery { gap: 18px; padding: 12px; }
-  .disclosure-gallery figure { padding: 10px; }
+  .media-scroll { height: 66vh; min-height: 460px; }
+  .scroll-gallery { gap: 14px; padding: 12px; }
+  .trajectory-gallery, .four-policy-gallery { width: 1120px; }
+  .scroll-gallery figure { padding: 10px; }
   .paired-metrics { grid-template-columns: 1fr; }
   .result-row { grid-template-columns: 1fr 1.2fr 0.75fr 0.75fr; }
   .result-row > * { padding: 10px 5px; overflow-wrap: anywhere; }

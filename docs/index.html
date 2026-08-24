@@ -7,7 +7,7 @@
   <title>DPRM | Token Ordering for Discrete Diffusion Models</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="site.css">
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
   <script src="site.js" defer></script>
@@ -69,23 +69,22 @@
         <p>Both rows share the same canvas through step 95. At step 96, confidence commits its lowest-entropy position; DPRM selects a lower-confidence action with higher estimated terminal value.</p>
       </div>
 
-      <details class="media-disclosure">
-        <summary><span>View all trajectory examples</span><i data-lucide="chevron-down"></i></summary>
-        <div class="disclosure-gallery trajectory-gallery">
+      <div class="media-scroll trajectory-workspace" tabindex="0" aria-label="Scrollable Omni-Diffusion trajectory examples">
+        <div class="scroll-gallery trajectory-gallery">
           <figure>
-            <img src="assets/omni_beach_mechanism.webp" alt="Confidence and DPRM trajectories for three children playing on a beach.">
+            <img loading="lazy" width="2948" height="1113" src="assets/omni_beach_mechanism.webp" alt="Confidence and DPRM trajectories for three children playing on a beach.">
             <figcaption><strong>Three children on a beach.</strong> DPRM commits an unfilled region that preserves object separation. The later canvas resolves the children and their toys while improving both CLIP checks.</figcaption>
           </figure>
           <figure>
-            <img src="assets/omni_owl_family_mechanism.webp" alt="Confidence and DPRM trajectories for an owl family in a forest.">
+            <img loading="lazy" width="2917" height="1091" src="assets/omni_owl_family_mechanism.webp" alt="Confidence and DPRM trajectories for an owl family in a forest.">
             <figcaption><strong>Owl family.</strong> DPRM commits a peripheral body region and separates the family more clearly in the completed image.</figcaption>
           </figure>
           <figure>
-            <img src="assets/omni_boy_kittens_mechanism.webp" alt="Confidence and DPRM trajectories for a boy playing a flute to kittens.">
+            <img loading="lazy" width="2948" height="1113" src="assets/omni_boy_kittens_mechanism.webp" alt="Confidence and DPRM trajectories for a boy playing a flute to kittens.">
             <figcaption><strong>Boy playing flute to kittens.</strong> DPRM first commits a lower-confidence sidewalk region that preserves the audience relation, after which the same continuation renders the boy, flute, and kittens more coherently.</figcaption>
           </figure>
         </div>
-      </details>
+      </div>
 
       <div class="paired-metrics">
         <div class="metric-comparison"><span>CLIP-L/14</span><div><small>Confidence</small><b>0.18661</b></div><div class="winner"><small>DPRM</small><b>0.21125</b></div></div>
@@ -98,18 +97,20 @@
         <h3>Four-policy image gallery</h3>
         <p>Random, Omni default, a deterministic uniform action, and DPRM use matched generation settings. These reader-selected cases emphasize visual quality and prompt fidelity; they are displayed only after the controller and aggregate evaluation were frozen.</p>
       </div>
-      <details class="media-disclosure">
-        <summary><span>View all four-policy examples</span><i data-lucide="chevron-down"></i></summary>
-        <div class="disclosure-gallery four-policy-gallery">
-          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_074.webp" alt="Four-policy comparison for Downtown San Francisco at sunrise in detailed ink wash."></div><figcaption>Downtown San Francisco at sunrise, detailed ink wash.</figcaption></figure>
-          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_117.webp" alt="Four-policy comparison for a Harley-Davidson motorcycle with a flame decal."></div><figcaption>A Harley-Davidson motorcycle with a flame decal.</figcaption></figure>
-          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_185.webp" alt="Four-policy comparison for a dragon."></div><figcaption>A dragon.</figcaption></figure>
-          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_280.webp" alt="Four-policy comparison for a painting of the Mona Lisa on a white wall."></div><figcaption>A painting of the Mona Lisa on a white wall.</figcaption></figure>
-          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_339.webp" alt="Four-policy comparison for a sketch of a train."></div><figcaption>A sketch of a train.</figcaption></figure>
-          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_387.webp" alt="Four-policy comparison for a woman with long hair."></div><figcaption>A woman with long hair.</figcaption></figure>
-          <figure><img src="assets/omni_curated_four_policy.webp" alt="Earlier four-policy Omni comparisons for a pig, volcano, yellow Corvette, and hot-air balloon."><figcaption>Earlier selections.</figcaption></figure>
+      <div class="media-scroll four-policy-workspace" tabindex="0" aria-label="Scrollable four-policy Omni-Diffusion examples">
+        <div class="scroll-gallery four-policy-gallery">
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_074.webp" alt="Four-policy comparison for Downtown San Francisco at sunrise in detailed ink wash."></div><figcaption>Downtown San Francisco at sunrise, detailed ink wash.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_117.webp" alt="Four-policy comparison for a Harley-Davidson motorcycle with a flame decal."></div><figcaption>A Harley-Davidson motorcycle with a flame decal.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_185.webp" alt="Four-policy comparison for a dragon."></div><figcaption>A dragon.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_280.webp" alt="Four-policy comparison for a painting of the Mona Lisa on a white wall."></div><figcaption>A painting of the Mona Lisa on a white wall.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_339.webp" alt="Four-policy comparison for a sketch of a train."></div><figcaption>A sketch of a train.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_387.webp" alt="Four-policy comparison for a woman with long hair."></div><figcaption>A woman with long hair.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_299.webp" alt="Four-policy comparison for a pig in a field."></div><figcaption>A pig in a field.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_371.webp" alt="Four-policy comparison for a volcano exploding next to a marina."></div><figcaption>A volcano exploding next to a marina.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_106.webp" alt="Four-policy comparison for a yellow Corvette on a mountain road."></div><figcaption>A yellow Corvette on a mountain road.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img loading="lazy" width="1638" height="600" src="assets/omni_four_policy_230.webp" alt="Four-policy comparison for a hot-air balloon."></div><figcaption>A hot-air balloon.</figcaption></figure>
         </div>
-      </details>
+      </div>
     </section>
 
     <section class="section vqa-section" id="vqa-gallery">
