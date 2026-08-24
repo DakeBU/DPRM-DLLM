@@ -69,26 +69,23 @@
         <p>Both rows share the same canvas through step 95. At step 96, confidence commits its lowest-entropy position; DPRM selects a lower-confidence action with higher estimated terminal value.</p>
       </div>
 
-      <div class="case-tabs" role="tablist" aria-label="Omni mechanism cases">
-        <button class="case-tab active" role="tab" aria-selected="true" data-case="beach">Three children on a beach</button>
-        <button class="case-tab" role="tab" aria-selected="false" data-case="owls">Owl Family</button>
-        <button class="case-tab" role="tab" aria-selected="false" data-case="kittens">Boy playing flute to kittens</button>
-      </div>
-
-      <div class="visual-workspace" tabindex="0" aria-label="Scrollable Omni-Diffusion intermediate-state comparison">
-        <figure class="case-panel active" data-panel="beach">
-          <img src="assets/omni_beach_mechanism.webp" alt="Confidence and DPRM trajectories for three children playing on a beach.">
-          <figcaption><strong>DPRM commits an unfilled beach region that preserves object separation.</strong> The later canvas resolves three children and their toys while improving CLIP-L/14 from 0.277 to 0.331 and CLIP-B/32 from 0.329 to 0.347.</figcaption>
-        </figure>
-        <figure class="case-panel" data-panel="owls" hidden>
-          <img src="assets/omni_owl_family_mechanism.webp" alt="Confidence and DPRM trajectories for an owl family in a forest.">
-          <figcaption><strong>DPRM commits a peripheral body region and separates the owl family.</strong> CLIP-L/14 rises from 0.205 to 0.280 and CLIP-B/32 rises from 0.263 to 0.321.</figcaption>
-        </figure>
-        <figure class="case-panel" data-panel="kittens" hidden>
-          <img src="assets/omni_boy_kittens_mechanism.webp" alt="Confidence and DPRM trajectories for a boy playing a flute to kittens.">
-          <figcaption><strong>DPRM first commits a lower-confidence sidewalk region that preserves the audience relation.</strong> The same continuation then renders the boy, flute, and kittens more coherently; CLIP-L/14 rises from 0.288 to 0.312 and CLIP-B/32 from 0.304 to 0.316.</figcaption>
-        </figure>
-      </div>
+      <details class="media-disclosure">
+        <summary><span>View all trajectory examples</span><i data-lucide="chevron-down"></i></summary>
+        <div class="disclosure-gallery trajectory-gallery">
+          <figure>
+            <img src="assets/omni_beach_mechanism.webp" alt="Confidence and DPRM trajectories for three children playing on a beach.">
+            <figcaption><strong>Three children on a beach.</strong> DPRM commits an unfilled region that preserves object separation. The later canvas resolves the children and their toys while improving both CLIP checks.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/omni_owl_family_mechanism.webp" alt="Confidence and DPRM trajectories for an owl family in a forest.">
+            <figcaption><strong>Owl family.</strong> DPRM commits a peripheral body region and separates the family more clearly in the completed image.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/omni_boy_kittens_mechanism.webp" alt="Confidence and DPRM trajectories for a boy playing a flute to kittens.">
+            <figcaption><strong>Boy playing flute to kittens.</strong> DPRM first commits a lower-confidence sidewalk region that preserves the audience relation, after which the same continuation renders the boy, flute, and kittens more coherently.</figcaption>
+          </figure>
+        </div>
+      </details>
 
       <div class="paired-metrics">
         <div class="metric-comparison"><span>CLIP-L/14</span><div><small>Confidence</small><b>0.18661</b></div><div class="winner"><small>DPRM</small><b>0.21125</b></div></div>
@@ -99,26 +96,20 @@
       <div class="gallery-heading">
         <p class="eyebrow">Frozen confirmation split</p>
         <h3>Four-policy image gallery</h3>
-        <p>Random, Omni default, a deterministic uniform action, and DPRM use matched prompts and seeds. These reader-selected cases emphasize visual quality and prompt fidelity; they are displayed only after the controller and aggregate evaluation were frozen.</p>
+        <p>Random, Omni default, a deterministic uniform action, and DPRM use matched generation settings. These reader-selected cases emphasize visual quality and prompt fidelity; they are displayed only after the controller and aggregate evaluation were frozen.</p>
       </div>
-      <div class="gallery-tabs omni-gallery-tabs" role="tablist" aria-label="Four-policy Omni-Diffusion cases">
-        <button class="omni-gallery-tab active" role="tab" aria-selected="true" data-omni-gallery="sf">San Francisco</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="harley">Harley-Davidson</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="dragon">Dragon</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="mona">Mona Lisa</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="train">Train sketch</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="woman">Long hair</button>
-        <button class="omni-gallery-tab" role="tab" aria-selected="false" data-omni-gallery="earlier">Earlier selections</button>
-      </div>
-      <div class="gallery-workspace omni-gallery-workspace" tabindex="0" aria-label="Scrollable four-policy Omni-Diffusion gallery">
-        <figure class="omni-gallery-panel active" data-omni-panel="sf"><img src="assets/omni_four_policy_074.webp" alt="Four-policy comparison for Downtown San Francisco at sunrise in detailed ink wash."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="harley" hidden><img src="assets/omni_four_policy_117.webp" alt="Four-policy comparison for a Harley-Davidson motorcycle with a flame decal."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="dragon" hidden><img src="assets/omni_four_policy_185.webp" alt="Four-policy comparison for a dragon."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="mona" hidden><img src="assets/omni_four_policy_280.webp" alt="Four-policy comparison for a painting of the Mona Lisa on a white wall."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="train" hidden><img src="assets/omni_four_policy_339.webp" alt="Four-policy comparison for a sketch of a train."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="woman" hidden><img src="assets/omni_four_policy_387.webp" alt="Four-policy comparison for a woman with long hair."></figure>
-        <figure class="omni-gallery-panel" data-omni-panel="earlier" hidden><img src="assets/omni_curated_four_policy.webp" alt="Four-policy Omni comparisons for a pig, volcano, yellow Corvette, and hot-air balloon."></figure>
-      </div>
+      <details class="media-disclosure">
+        <summary><span>View all four-policy examples</span><i data-lucide="chevron-down"></i></summary>
+        <div class="disclosure-gallery four-policy-gallery">
+          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_074.webp" alt="Four-policy comparison for Downtown San Francisco at sunrise in detailed ink wash."></div><figcaption>Downtown San Francisco at sunrise, detailed ink wash.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_117.webp" alt="Four-policy comparison for a Harley-Davidson motorcycle with a flame decal."></div><figcaption>A Harley-Davidson motorcycle with a flame decal.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_185.webp" alt="Four-policy comparison for a dragon."></div><figcaption>A dragon.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_280.webp" alt="Four-policy comparison for a painting of the Mona Lisa on a white wall."></div><figcaption>A painting of the Mona Lisa on a white wall.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_339.webp" alt="Four-policy comparison for a sketch of a train."></div><figcaption>A sketch of a train.</figcaption></figure>
+          <figure><div class="image-metadata-crop"><img src="assets/omni_four_policy_387.webp" alt="Four-policy comparison for a woman with long hair."></div><figcaption>A woman with long hair.</figcaption></figure>
+          <figure><img src="assets/omni_curated_four_policy.webp" alt="Earlier four-policy Omni comparisons for a pig, volcano, yellow Corvette, and hot-air balloon."><figcaption>Earlier selections.</figcaption></figure>
+        </div>
+      </details>
     </section>
 
     <section class="section vqa-section" id="vqa-gallery">

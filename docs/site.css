@@ -120,9 +120,9 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
 .section-heading > p:last-child { margin: 16px 0 0; color: var(--muted); line-height: 1.6; }
 
 .visual-section { background: var(--soft); }
-.case-tabs, .host-tabs { display: flex; gap: 7px; overflow-x: auto; padding: 0 0 12px; scrollbar-width: thin; }
+.host-tabs { display: flex; gap: 7px; overflow-x: auto; padding: 0 0 12px; scrollbar-width: thin; }
 .gallery-tabs { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 12px; }
-.case-tab, .host-tab, .gallery-tabs button {
+.host-tab, .gallery-tabs button {
   min-height: 36px;
   flex: 0 0 auto;
   padding: 0 13px;
@@ -133,20 +133,33 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
   font: 600 12px/1 "DM Sans", Arial, sans-serif;
   cursor: pointer;
 }
-.case-tab.active, .host-tab.active, .gallery-tabs button.active { border-color: var(--ink); color: white; background: var(--ink); }
-.visual-workspace {
-  height: min(72vh, 760px);
-  min-height: 500px;
-  overflow: auto;
-  border: 1px solid #bec5cb;
-  background: #e6e9eb;
-  scrollbar-color: #6b737b #d4d8db;
+.host-tab.active, .gallery-tabs button.active { border-color: var(--ink); color: white; background: var(--ink); }
+.media-disclosure { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: white; }
+.media-disclosure + .paired-metrics { margin-top: 18px; }
+.media-disclosure summary {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 700;
 }
-.visual-workspace:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
-.case-panel { width: max(100%, 1440px); min-height: 100%; margin: 0; padding: 22px; }
-.case-panel img { width: 100%; background: white; }
-.case-panel figcaption { max-width: 980px; padding: 14px 4px 4px; color: #3f454b; font-size: 13px; line-height: 1.5; }
-.case-panel figcaption strong { color: var(--ink); }
+.media-disclosure summary::-webkit-details-marker { display: none; }
+.media-disclosure summary svg { width: 18px; flex: 0 0 auto; transition: transform 160ms ease; }
+.media-disclosure[open] summary { border-bottom: 1px solid var(--line); }
+.media-disclosure[open] summary svg { transform: rotate(180deg); }
+.media-disclosure summary:focus-visible { outline: 3px solid var(--coral); outline-offset: -3px; }
+.disclosure-gallery { display: grid; gap: 34px; padding: 22px; background: #e6e9eb; }
+.disclosure-gallery figure { margin: 0; padding: 16px; background: white; }
+.disclosure-gallery img { width: 100%; }
+.image-metadata-crop { overflow: hidden; }
+.image-metadata-crop img { display: block; margin-top: -5.5%; }
+.disclosure-gallery figcaption { max-width: 980px; padding: 12px 2px 2px; color: #3f454b; font-size: 13px; line-height: 1.5; }
+.disclosure-gallery figcaption strong { color: var(--ink); }
 .paired-metrics { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 12px; margin-top: 18px; }
 .metric-comparison { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: stretch; border: 1px solid var(--line); background: white; }
 .metric-comparison > span { align-self: center; padding: 12px; font-size: 12px; font-weight: 700; }
@@ -219,12 +232,12 @@ footer span:first-child { color: white; font: 700 18px/1 "Source Serif 4", Georg
   .metric-band div:nth-child(3) { border-left: 1px solid #3a3e43; }
   .section { padding-top: 68px; padding-bottom: 68px; }
   h2 { font-size: 34px; }
-  .visual-workspace { height: 66vh; min-height: 430px; }
   .gallery-workspace { height: 68vh; min-height: 430px; }
   .gallery-workspace figure { width: 980px; padding: 12px; }
   .llada-gallery-workspace figure { width: 900px; }
   .vqa-summary { align-items: flex-start; flex-direction: column; gap: 5px; }
-  .case-panel { width: 980px; padding: 14px; }
+  .disclosure-gallery { gap: 18px; padding: 12px; }
+  .disclosure-gallery figure { padding: 10px; }
   .paired-metrics { grid-template-columns: 1fr; }
   .result-row { grid-template-columns: 1fr 1.2fr 0.75fr 0.75fr; }
   .result-row > * { padding: 10px 5px; overflow-wrap: anywhere; }
