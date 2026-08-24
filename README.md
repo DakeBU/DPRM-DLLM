@@ -1,8 +1,8 @@
 # DPRM: A Plug-in Token-Ordering Module for Discrete Diffusion Models
 
 <p align="center">
-  Dake Bu<sup>1,6</sup>, Wei Huang<sup>2,3</sup>, Andi Han<sup>4</sup>, Si Wu<sup>5</sup>,<br>
-  Hau-San Wong<sup>1,*</sup>, Qingfu Zhang<sup>1</sup>, Taiji Suzuki<sup>2,7</sup>, Atsushi Nitanda<sup>6,8,*</sup>
+  Dake Bu<sup>1,2</sup>, Wei Huang<sup>3,4</sup>, Andi Han<sup>5</sup>, Si Wu<sup>6</sup>,<br>
+  Hau-San Wong<sup>1,*</sup>, Qingfu Zhang<sup>1</sup>, Taiji Suzuki<sup>3,7</sup>, Atsushi Nitanda<sup>2,8,*</sup>
 </p>
 <p align="center">ICML 2026 FoGen (<strong>Oral</strong>)</p>
 
@@ -13,7 +13,7 @@
   <a href="https://huggingface.co/DarkerBu/DPRM-DLLM"><img alt="Hugging Face artifacts" src="https://img.shields.io/badge/Hugging_Face-Artifacts-ffd21e?style=for-the-badge&logo=huggingface&logoColor=111111"></a>
 </p>
 
-<p align="center"><sub><sup>1</sup>City University of Hong Kong · <sup>2</sup>RIKEN AIP · <sup>3</sup>The Institute of Statistical Mathematics · <sup>4</sup>University of Sydney<br><sup>5</sup>South China University of Technology · <sup>6</sup>CFAR and IHPC, A*STAR · <sup>7</sup>The University of Tokyo · <sup>8</sup>Nanyang Technological University · <sup>*</sup>Corresponding authors</sub></p>
+<p align="center"><sub><sup>1</sup>City University of Hong Kong · <sup>2</sup>CFAR and IHPC, A*STAR · <sup>3</sup>RIKEN AIP · <sup>4</sup>The Institute of Statistical Mathematics<br><sup>5</sup>University of Sydney · <sup>6</sup>South China University of Technology · <sup>7</sup>The University of Tokyo · <sup>8</sup>Nanyang Technological University · <sup>*</sup>Corresponding authors</sub></p>
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-4c8bf5?style=flat-square"></a>
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776ab?style=flat-square&logo=python&logoColor=white">
