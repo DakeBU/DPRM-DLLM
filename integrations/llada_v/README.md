@@ -1,6 +1,6 @@
 # DPRM-LLaDA-V
 
-LLaDA-V conditions a diffusion language model on an encoded image. DPRM orders
+LLaDA-V conditions a discrete diffusion model on an encoded image. DPRM orders
 masked answer-token positions; token identities still come from the same
 image-conditioned logits. The bucket key contains decode phase, confidence,
 prompt-only answer format, candidate EOT status, and relative answer position.

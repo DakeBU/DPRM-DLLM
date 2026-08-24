@@ -40,7 +40,7 @@ tags:
 # DPRM Release Artifacts
 
 This bundle contains the retained DPRM states and raw evaluation records for
-**DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models**.
+**DPRM: A Plug-in Token-Ordering Module for Discrete Diffusion Models**.
 The executable integrations, exact commands, and uncertainty reducers are in
 [DakeBU/DPRM-DLLM](https://github.com/DakeBU/DPRM-DLLM). The paper is available
 at [arXiv:2604.24357](https://arxiv.org/abs/2604.24357), and the scrollable

@@ -1,4 +1,4 @@
-# DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models
+# DPRM: A Plug-in Token-Ordering Module for Discrete Diffusion Models
 
 <p align="center">
   Dake Bu<sup>1,6</sup>, Wei Huang<sup>2,3</sup>, Andi Han<sup>4</sup>, Si Wu<sup>5</sup>,<br>
@@ -51,7 +51,7 @@ labels it simply as DPRM.
 | DPLM-2 Bit | CoGen balanced utility | 0.7355 | **0.7377** | **+0.3%** |
 | DCM | Nonzero recovery | 0.01826 | **0.01978** | **+8.3%** |
 | GenMol V2 | QED | 0.6392 | **0.7350** | **+15.0%** |
-| SDPO-DNA | Total utility | 1.141 | **2.119** | **+85.7%** |
+| SDPO-DNA | Total utility, 3-seed mean | 1.389 | **2.129** | **+53.3%** |
 
 Prism raises mean NFE from `609` to `1071`; it is a quality--compute result.
 Intervals, preference endpoints, and all retained per-example records are on the
@@ -231,7 +231,7 @@ scripts/              release verification and command launcher
 
 ```bibtex
 @article{bu2026dprm,
-  title   = {DPRM: A Plug-in Token-Ordering Module for Diffusion Language Models},
+  title   = {DPRM: A Plug-in Token-Ordering Module for Discrete Diffusion Models},
   author  = {Bu, Dake and Huang, Wei and Han, Andi and Wu, Si and Wong, Hau-San and Zhang, Qingfu and Suzuki, Taiji and Nitanda, Atsushi},
   journal = {arXiv preprint arXiv:2604.24357},
   year    = {2026}
