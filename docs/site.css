@@ -149,7 +149,10 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
 .trajectory-gallery { width: max(100%, 1500px); }
 .four-policy-gallery { width: max(100%, 1420px); }
 .scroll-gallery figure { margin: 0; padding: 14px; background: white; }
-.scroll-gallery img { width: 100%; }
+.scroll-gallery img {
+  width: 100%;
+  height: auto;
+}
 .image-metadata-crop { overflow: hidden; }
 .image-metadata-crop img { display: block; margin-top: -5.5%; }
 .scroll-gallery figcaption { max-width: 980px; padding: 12px 2px 2px; color: #3f454b; font-size: 13px; line-height: 1.5; }
