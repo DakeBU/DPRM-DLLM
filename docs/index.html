@@ -18,6 +18,7 @@
     <nav aria-label="Primary navigation">
       <a href="#visual-order">Visual order</a>
       <a href="#vqa-gallery">VQA</a>
+      <a href="#reasoning-gallery">Reasoning</a>
       <a href="#results">Results</a>
       <a href="#diagnostics">Diagnostics</a>
     </nav>
@@ -130,6 +131,23 @@
       <div class="vqa-summary"><strong>+8.97 percentage points</strong><span>32.05% confidence → 41.03% DPRM · paired 95% CI [+2.56, +15.38]</span></div>
     </section>
 
+    <section class="section reasoning-gallery-section" id="reasoning-gallery">
+      <div class="section-heading">
+        <p class="eyebrow">PUMA · GSM8K</p>
+        <h2>Reward tilt reveals a wider reasoning context</h2>
+        <p>Six DPRM-only wins show how the gated reward correction can promote a still-masked position over confidence. The examples cover sign, time aggregation, rate hierarchy, discount, remaining-quantity, and unit-conversion errors. They interpret the paired trained pipelines; the aggregate claim uses all 1,319 questions.</p>
+      </div>
+      <div class="gallery-tabs" role="tablist" aria-label="PUMA reasoning gallery pages">
+        <button class="puma-gallery-tab active" role="tab" aria-selected="true" data-puma-gallery="1">Cases 1–3</button>
+        <button class="puma-gallery-tab" role="tab" aria-selected="false" data-puma-gallery="2">Cases 4–6</button>
+      </div>
+      <div class="gallery-workspace puma-gallery-workspace" tabindex="0" aria-label="Scrollable PUMA DPRM-only reasoning examples">
+        <figure class="puma-gallery-panel active" data-puma-panel="1"><img src="assets/puma_reasoning_gallery_1.webp" alt="Three PUMA DPRM-only GSM8K wins showing pond visibility, two-week story totals, and dehumidifier rates."></figure>
+        <figure class="puma-gallery-panel" data-puma-panel="2" hidden><img src="assets/puma_reasoning_gallery_2.webp" alt="Three PUMA DPRM-only GSM8K wins showing a discount, remaining marbles, and egg revenue per dozen."></figure>
+      </div>
+      <div class="reasoning-summary"><strong>169 DPRM-only wins</strong><span>34.50% DPRM vs. 30.10% confidence · paired 95% delta interval [+1.90, +6.90] percentage points</span></div>
+    </section>
+
     <section class="section results-section" id="results">
       <div class="section-heading compact">
         <p class="eyebrow">Nine host settings</p>
@@ -180,8 +198,8 @@
         <p>Entropy-only and random-order controls do not reproduce the gains. The saved traces instead test whether terminal reward identifies useful uncertain positions rather than merely preferring uncertainty.</p>
       </div>
       <div class="diagnostic-grid">
-        <figure class="wide"><img src="assets/puma-order-case.png" alt="Two PUMA reasoning traces comparing confidence and DPRM reveal order."><figcaption><strong>Reasoning.</strong> DPRM reveals wider context, backfills earlier positions, and delays numeric commitment on two DPRM-only GSM8K wins.</figcaption></figure>
-        <figure><img src="assets/lladav-order-case.png" alt="LLaDA-V same-canvas intervention showing cone before number."><figcaption><strong>Visual question answering.</strong> Revealing the object word before the numeric slot preserves the context needed for the correct count.</figcaption></figure>
+        <figure class="wide"><img src="assets/puma-order-case.png" alt="Two PUMA reasoning traces comparing confidence and DPRM reveal order."><figcaption><strong>Reasoning summary.</strong> The original two cases remain here; the six-case gallery above adds four distinct arithmetic failure modes.</figcaption></figure>
+        <figure><img src="assets/lladav-order-case.png" alt="LLaDA-V same-canvas intervention showing cone before number."><figcaption><strong>Visual question answering summary.</strong> Revealing the object word before the numeric slot preserves context for the correct count; the VQA gallery shows all seven held-out wins.</figcaption></figure>
         <figure><img src="assets/countdown-token-diagnostics.png" alt="Countdown confidence-bin and token-level diagnostics."><figcaption><strong>Hard order classes.</strong> Confidence selects easy states early; reward tilt restores selected low-confidence regions later.</figcaption></figure>
         <figure class="wide"><img src="assets/theory-diagnostics.png" alt="Theory-facing diagnostics for Countdown, DNA, and VQA."><figcaption><strong>Mechanism controls.</strong> Hard/OOD, shuffled-value, entropy-only, and format-aware controls isolate terminal-utility effects.</figcaption></figure>
         <figure class="wide"><img src="assets/scientific-preferences.png" alt="Scientific-domain radar charts for protein, cells, molecules, and DNA."><figcaption><strong>Scientific preferences.</strong> Weighted and Tchebycheff rewards expose controllable Pareto responses across four scientific hosts.</figcaption></figure>

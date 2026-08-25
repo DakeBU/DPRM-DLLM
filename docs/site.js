@@ -33,6 +33,7 @@ function bindTabs(buttonSelector, panelSelector, buttonKey, panelKey, workspaceS
 
 document.addEventListener("DOMContentLoaded", () => {
   bindTabs(".llada-gallery-tab", ".llada-gallery-panel", "lladaGallery", "lladaPanel", ".llada-gallery-workspace");
+  bindTabs(".puma-gallery-tab", ".puma-gallery-panel", "pumaGallery", "pumaPanel", ".puma-gallery-workspace");
   bindTabs(".host-tab", ".host-panel", "host", "hostPanel");
   if (window.lucide) window.lucide.createIcons();
 });

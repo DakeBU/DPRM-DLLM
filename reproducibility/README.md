@@ -22,3 +22,12 @@ README and in `experiments.json`. Development sweeps and held-out confirmation
 sets are disjoint where a controller or scalarization preference is selected.
 Canonical paper rows are written only after the corresponding raw-record and
 artifact checks pass.
+
+Project-page qualitative galleries have separate, non-promotional manifests:
+
+- `puma_qualitative_gallery.json` identifies the six displayed DPRM-only GSM8K
+  wins and states their pipeline-level interpretation boundary.
+- `llada_v_qualitative_gallery.json` identifies all seven strict held-out
+  numeric/count wins; this class has no DPRM losses on the declared interval.
+- the `omni_*gallery*.json` records pin the prompt and reader-facing visual
+  selections made after the controller and aggregate evaluation were frozen.

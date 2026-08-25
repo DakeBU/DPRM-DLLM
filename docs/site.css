@@ -187,6 +187,11 @@ h2 { margin: 0; font-size: 42px; line-height: 1.08; }
 .vqa-summary { display: flex; align-items: baseline; gap: 18px; margin-top: 16px; padding: 16px 0; border-top: 1px solid var(--ink); }
 .vqa-summary strong { color: var(--green-ink); font-size: 20px; }
 .vqa-summary span { color: var(--muted); font-size: 12px; }
+.reasoning-gallery-section { border-top: 1px solid var(--line); background: #fafafa; }
+.puma-gallery-workspace figure { width: max(100%, 1120px); }
+.reasoning-summary { display: flex; align-items: baseline; gap: 18px; margin-top: 16px; padding: 16px 0; border-top: 1px solid var(--ink); }
+.reasoning-summary strong { color: var(--coral-dark); font-size: 20px; }
+.reasoning-summary span { color: var(--muted); font-size: 12px; }
 
 .results-section { border-top: 1px solid var(--line); }
 .host-tabs { margin-bottom: 8px; }
@@ -236,7 +241,9 @@ footer span:first-child { color: white; font: 700 18px/1 "Source Serif 4", Georg
   .gallery-workspace { height: 68vh; min-height: 430px; }
   .gallery-workspace figure { width: 980px; padding: 12px; }
   .llada-gallery-workspace figure { width: 900px; }
+  .puma-gallery-workspace figure { width: 900px; }
   .vqa-summary { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .reasoning-summary { align-items: flex-start; flex-direction: column; gap: 5px; }
   .media-scroll { height: 66vh; min-height: 460px; }
   .scroll-gallery { gap: 14px; padding: 12px; }
   .trajectory-gallery, .four-policy-gallery { width: 1120px; }
