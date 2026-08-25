@@ -2,10 +2,10 @@
   "task": "GSM8K",
   "checkpoint_endpoint": "paired 2.00M EMA checkpoints",
   "decode_setting": "unmasking width 3",
-  "selection_rule": "Six DPRM-only wins selected after the paired aggregate audit to cover distinct arithmetic failure modes. Cases 159 and 284 are the original paper examples; cases 1209, 246, 908, and 50 extend the project-page gallery.",
+  "selection_rule": "Six DPRM-only wins selected after the paired aggregate audit to cover distinct arithmetic failure modes. Case 159 is the main-paper representative; cases 284, 1209, 246, 908, and 50 appear in the supplement. The project page shows all six.",
   "case_pages": [
     [159, 284, 1209],
     [246, 908, 50]
   ],
-  "metric_use": "The gallery is qualitative pipeline-level interpretation. Aggregate claims use all 1319 paired examples, and the same-checkpoint decoder probe is reported separately."
+  "metric_use": "The gallery is qualitative pipeline-level interpretation. The main-paper and supplement case sets are disjoint. Aggregate claims use all 1319 paired examples, and the same-checkpoint decoder probe is reported separately."
 }

@@ -291,7 +291,8 @@ def render_page(output: Path, indices: tuple[int, ...], cases: dict[int, dict[st
             "pdf.fonttype": 42,
         }
     )
-    fig, ax = plt.subplots(figsize=(16, 12.2), dpi=160, facecolor=SOFT)
+    fig_height = 4.05 + 2.72 * len(indices)
+    fig, ax = plt.subplots(figsize=(16, fig_height), dpi=160, facecolor=SOFT)
     ax.set_axis_off()
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -315,9 +316,10 @@ def render_page(output: Path, indices: tuple[int, ...], cases: dict[int, dict[st
         va="top",
     )
 
-    row_height = 0.255
     row_gap = 0.015
     first_top = 0.865
+    bottom = 0.035
+    row_height = (first_top - bottom - row_gap * (len(indices) - 1)) / len(indices)
     for row, index in enumerate(indices):
         y = first_top - row * (row_height + row_gap) - row_height
         draw_case(ax, index, cases[index], y, row_height)
@@ -327,13 +329,35 @@ def render_page(output: Path, indices: tuple[int, ...], cases: dict[int, dict[st
     plt.close(fig)
     buffer.seek(0)
     with Image.open(buffer) as image:
-        image.save(output, format="WEBP", quality=92, method=6)
+        if output.suffix.lower() == ".webp":
+            image.save(output, format="WEBP", quality=92, method=6)
+        else:
+            image.save(output, format="PNG", optimize=True)
+
+
+def parse_pages(value: str | None) -> tuple[tuple[int, ...], ...]:
+    if not value:
+        return PAGES
+    pages = tuple(
+        tuple(int(item.strip()) for item in page.split(",") if item.strip())
+        for page in value.split(";")
+        if page.strip()
+    )
+    if not pages or any(not page for page in pages):
+        raise ValueError("--pages must contain semicolon-separated, non-empty case-id lists")
+    unknown = sorted({index for page in pages for index in page} - set(CASE_SPECS))
+    if unknown:
+        raise ValueError(f"unknown case ids in --pages: {unknown}")
+    return pages
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--pages", help="Semicolon-separated pages of comma-separated case ids")
+    parser.add_argument("--output-prefix", default="puma_reasoning_gallery")
+    parser.add_argument("--format", choices=("webp", "png"), default="webp")
     return parser.parse_args()
 
 
@@ -341,8 +365,8 @@ def main() -> None:
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     cases = load_cases(args.trace_dir)
-    for page_number, indices in enumerate(PAGES, start=1):
-        output = args.output_dir / f"puma_reasoning_gallery_{page_number}.webp"
+    for page_number, indices in enumerate(parse_pages(args.pages), start=1):
+        output = args.output_dir / f"{args.output_prefix}_{page_number}.{args.format}"
         render_page(output, indices, cases)
         print(output)
 

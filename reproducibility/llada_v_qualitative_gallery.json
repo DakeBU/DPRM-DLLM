@@ -7,5 +7,5 @@
   "controller": "p1_b8_pos4, guidance 4.0",
   "selection_rule": "All seven DPRM-only wins in the prompt-defined numeric/count class, ordered by document id. This class has seven wins and zero losses on the strict held-out interval.",
   "doc_ids": [308, 352, 429, 472, 528, 553, 760],
-  "metric_use": "The gallery is a visualization of the already reported paired audit and is not a controller-selection set."
+  "metric_use": "The gallery is a visualization of the already reported paired audit and is not a controller-selection set. Document 308 is the main-paper representative; the supplement shows the other six documents, while the project page shows all seven."
 }

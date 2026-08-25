@@ -67,14 +67,27 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--tex-output", type=Path)
     parser.add_argument("--dataset", default="lmms-lab/RealWorldQA")
+    parser.add_argument("--exclude-doc-ids", nargs="*", type=int, default=[])
+    parser.add_argument("--page-size", type=int, default=4)
+    parser.add_argument("--output-prefix", default="lladav_realworldqa_gallery")
     args = parser.parse_args()
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    if args.page_size < 1:
+        raise ValueError("--page-size must be positive")
+    manifest_doc_ids = [int(doc_id) for doc_id in manifest["doc_ids"]]
+    excluded = set(args.exclude_doc_ids)
+    unknown_exclusions = sorted(excluded - set(manifest_doc_ids))
+    if unknown_exclusions:
+        raise ValueError(f"excluded document ids are not in the manifest: {unknown_exclusions}")
+    selected_doc_ids = [doc_id for doc_id in manifest_doc_ids if doc_id not in excluded]
+    if not selected_doc_ids:
+        raise ValueError("all manifest documents were excluded")
     confidence = read_rows(args.confidence_records)
     dprm = read_rows(args.dprm_records)
     dataset = load_dataset(args.dataset, split="test")
     cases = []
-    for doc_id in manifest["doc_ids"]:
+    for doc_id in selected_doc_ids:
         left, right = confidence[int(doc_id)], dprm[int(doc_id)]
         if target_normalized_match(left) or not target_normalized_match(right):
             raise ValueError(f"document {doc_id} is not a DPRM-only win")
@@ -91,19 +104,37 @@ def main() -> None:
         )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    pages = [cases[:4], cases[4:]]
+    pages = [cases[start : start + args.page_size] for start in range(0, len(cases), args.page_size)]
     paths = []
     for index, page in enumerate(pages, start=1):
-        path = args.output_dir / f"lladav_realworldqa_gallery_{index}.png"
+        path = args.output_dir / f"{args.output_prefix}_{index}.png"
         render_page(page, path)
         paths.append(path)
     public_cases = [{key: value for key, value in case.items() if key != "image"} for case in cases]
-    (args.output_dir / "lladav_realworldqa_gallery_records.json").write_text(
-        json.dumps({"manifest": str(args.manifest), "cases": public_cases}, indent=2) + "\n",
+    (args.output_dir / f"{args.output_prefix}_records.json").write_text(
+        json.dumps(
+            {
+                "manifest": str(args.manifest),
+                "excluded_doc_ids": sorted(excluded),
+                "cases": public_cases,
+            },
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
     )
 
     if args.tex_output:
+        if excluded:
+            evidence_note = (
+                f"Main-paper document(s) {', '.join(str(doc_id) for doc_id in sorted(excluded))} are omitted; "
+                f"the gallery contains the remaining {len(cases)} DPRM-only wins."
+            )
+        else:
+            evidence_note = (
+                "The gallery contains all seven DPRM-only wins in this prompt-defined class; "
+                "the class has no DPRM losses."
+            )
         lines = []
         for index, path in enumerate(paths, start=1):
             lines.extend(
@@ -112,9 +143,9 @@ def main() -> None:
                     "\\centering",
                     f"\\includegraphics[width=\\linewidth]{{figs/{path.name}}}",
                     "\\caption{RealWorldQA strict held-out numeric/count wins "
-                    f"({index}/2). Each row shows the evaluation image, question, confidence-order answer, DPRM answer, and target. "
-                    "The gallery contains all seven DPRM-only wins in this prompt-defined class; the class has no DPRM losses.}",
-                    f"\\label{{fig:lladav_realworldqa_gallery_{index}}}",
+                    f"({index}/{len(paths)}). Each row shows the evaluation image, question, confidence-order answer, DPRM answer, and target. "
+                    f"{evidence_note}}}",
+                    f"\\label{{fig:{args.output_prefix}_{index}}}",
                     "\\end{figure}",
                     "",
                 ]
